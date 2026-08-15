@@ -1,11 +1,15 @@
+# bindings/shopdemo/ios.yaml
 surface: ios
 elements:
   field:email:        { accessibilityId: email-input }
+  field:card_number:  { accessibilityId: card-number-input }
+  button:add_to_cart: { accessibilityId: add-to-cart-btn }
   button:place_order: { accessibilityId: place-order-btn }
   badge:cart_count:   { accessibilityId: cart-count }
   item:first_product: { accessibilityId: product-card, nth: 0 }
 screens:
-  screen:catalog:  { deeplink: "shopdemo://catalog",  ready: { accessibilityId: catalog-root } }
-  screen:checkout: { deeplink: "shopdemo://checkout", ready: { accessibilityId: checkout-form } }
+  screen:catalog:        { deeplink: "shopdemo://catalog",       ready: { accessibilityId: catalog-root } }
+  screen:product_detail: { deeplink: "shopdemo://product/first", ready: { accessibilityId: product-detail } }
+  screen:checkout:       { deeplink: "shopdemo://checkout",      ready: { accessibilityId: checkout-form } }
 states:
   state:order_confirmed: { accessibilityId: order-confirmation }
