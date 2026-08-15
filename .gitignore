@@ -1,0 +1,45 @@
+# dependencies
+node_modules/
+
+# secrets, never commit. DB connection strings live here.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+service-account*.json
+gha-creds-*.json
+
+# run artifacts and evidence bundles
+.attest/
+artifacts/
+runs/
+*.har
+*.webm
+*.trace.zip
+test-results/
+playwright-report/
+
+# mobile build inputs and outputs
+*.apk
+*.aab
+*.ipa
+*.app.zip
+
+# OS and editor
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+.idea/
+.vscode/*
+!.vscode/settings.json
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# logs
+*.log
+npm-debug.log*
