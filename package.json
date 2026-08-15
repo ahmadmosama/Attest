@@ -11,9 +11,10 @@
   },
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",
+    "test:acceptance": "node --test \"test/acceptance/*.test.mjs\"",
     "lint": "oxlint src test tools",
     "lint:boundary": "node tools/check-import-boundary.mjs",
-    "check": "npm run lint && npm run lint:boundary && npm test"
+    "check": "npm run lint && npm run lint:boundary && npm test && npm run test:acceptance"
   },
   "dependencies": {
     "cli-table3": "0.6.5",

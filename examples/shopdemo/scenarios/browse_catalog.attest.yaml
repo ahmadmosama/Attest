@@ -1,0 +1,10 @@
+id: catalog.browse
+requirement: [REQ-CAT-001]
+tags: [smoke]
+
+steps:
+  - open: screen:catalog
+  - expect_visible: item:first_product
+  - scroll_until_visible: item:featured_product
+  - tap: item:featured_product
+  - expect_visible: screen:product_detail

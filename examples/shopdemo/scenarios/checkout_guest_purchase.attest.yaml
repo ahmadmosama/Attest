@@ -1,0 +1,16 @@
+id: checkout.guest_purchase
+requirement: [REQ-CHK-004, REQ-CHK-011]
+tags: [smoke, checkout]
+data:
+  seed: fixtures/one_product.seed.yaml
+
+steps:
+  - open: screen:catalog
+  - tap: item:first_product
+  - expect_visible: screen:product_detail
+  - tap: button:add_to_cart
+  - expect_text: { target: badge:cart_count, equals: "1" }
+  - open: screen:checkout
+  - checkpoint: cart_filled
+  - tap: button:place_order
+  - expect_visible: state:order_confirmed

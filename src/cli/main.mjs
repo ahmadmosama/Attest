@@ -41,6 +41,7 @@ function programFor(io) {
     .option("--headed")
     .option("--dry-run")
     .option("--artifacts <dir>")
+    .option("--requirements <file>")
     .option("--timeout-step <ms>", undefined, parseInteger)
     .option("--timeout-scenario <ms>", undefined, parseInteger)
     .option("--fail-on-skip")
@@ -59,6 +60,7 @@ function programFor(io) {
         ...(options.app === undefined ? {} : { app: options.app }),
         ...(options.surface === undefined ? {} : { surfaces: options.surface }),
         ...(options.artifacts === undefined ? {} : { artifactRoot: options.artifacts }),
+        ...(options.requirements === undefined ? {} : { requirementsFile: options.requirements }),
         ...(Object.keys(timeouts).length === 0 ? {} : { timeouts }),
         ...(options.failOnSkip === undefined ? {} : { failOnSkip: options.failOnSkip }),
         ...(options.color === undefined ? {} : { color: options.color }),

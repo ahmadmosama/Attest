@@ -1,0 +1,15 @@
+surface: web
+elements:
+  field:email: { testId: email-input, role: textbox, name: "Email" }
+  field:card_number: { testId: card-number-input, role: textbox, name: "Card number" }
+  button:add_to_cart: { role: button, name: "Add to cart" }
+  button:place_order: { role: button, name: "Place order" }
+  badge:cart_count: { testId: cart-count }
+  item:first_product: { role: listitem, nth: 0, within: product-grid }
+  item:featured_product: { role: listitem, name: "Featured product" }
+screens:
+  screen:catalog: { path: "/", ready: { role: heading, name: "Catalog" } }
+  screen:product_detail: { path: "/product/featured", ready: { testId: product-detail } }
+  screen:checkout: { path: "/checkout", ready: { testId: checkout-form } }
+states:
+  state:order_confirmed: { testId: order-confirmation }

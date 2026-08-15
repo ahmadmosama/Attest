@@ -1,0 +1,6 @@
+{
+  "artifactRoot": ".attest/runs",
+  "scenariosGlob": ["examples/shopdemo/scenarios/*.attest.yaml"],
+  "bindingsDir": "examples/shopdemo/bindings",
+  "surfaces": ["web", "android"]
+}
