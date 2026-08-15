@@ -1,0 +1,9 @@
+id: invalid.wildcard_ignore
+requirement: [REQ-BAN-008]
+suppressions:
+  - kind: ignore
+    entity: "orders_*"
+    reason: legacy import rows are ignored during this flow
+    expires: 2026-12-31
+steps:
+  - open: screen:catalog

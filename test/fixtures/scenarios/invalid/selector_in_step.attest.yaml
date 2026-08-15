@@ -1,0 +1,4 @@
+id: invalid.selector_in_step
+requirement: [REQ-BAN-004]
+steps:
+  - tap: "#place-order"

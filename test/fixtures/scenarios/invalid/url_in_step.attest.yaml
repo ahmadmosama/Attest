@@ -1,0 +1,4 @@
+id: invalid.url_in_step
+requirement: [REQ-BAN-005]
+steps:
+  - open: "https://shop.example.com/checkout"

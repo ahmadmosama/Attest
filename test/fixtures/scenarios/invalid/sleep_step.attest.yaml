@@ -1,0 +1,6 @@
+id: invalid.sleep_step
+requirement: [REQ-BAN-001]
+steps:
+  - tap:
+      target: button:continue
+      sleep: true

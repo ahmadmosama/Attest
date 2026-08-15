@@ -1,0 +1,6 @@
+id: invalid.platform_conditional
+requirement: [REQ-BAN-003]
+steps:
+  - tap:
+      target: button:continue
+      if: platform == android

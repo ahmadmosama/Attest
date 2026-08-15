@@ -1,0 +1,6 @@
+id: invalid.platform_name
+requirement: [REQ-BAN-006]
+steps:
+  - fill:
+      target: field:notes
+      value: "desktop web checkout"

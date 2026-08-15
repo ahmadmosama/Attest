@@ -1,0 +1,6 @@
+id: invalid.raw_no_reason
+requirement: [REQ-BAN-009]
+steps:
+  - raw:
+      web:
+        script: noop()

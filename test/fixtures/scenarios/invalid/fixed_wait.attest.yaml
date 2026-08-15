@@ -1,0 +1,6 @@
+id: invalid.fixed_wait
+requirement: [REQ-BAN-002]
+steps:
+  - tap:
+      target: button:continue
+      wait_ms: 500

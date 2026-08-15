@@ -1,0 +1,10 @@
+surface: web
+elements:
+  field:email:        { testId: email-input, role: textbox, name: "Email" }
+  badge:cart_count:   { testId: cart-count }
+  item:first_product: { role: listitem, nth: 0, within: testId:product-grid }
+screens:
+  screen:catalog:  { path: "/",         ready: { role: heading, name: "Catalog" } }
+  screen:checkout: { path: "/checkout", ready: { testId: checkout-form } }
+states:
+  state:order_confirmed: { testId: order-confirmation }
