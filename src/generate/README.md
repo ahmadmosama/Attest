@@ -1,0 +1,1 @@
+`generate/` is a leaf: nothing under `src/` outside this directory may import from it. The rule is enforced by `tools/check-import-boundary.mjs`, and that import direction is the mechanical proof of RUN-02.
