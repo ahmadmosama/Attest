@@ -1,0 +1,4 @@
+id: malformed.syntax
+requirement: [REQ-BAD-001
+steps:
+  - open: screen:catalog

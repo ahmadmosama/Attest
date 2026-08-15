@@ -1,0 +1,9 @@
+id: checkout.raw_escape_hatch
+requirement: [REQ-CHK-099]
+steps:
+  - raw:
+      reason: captcha has no accessible handle
+      web:
+        script: document.querySelector("[data-test=captcha]").click()
+      android:
+        uiautomator: new UiSelector().description("captcha")

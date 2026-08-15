@@ -1,0 +1,4 @@
+id: smoke.minimal
+requirement: [REQ-SMOKE-001]
+steps:
+  - open: screen:catalog

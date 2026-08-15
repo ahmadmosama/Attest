@@ -10,7 +10,7 @@
     "node": ">=24.13.0"
   },
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test \"test/**/*.test.mjs\"",
     "lint": "oxlint src test tools",
     "lint:boundary": "node tools/check-import-boundary.mjs",
     "check": "npm run lint && npm run lint:boundary && npm test"

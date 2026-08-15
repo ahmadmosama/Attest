@@ -1,0 +1,25 @@
+id: checkout.guest_purchase
+requirement: [REQ-CHK-004, REQ-CHK-011]
+capabilities: [file_upload]        # optional, additive to per step demands
+data:
+  seed: fixtures/one_product.seed.yaml
+
+steps:
+  - open: screen:catalog
+  - tap: item:first_product
+  - expect_visible: screen:product_detail
+  - tap: button:add_to_cart
+  - expect_text: { target: badge:cart_count, equals: "1" }
+  - open: screen:checkout
+  - fill: { target: field:email, value: "{{tenant.email}}" }
+  - fill: { target: field:card_number, value: "{{fixture.test_card}}" }
+  - checkpoint: cart_filled          # screenshot boundary
+  - delta_window: open               # DB capture window opens here
+  - tap: button:place_order
+  - expect_visible: state:order_confirmed
+  - delta_window: close
+    expect_mutations:
+      - { entity: orders,      op: insert, count: 1, where: { status: "paid" } }
+      - { entity: order_items, op: insert, count: 1 }
+      - { entity: inventory,   op: update, count: 1, changed: [quantity] }
+    require_no_unexplained: true
