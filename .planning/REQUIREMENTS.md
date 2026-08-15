@@ -179,12 +179,91 @@ Isolation is scenario scoped tenancy by default.
 
 ## Traceability
 
-Populated during roadmap creation.
+Every v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for phase goals
+and success criteria.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SCEN-01 | Phase 1 | Pending |
+| SCEN-02 | Phase 1 | Pending |
+| SCEN-03 | Phase 1 | Pending |
+| SCEN-04 | Phase 1 | Pending |
+| SCEN-05 | Phase 1 | Pending |
+| SCEN-06 | Phase 1 | Pending |
+| SCEN-07 | Phase 1 | Pending |
+| SCEN-08 | Phase 1 | Pending |
+| RUN-01 | Phase 1 | Pending |
+| RUN-02 | Phase 1 | Pending |
+| RUN-03 | Phase 1 | Pending |
+| RUN-04 | Phase 1 | Pending |
+| RUN-05 | Phase 3 | Pending |
+| RUN-06 | Phase 1 | Pending |
+| RUN-07 | Phase 1 | Pending |
+| WEB-01 | Phase 2 | Pending |
+| WEB-02 | Phase 2 | Pending |
+| DROID-01 | Phase 5 | Pending |
+| DROID-02 | Phase 5 | Pending |
+| DROID-03 | Phase 5 | Pending |
+| DROID-04 | Phase 5 | Pending |
+| IOS-01 | Phase 7 | Pending |
+| IOS-02 | Phase 7 | Pending |
+| DB-01 | Phase 3 | Pending |
+| DB-02 | Phase 3 | Pending |
+| DB-03 | Phase 6 | Pending |
+| DB-04 | Phase 6 | Pending |
+| DB-05 | Phase 6 | Pending |
+| DB-06 | Phase 6 | Pending |
+| DB-07 | Phase 3 | Pending |
+| DB-08 | Phase 3 | Pending |
+| DB-09 | Phase 3 | Pending |
+| DB-10 | Phase 3 | Pending |
+| DELTA-01 | Phase 3 | Pending |
+| DELTA-02 | Phase 3 | Pending |
+| DELTA-03 | Phase 3 | Pending |
+| DELTA-04 | Phase 3 | Pending |
+| DELTA-05 | Phase 3 | Pending |
+| DELTA-06 | Phase 3 | Pending |
+| DELTA-07 | Phase 3 | Pending |
+| DELTA-08 | Phase 3 | Pending |
+| DELTA-09 | Phase 3 | Pending |
+| DELTA-10 | Phase 3 | Pending |
+| DELTA-11 | Phase 3 | Pending |
+| ISO-01 | Phase 3 | Pending |
+| ISO-02 | Phase 3 | Pending |
+| ISO-03 | Phase 4 | Pending |
+| EVID-01 | Phase 2 | Pending |
+| EVID-02 | Phase 3 | Pending |
+| EVID-03 | Phase 1 | Pending |
+| GEN-01 | Phase 6 | Pending |
+| GEN-02 | Phase 6 | Pending |
+| GEN-03 | Phase 6 | Pending |
+| GEN-04 | Phase 6 | Pending |
+| GEN-05 | Phase 6 | Pending |
+| SELF-01 | Phase 4 | Pending |
+| SELF-02 | Phase 4 | Pending |
+| SELF-03 | Phase 4 | Pending |
+| INTEG-01 | Phase 7 | Pending |
+| INTEG-02 | Phase 7 | Pending |
+| INTEG-03 | Phase 7 | Pending |
+
+**Per phase totals:**
+
+| Phase | Requirements |
+|-------|--------------|
+| Phase 1: Scenario Compiler and Run Contract | 15 |
+| Phase 2: Web Surface and Evidence Bundle | 3 |
+| Phase 3: Database Capture and the Delta Engine | 21 |
+| Phase 4: Self Verification | 4 |
+| Phase 5: Android Surface | 4 |
+| Phase 6: Remaining Drivers and Scenario Generation | 9 |
+| Phase 7: iOS on CI and the Pipeline Gate | 5 |
 
 **Coverage:**
 - v1 requirements: 61 total
-- Mapped to phases: pending roadmap
-- Unmapped: pending roadmap
+- Mapped to phases: 61
+- Unmapped: 0
+- Duplicated across phases: 0
 
 ---
 *Requirements defined: 2026-08-15*
+*Traceability populated: 2026-08-15 during roadmap creation*
