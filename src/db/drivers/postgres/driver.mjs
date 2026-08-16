@@ -10,6 +10,7 @@ import {
   slotNameFor,
   sweepOrphanSlots
 } from "./slots.mjs";
+import { closePostgresWindow, openPostgresWindow } from "./window.mjs";
 
 const DEFAULT_BATCH_SIZE = 1000;
 const FENCING_PLAN = "03-11";
@@ -106,7 +107,9 @@ function defaultDependencies() {
     createPgClient,
     createSlot,
     dropSlot,
+    closePostgresWindow,
     runPreflight,
+    openPostgresWindow,
     selectCaptureStrategy,
     slotNameFor,
     sweepOrphanSlots
@@ -164,6 +167,36 @@ function capabilitiesNotReady() {
   );
 }
 
+function opSignal(ctx, fallback) {
+  return ctx?.signal ?? fallback ?? null;
+}
+
+function opContext(ctx) {
+  return ctx?.ctx ?? ctx ?? {};
+}
+
+function openOpFrom(input) {
+  return isPlainObject(input) && input.kind === "db_window_open" ? input : input?.op ?? input ?? {};
+}
+
+function closeOpFrom(input, options) {
+  if (isPlainObject(input) && input.kind === "db_window_close") {
+    return input;
+  }
+
+  if (isPlainObject(options?.op)) {
+    return options.op;
+  }
+
+  return isPlainObject(options) && options.kind === "db_window_close" ? options : {};
+}
+
+function readyOrPlanned(state, method) {
+  if (state.capture === null || state.slotName === null || state.client === null) {
+    throw notImplemented(method);
+  }
+}
+
 /**
  * Assemble the Postgres database driver behind the Phase 1 port.
  *
@@ -186,6 +219,7 @@ export function createPostgresDriver({
     client: null,
     slotName: null,
     capture: null,
+    window: null,
     capabilities: null,
     preflightResult: null,
     closed: false
@@ -256,16 +290,68 @@ export function createPostgresDriver({
         "E_DB_OPEN_WINDOW_ABORTED",
         "PostgreSQL openWindow was aborted."
       );
-      throw notImplemented("openWindow");
+      readyOrPlanned(state, "openWindow");
+
+      const op = openOpFrom(ctx);
+      const outerCtx = opContext(ctx);
+      state.window = await deps.openPostgresWindow({
+        client: state.client,
+        capture: state.capture,
+        runId,
+        scenarioId: op.scenarioId ?? scenarioId,
+        surface: surfaceFor(config, outerCtx),
+        seq: op.seq,
+        signal: opSignal(ctx)
+      });
+      return state.window;
     },
 
-    async closeWindow(_window, ctx = {}) {
+    async closeWindow(windowHandle = null, ctx = {}) {
       throwIfAborted(
         contextSignal(ctx),
         "E_DB_CLOSE_WINDOW_ABORTED",
         "PostgreSQL closeWindow was aborted."
       );
-      throw notImplemented("closeWindow");
+      readyOrPlanned(state, "closeWindow");
+
+      const op = closeOpFrom(windowHandle, ctx);
+      const outerCtx = opContext(ctx);
+      const window = windowHandle?.kind === "db_window_close" || windowHandle === null
+        ? state.window
+        : windowHandle;
+
+      if (window === null) {
+        throw new InfraError("E_DB_WINDOW_NOT_OPEN", "PostgreSQL closeWindow has no open window.", {
+          runId,
+          scenarioId: op.scenarioId ?? scenarioId
+        });
+      }
+
+      const result = await deps.closePostgresWindow({
+        client: state.client,
+        capture: state.capture,
+        createPollClient: ({ signal }) => deps.createPgClient(target, { signal }),
+        runId,
+        scenarioId: op.scenarioId ?? scenarioId,
+        surface: window.surface ?? surfaceFor(config, outerCtx),
+        seq: op.seq ?? window.seq,
+        nonce: window.nonce,
+        expect: op.expect ?? [],
+        convergeTimeoutMs: op.convergeTimeoutMs,
+        quietPeriodMs: op.quietPeriodMs,
+        signal: opSignal(ctx),
+        now: outerCtx.now ?? ctx.now
+      });
+      state.window = null;
+      return result;
+    },
+
+    onWindowOpen(op, options = {}) {
+      return driver.openWindow({ ...options, op, kind: op.kind, seq: op.seq, scenarioId: op.scenarioId });
+    },
+
+    onWindowClose(op, options = {}) {
+      return driver.closeWindow(op, options);
     },
 
     async drain(_window, ctx = {}) {
@@ -314,6 +400,7 @@ export function createPostgresDriver({
       state.client = null;
       state.slotName = null;
       state.capture = null;
+      state.window = null;
       state.closed = true;
 
       if (errors.length > 0) {
