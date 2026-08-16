@@ -1,0 +1,38 @@
+version: 1
+rules:
+  - id: volatile_order_timestamps
+    kind: volatile_columns
+    entity: orders
+    paths:
+      - updated_at
+      - metadata.last_seen_at
+    cap: 50
+    note: Order timestamp values are maintained by database triggers, but touched rows still require a matching mutation.
+
+  - id: order_delete_audit_row
+    kind: derived
+    entity: order_audit
+    caused_by:
+      entity: orders
+      op: delete
+    mechanism: trigger
+    per_source: 1
+    cap: 10
+    note: Deleting one order creates exactly one audit row through the order delete trigger.
+
+  - id: worker_outbox_dispatch
+    kind: external_writer
+    entity: outbox_dispatches
+    identity:
+      by: transaction
+      not_in: scenario_transactions
+    cap: 25
+    note: The queue worker records dispatch attempts in transactions outside the app session set.
+
+  - id: temporary_catalog_backfill
+    kind: ignore
+    entity: catalog_backfill_log
+    reason: The catalog migration writes reconciliation markers until the rollout is retired.
+    expires: 2099-12-31
+    cap: 5
+    note: This temporary migration exception must be removed before the recorded expiry date.

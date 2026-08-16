@@ -29,13 +29,42 @@ export const DEFAULTS = Object.freeze({
   }),
   failOnSkip: true,
   concurrency: 1,
-  color: false
+  color: false,
+  db: null
 });
 
 const NonEmptyString = z.string().trim().min(1);
 const StringList = z.array(NonEmptyString).min(1);
 const TimeoutMs = z.number().int().positive();
 const ViewportSize = z.number().int().positive();
+
+const DbAllowlistEntrySchema = z
+  .object({
+    host: NonEmptyString,
+    database: NonEmptyString,
+    nonProd: z.literal(true),
+    note: NonEmptyString
+  })
+  .strict();
+
+const DbConfigSchema = z
+  .object({
+    allowlist: z.array(DbAllowlistEntrySchema),
+    rulesFile: NonEmptyString.nullable().default(null),
+    redaction: z
+      .object({
+        sensitive: z.array(NonEmptyString).default([]),
+        mode: z.enum(["hash", "mask"]).default("hash")
+      })
+      .strict()
+      .default({ sensitive: [], mode: "hash" }),
+    convergeTimeoutMs: TimeoutMs.default(10000),
+    quietPeriodMs: TimeoutMs.default(750),
+    quietPeriodCapMs: TimeoutMs.default(5000),
+    tenantPrefix: NonEmptyString.default("attest"),
+    url: z.never({ error: "db.url is not allowed. Set ATTEST_DB_URL in the environment." }).optional()
+  })
+  .strict();
 
 export const ConfigSchema = z
   .object({
@@ -73,6 +102,7 @@ export const ConfigSchema = z
       .default(DEFAULTS.web),
     failOnSkip: z.boolean().default(DEFAULTS.failOnSkip),
     concurrency: z.number().int().positive().default(DEFAULTS.concurrency),
-    color: z.boolean().default(DEFAULTS.color)
+    color: z.boolean().default(DEFAULTS.color),
+    db: DbConfigSchema.nullable().default(DEFAULTS.db)
   })
   .strict();

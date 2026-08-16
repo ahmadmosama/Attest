@@ -1,5 +1,6 @@
 import { UsageError } from "../errors.mjs";
 import { ConfigSchema, DEFAULTS } from "./schema.mjs";
+import { resolveTarget } from "./targets.mjs";
 
 const SECRET_KEY_RE = /(key|token|secret|password)/i;
 const CREDENTIAL_URL_RE = /\b(?:postgres|mysql|mongodb):\/\//i;
@@ -73,6 +74,7 @@ function parsePositiveInteger(value, key) {
 
 function envConfig(env = {}) {
   const config = {};
+  const dbUrl = env.ATTEST_DB_URL;
 
   if (env.ATTEST_ARTIFACT_ROOT !== undefined) {
     config.artifactRoot = env.ATTEST_ARTIFACT_ROOT;
@@ -112,7 +114,7 @@ function envConfig(env = {}) {
     config.color = parseBoolean(env.ATTEST_COLOR, "ATTEST_COLOR");
   }
 
-  return config;
+  return Object.freeze({ config, dbUrl });
 }
 
 function secretReason(value, path) {
@@ -163,15 +165,29 @@ function schemaError(error) {
 export function resolveConfig({ defaults = DEFAULTS, file = {}, env = {}, flags = {} } = {}) {
   assertNoFlagSecrets(flags);
 
-  const merged = [defaults, file, envConfig(env), flags].reduce(
-    (current, layer) => deepMerge(current, layer),
-    {}
-  );
+  const envLayer = envConfig(env);
+  const merged = [defaults, file, envLayer.config, flags].reduce((current, layer) => deepMerge(current, layer), {});
   const parsed = ConfigSchema.safeParse(merged);
 
   if (!parsed.success) {
     throw schemaError(parsed.error);
   }
 
-  return deepFreeze(parsed.data);
+  const data = parsed.data;
+  const target =
+    envLayer.dbUrl === undefined
+      ? null
+      : resolveTarget({
+          url: envLayer.dbUrl,
+          allowlist: data.db?.allowlist ?? []
+        });
+  const db =
+    data.db === null
+      ? null
+      : {
+          ...data.db,
+          target
+        };
+
+  return deepFreeze({ ...data, db });
 }

@@ -50,11 +50,194 @@ test("resolveConfig takes every default from DEFAULTS and deeply freezes the res
   assert.equal(config.failOnSkip, DEFAULTS.failOnSkip);
   assert.equal(config.concurrency, DEFAULTS.concurrency);
   assert.equal(config.color, DEFAULTS.color);
+  assert.equal(config.db, null);
   assert.equal(Object.isFrozen(config), true);
   assert.equal(Object.isFrozen(config.timeouts), true);
   assert.equal(Object.isFrozen(config.web), true);
   assert.equal(Object.isFrozen(config.web.viewport), true);
   assert.equal(Object.isFrozen(config.surfaces), true);
+});
+
+test("resolveConfig validates db blocks and applies declared defaults", () => {
+  const config = resolveConfig({
+    file: {
+      db: {
+        allowlist: [
+          {
+            host: "db.example.test",
+            database: "app_test",
+            nonProd: true,
+            note: "local integration database"
+          }
+        ]
+      }
+    }
+  });
+
+  assert.deepEqual(config.db.allowlist, [
+    {
+      host: "db.example.test",
+      database: "app_test",
+      nonProd: true,
+      note: "local integration database"
+    }
+  ]);
+  assert.equal(config.db.rulesFile, null);
+  assert.deepEqual(config.db.redaction, { sensitive: [], mode: "hash" });
+  assert.equal(config.db.convergeTimeoutMs, 10000);
+  assert.equal(config.db.quietPeriodMs, 750);
+  assert.equal(config.db.quietPeriodCapMs, 5000);
+  assert.equal(config.db.tenantPrefix, "attest");
+  assert.equal(config.db.target, null);
+  assert.equal(Object.isFrozen(config.db), true);
+  assert.equal(Object.isFrozen(config.db.allowlist), true);
+  assert.equal(Object.isFrozen(config.db.redaction), true);
+});
+
+test("resolveConfig refuses db allowlist entries without a written non production marker", () => {
+  assert.throws(
+    () =>
+      resolveConfig({
+        file: {
+          db: {
+            allowlist: [{ host: "db.example.test", database: "app_test", nonProd: true }]
+          }
+        }
+      }),
+    (error) => {
+      assert.equal(error.code, "E_CONFIG_INVALID");
+      assert.match(JSON.stringify(error.details.issues), /note/);
+      return true;
+    }
+  );
+
+  assert.throws(
+    () =>
+      resolveConfig({
+        file: {
+          db: {
+            allowlist: [{ host: "db.example.test", database: "app_test", nonProd: false, note: "not enough" }]
+          }
+        }
+      }),
+    (error) => {
+      assert.equal(error.code, "E_CONFIG_INVALID");
+      assert.match(JSON.stringify(error.details.issues), /nonProd/);
+      return true;
+    }
+  );
+});
+
+test("resolveConfig refuses db.url and names ATTEST_DB_URL", () => {
+  assert.throws(
+    () =>
+      resolveConfig({
+        file: {
+          db: {
+            allowlist: [],
+            url: "postgres://user:secret@db.example.test/app_test"
+          }
+        }
+      }),
+    (error) => {
+      assert.equal(error.code, "E_CONFIG_INVALID");
+      assert.match(JSON.stringify(error.details.issues), /ATTEST_DB_URL/);
+      assert.equal(JSON.stringify(error).includes("secret"), false);
+      return true;
+    }
+  );
+});
+
+test("resolveConfig resolves ATTEST_DB_URL into a validated target without storing the string", () => {
+  const config = resolveConfig({
+    file: {
+      db: {
+        allowlist: [
+          {
+            host: "db.example.test",
+            database: "app_test",
+            nonProd: true,
+            note: "local integration database"
+          }
+        ]
+      }
+    },
+    env: {
+      ATTEST_DB_URL: "postgres://user:secret@db.example.test/app_test?sslmode=require"
+    }
+  });
+
+  assert.equal(config.db.target.host, "db.example.test");
+  assert.equal(config.db.target.database, "app_test");
+  assert.equal(config.db.target.user, "user");
+  assert.equal(config.db.target.password, undefined);
+  assert.equal(JSON.stringify(config).includes("secret"), false);
+  assert.equal(JSON.stringify(config).includes("sslmode"), false);
+  assert.equal(Object.isFrozen(config.db.target), true);
+});
+
+test("resolveConfig refuses ATTEST_DB_URL when no allowlist is configured", () => {
+  assert.throws(
+    () =>
+      resolveConfig({
+        env: {
+          ATTEST_DB_URL: "postgres://user:secret@db.example.test/app_test"
+        }
+      }),
+    (error) => {
+      assert.equal(error.code, "E_DB_TARGET_NOT_ALLOWLISTED");
+      assert.equal(JSON.stringify(error).includes("secret"), false);
+      return true;
+    }
+  );
+
+  assert.throws(
+    () =>
+      resolveConfig({
+        file: {
+          db: {
+            allowlist: []
+          }
+        },
+        env: {
+          ATTEST_DB_URL: "postgres://user:secret@db.example.test/app_test"
+        }
+      }),
+    (error) => {
+      assert.equal(error.code, "E_DB_TARGET_NOT_ALLOWLISTED");
+      assert.equal(JSON.stringify(error).includes("secret"), false);
+      return true;
+    }
+  );
+});
+
+test("resolveConfig refuses ATTEST_DB_URL on port 6543", () => {
+  assert.throws(
+    () =>
+      resolveConfig({
+        file: {
+          db: {
+            allowlist: [
+              {
+                host: "db.example.test",
+                database: "app_test",
+                nonProd: true,
+                note: "local integration database"
+              }
+            ]
+          }
+        },
+        env: {
+          ATTEST_DB_URL: "postgres://user:secret@db.example.test:6543/app_test"
+        }
+      }),
+    (error) => {
+      assert.equal(error.code, "E_DB_POOLER_PORT");
+      assert.match(error.message, /5432/);
+      assert.equal(JSON.stringify(error).includes("secret"), false);
+      return true;
+    }
+  );
 });
 
 test("resolveConfig fills partial timeouts and web blocks", () => {

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { OP_CATEGORIES, OPS } from "./ops.mjs";
 import { isSemanticRef } from "./semantic-ref.mjs";
+import { SuppressionSchema } from "./suppression.mjs";
 
 const SCENARIO_ID_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
 const REQUIREMENT_ID_PATTERN = /^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-[0-9]+$/;
@@ -215,45 +216,6 @@ function buildStepSchemas() {
 export const StepSchema = z.union(buildStepSchemas(), {
   error: (issue) => unknownStepReason(issue.input)
 });
-
-const SuppressionBaseSchema = z.object({
-  entity: EntityNameSchema
-});
-
-const VolatileColumnsSuppressionSchema = SuppressionBaseSchema.extend({
-  kind: z.literal("volatile_columns"),
-  paths: z.array(NonEmptyStringSchema).min(1)
-}).strict();
-
-const DerivedSuppressionSchema = SuppressionBaseSchema.extend({
-  kind: z.literal("derived"),
-  caused_by: z
-    .object({
-      entity: EntityNameSchema,
-      op: z.enum(["insert", "update", "delete"])
-    })
-    .strict(),
-  mechanism: NonEmptyStringSchema,
-  per_source: z.number().int().positive()
-}).strict();
-
-const ExternalWriterSuppressionSchema = SuppressionBaseSchema.extend({
-  kind: z.literal("external_writer"),
-  identity: JsonObjectSchema
-}).strict();
-
-const IgnoreSuppressionSchema = SuppressionBaseSchema.extend({
-  kind: z.literal("ignore"),
-  reason: NonEmptyStringSchema,
-  expires: z.iso.date()
-}).strict();
-
-const SuppressionSchema = z.discriminatedUnion("kind", [
-  VolatileColumnsSuppressionSchema,
-  DerivedSuppressionSchema,
-  ExternalWriterSuppressionSchema,
-  IgnoreSuppressionSchema
-]);
 
 export const ScenarioSchema = z
   .object({
