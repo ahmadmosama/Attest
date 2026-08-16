@@ -4,8 +4,12 @@ import path from "node:path";
 
 import { chromium } from "playwright";
 
-import { InfraError, UnsupportedOpError, UsageError } from "../../errors.mjs";
+import { AttestError, InfraError, UnsupportedOpError, UsageError } from "../../errors.mjs";
+import { assertKnownCapability } from "../../capabilities/registry.mjs";
+import { capabilitiesFor, OP_CAPABILITIES } from "../../ir/ops.mjs";
 import { assertImplementsSurfacePort } from "../port.mjs";
+import { executeAct, ACT_KINDS } from "./act.mjs";
+import { executeAssert, ASSERT_KINDS } from "./assert.mjs";
 import { webSurfaceCapabilities } from "./capabilities.mjs";
 import { closeWebSession, openWebSession, WEB_SESSION_DEFAULTS } from "./session.mjs";
 
@@ -119,17 +123,115 @@ async function removeTempDirs(session) {
 }
 
 function opKind(planOp) {
-  return typeof planOp?.kind === "string" && planOp.kind.length > 0 ? planOp.kind : "<unknown>";
+  if (planOp === null || typeof planOp !== "object" || Array.isArray(planOp)) {
+    throw new UnsupportedOpError("E_UNSUPPORTED_OP", "Web plan op must be an object", {
+      kind: "<unknown>"
+    });
+  }
+
+  return typeof planOp.kind === "string" && planOp.kind.length > 0 ? planOp.kind : "<unknown>";
 }
 
 function freezeOk() {
   return Object.freeze({ ok: true });
 }
 
+function withStepTimeouts(session, ctx) {
+  const stepMs = ctx?.timeouts?.stepMs ?? WEB_SESSION_DEFAULTS.actionTimeoutMs ?? 5000;
+  return Object.freeze({
+    ...session,
+    actionTimeoutMs: stepMs,
+    assertTimeoutMs: stepMs
+  });
+}
+
+function explicitCapabilities(planOp) {
+  if (planOp.capabilities === undefined) {
+    return null;
+  }
+
+  if (!Array.isArray(planOp.capabilities)) {
+    throw new UnsupportedOpError("E_UNSUPPORTED_OP", "Plan op capabilities must be an array", {
+      i: planOp.i,
+      kind: opKind(planOp)
+    });
+  }
+
+  return Object.freeze(
+    planOp.capabilities.map((capability) => {
+      assertKnownCapability(capability);
+      return capability;
+    })
+  );
+}
+
+const SOURCE_KIND_FOR_PLAN_KIND = Object.freeze({
+  navigate: "open",
+  back: "back",
+  app_background: "background",
+  app_foreground: "foreground",
+  click: "tap",
+  long_press: "long_press",
+  fill: "fill",
+  clear: "clear",
+  press_key: "press_key",
+  swipe: "swipe",
+  scroll_until_visible: "scroll_until_visible",
+  select_option: "select_option",
+  upload_file: "upload_file",
+  set_permission: "set_permission",
+  set_network: "set_network",
+  set_clipboard: "set_clipboard",
+  expect_visible: "expect_visible",
+  expect_hidden: "expect_hidden",
+  expect_text: "expect_text",
+  expect_state: "expect_state",
+  expect_count: "expect_count",
+  checkpoint: "checkpoint",
+  raw: "raw"
+});
+
+function demandedCapabilities(planOp) {
+  const explicit = explicitCapabilities(planOp);
+  if (explicit !== null) {
+    return explicit;
+  }
+
+  const sourceKind = SOURCE_KIND_FOR_PLAN_KIND[opKind(planOp)];
+  if (sourceKind === undefined || OP_CAPABILITIES[sourceKind] === undefined) {
+    return Object.freeze([]);
+  }
+
+  return capabilitiesFor(sourceKind, planOp.value ?? planOp);
+}
+
+function assertCapabilitiesSupported(descriptor, planOp) {
+  const kind = opKind(planOp);
+  const missing = demandedCapabilities(planOp).filter((capability) => !descriptor.has(capability));
+
+  if (missing.length > 0) {
+    throw new UnsupportedOpError("E_UNSUPPORTED_OP", "Web surface does not support plan op", {
+      i: planOp.i,
+      kind,
+      missing
+    });
+  }
+}
+
+function isValidWebSession(session) {
+  return (
+    session !== null &&
+    typeof session === "object" &&
+    typeof session.page?.goto === "function" &&
+    typeof session.context?.setOffline === "function"
+  );
+}
+
 export function createWebSurface(options = {}) {
   const channel = options.channel ?? WEB_SESSION_DEFAULTS.channel;
   const baseUrl = options.baseUrl;
   const descriptor = webSurfaceCapabilities();
+  const closedSessions = new WeakSet();
 
   const adapter = {
     describeCapabilities() {
@@ -145,10 +247,10 @@ export function createWebSurface(options = {}) {
       return freezeOk();
     },
 
-    open(ctx, { signal } = {}) {
+    async open(ctx, { signal } = {}) {
       throwIfAborted(signal);
       const { videoDir, tracesDir } = tempDirsFor(ctx);
-      return openWebSession({
+      const session = await openWebSession({
         ...options,
         baseUrl,
         channel,
@@ -159,18 +261,54 @@ export function createWebSurface(options = {}) {
         tracesDir,
         signal
       });
+      return withStepTimeouts(session, ctx);
     },
 
-    execute(_session, planOp, { signal } = {}) {
+    execute(session, planOp, { signal } = {}) {
+      if (closedSessions.has(session)) {
+        throw new AttestError("E_SESSION_CLOSED", "Web surface session is closed", {
+          sessionId: session?.id
+        });
+      }
+
       throwIfAborted(signal);
       const kind = opKind(planOp);
-      throw new UnsupportedOpError(
-        "E_WEB_OP_NOT_IMPLEMENTED",
-        `Web op ${kind} is not implemented in this phase`,
-        {
+
+      if (!isValidWebSession(session)) {
+        throw new UnsupportedOpError(
+          "E_WEB_OP_NOT_IMPLEMENTED",
+          `Web op ${kind} requires an open web session`,
+          {
+            kind
+          }
+        );
+      }
+
+      assertCapabilitiesSupported(descriptor, planOp);
+
+      if (ACT_KINDS.has(kind)) {
+        return executeAct(session, planOp, { signal });
+      }
+
+      if (ASSERT_KINDS.has(kind)) {
+        return executeAssert(session, planOp, { signal });
+      }
+
+      if (kind === "checkpoint") {
+        return Object.freeze({ ok: true, detail: Object.freeze({ i: planOp.i, kind }) });
+      }
+
+      if (kind === "db_window_open" || kind === "db_window_close") {
+        throw new AttestError("E_DB_OP_AT_SURFACE", "Database window op reached web surface adapter", {
+          i: planOp.i,
           kind
-        }
-      );
+        });
+      }
+
+      throw new UnsupportedOpError("E_UNSUPPORTED_OP", "Unsupported web plan op", {
+        i: planOp.i,
+        kind
+      });
     },
 
     collectEvidence() {
@@ -179,6 +317,9 @@ export function createWebSurface(options = {}) {
 
     async close(session) {
       try {
+        if (session !== null && typeof session === "object") {
+          closedSessions.add(session);
+        }
         await closeWebSession(session);
         await removeTempDirs(session);
       } catch {

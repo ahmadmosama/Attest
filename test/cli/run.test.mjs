@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { main } from "../../src/cli/main.mjs";
+import { runCommand } from "../../src/cli/commands/run.mjs";
 
 const CLI = path.join(process.cwd(), "src/cli/main.mjs");
 
@@ -60,6 +61,7 @@ function runCli(cwd, args, env = {}) {
       SystemRoot: process.env.SystemRoot,
       TEMP: process.env.TEMP,
       TMP: process.env.TMP,
+      ATTEST_SURFACE_ADAPTER: "fake",
       ...env
     }
   });
@@ -198,7 +200,7 @@ test("main writes through injected io only", async () => {
       ],
       {
         cwd,
-        env: {},
+        env: { ATTEST_SURFACE_ADAPTER: "fake" },
         stdout: { write: (text) => out.push(text) },
         stderr: { write: (text) => err.push(text) },
         now: () => new Date("2026-08-15T04:46:12.000Z")
@@ -233,5 +235,60 @@ test("child CLI carries headed mode into the run record", async () => {
     const [runDir] = await readdir(artifacts);
     const record = JSON.parse(await readFile(path.join(artifacts, runDir, "run.json"), "utf8"));
     assert.equal(record.filters.headed, true);
+  });
+});
+
+test("runCommand passes all resolved timeout budgets into the run context", async () => {
+  await withCliFixture(async (cwd) => {
+    const seen = [];
+    const out = [];
+    const err = [];
+    const code = await runCommand(
+      {
+        scenariosGlob: ["scenarios/smoke.attest.yaml"],
+        bindingsDir: "bindings",
+        app: "https://example.test",
+        surfaces: ["web"],
+        artifactRoot: path.join(cwd, "artifacts"),
+        timeouts: {
+          stepMs: 30001,
+          scenarioMs: 30002,
+          preflightMs: 30003,
+          openMs: 30004,
+          evidenceMs: 30005,
+          closeMs: 30006
+        }
+      },
+      {
+        cwd,
+        env: { ATTEST_SURFACE_ADAPTER: "fake" },
+        stdout: { write: (text) => out.push(text) },
+        stderr: { write: (text) => err.push(text) },
+        now: () => new Date("2026-08-15T04:46:12.000Z"),
+        adapterFor() {
+          return {
+            describeCapabilities: () => Object.freeze({ surface: "web", supports: [], degraded: [], has: () => true }),
+            preflight(ctx) {
+              seen.push({ ...ctx.timeouts });
+              return Object.freeze({ ok: true });
+            },
+            open: () => Object.freeze({ id: "session", surface: "web" }),
+            execute: () => Object.freeze({ ok: true }),
+            collectEvidence: () => null,
+            close: () => Object.freeze({ ok: true })
+          };
+        }
+      }
+    );
+
+    assert.equal(code, 0, err.join(""));
+    assert.deepEqual(seen[0], {
+      stepMs: 30001,
+      scenarioMs: 30002,
+      preflightMs: 30003,
+      openMs: 30004,
+      evidenceMs: 30005,
+      closeMs: 30006
+    });
   });
 });

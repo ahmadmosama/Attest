@@ -23,7 +23,7 @@ function scrubbedEnv(extra = {}) {
       .map((key) => [key, process.env[key]])
       .filter(([, value]) => value !== undefined)
   );
-  return { ...env, ...extra };
+  return { ...env, ATTEST_SURFACE_ADAPTER: "fake", ...extra };
 }
 
 function assertNoApiKeys(env) {

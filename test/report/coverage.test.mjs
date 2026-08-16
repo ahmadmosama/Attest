@@ -46,11 +46,12 @@ async function withCoverageFixture(fn) {
 }
 
 function childEnv() {
-  return Object.fromEntries(
+  const env = Object.fromEntries(
     ["PATH", "SystemRoot", "TEMP", "TMP", "HOME", "USERPROFILE"]
       .map((key) => [key, process.env[key]])
       .filter(([, value]) => value !== undefined)
   );
+  return { ...env, ATTEST_SURFACE_ADAPTER: "fake" };
 }
 
 function runCli(cwd, args) {

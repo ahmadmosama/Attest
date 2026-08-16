@@ -9,12 +9,10 @@ import { compileScenarioFile } from "../../ir/compile.mjs";
 import { formatDiagnostic } from "../../ir/diagnostics.mjs";
 import { loadBindings } from "../../bindings/load.mjs";
 import { lintBindings } from "../../bindings/lint.mjs";
-import { defineSurfaceCapabilities } from "../../capabilities/surface-caps.mjs";
 import { NOT_IMPLEMENTED_DB_CAPS } from "../../capabilities/db-caps.mjs";
 import { lower } from "../../lower/lower.mjs";
 import { runSuite } from "../../runtime/suite.mjs";
-import { createFakeSurface } from "../../surfaces/fake/adapter.mjs";
-import { defineScript } from "../../surfaces/fake/script.mjs";
+import { createSurfaceRegistry } from "../../surfaces/registry.mjs";
 import { renderConsoleSummary } from "../../report/console.mjs";
 import { toJUnitXml } from "../../report/junit.mjs";
 import { computeCoverage } from "../../report/coverage.mjs";
@@ -22,8 +20,6 @@ import { EXIT } from "../exit-codes.mjs";
 import { discoverScenarios, applyFilters } from "../discover.mjs";
 import { classifyAppArtifact } from "../../config/app-artifact.mjs";
 import { resolveConfig } from "../../config/resolve.mjs";
-
-const BASE_SURFACE_SUPPORTS = Object.freeze(["raw_escape"]);
 
 function write(stream, text) {
   stream?.write?.(text);
@@ -160,17 +156,13 @@ async function bindingAppName(dir, surfaces) {
   });
 }
 
-function surfaceCaps(surface) {
-  return defineSurfaceCapabilities({ surface, supports: BASE_SURFACE_SUPPORTS });
-}
-
 function printDiagnostics(stderr, diagnostics) {
   for (const diagnostic of diagnostics) {
     write(stderr, `${formatDiagnostic(diagnostic)}\n`);
   }
 }
 
-function lowerSelected({ selected, bindingsBySurface, appArtifact }) {
+function lowerSelected({ selected, bindingsBySurface, appArtifact, registry }) {
   const plans = [];
   const skips = [];
   const errors = [];
@@ -180,7 +172,7 @@ function lowerSelected({ selected, bindingsBySurface, appArtifact }) {
       const outcome = lower(scenario.ir, {
         surface,
         bindings: bindingsBySurface[surface],
-        surfaceCaps: surfaceCaps(surface),
+        surfaceCaps: registry.descriptorFor(surface),
         dbCaps: NOT_IMPLEMENTED_DB_CAPS,
         app: appArtifact.url ?? appArtifact.path
       });
@@ -205,15 +197,6 @@ async function writePlans(bundle, plans) {
     refs.set(`${plan.scenarioId}\u0000${plan.surface}`, ref.path);
   }
   return refs;
-}
-
-function fakeScriptFor(surface, env = {}) {
-  const script = env.ATTEST_FAKE_SCRIPT === undefined ? {} : JSON.parse(env.ATTEST_FAKE_SCRIPT);
-  return defineScript({ surface, unknownKind: "ok", ...script });
-}
-
-function adapterForFactory(env) {
-  return (plan) => createFakeSurface(fakeScriptFor(plan.surface, env));
 }
 
 function runConfig(config, flags) {
@@ -363,6 +346,14 @@ function requirementsSummaryLine(coverage, declaredRequirements) {
   return `requirements: ${coverage.covered.length} covered, ${coverage.uncovered.length} uncovered, ${coverage.unknown.length} unknown\n`;
 }
 
+function adapterBanner({ registry, config, appArtifact }) {
+  if (registry.mode === "real") {
+    return `web: real (${config.web.channel}) ${appArtifact.url ?? appArtifact.path}\n`;
+  }
+
+  return `surface adapter: fake\n`;
+}
+
 async function runSuiteWithRefedEventLoop(options) {
   const keepAlive = setInterval(() => {}, 2147483647);
   try {
@@ -403,6 +394,9 @@ export async function runCommand(flags = {}, io = {}) {
 
     const appArtifact = classifyAppArtifact(appValue);
     const surfaces = config.surfaces;
+    const registry = createSurfaceRegistry({ surfaces, appArtifact, config: resolvedConfig, env });
+    write(stdout, adapterBanner({ registry, config: resolvedConfig, appArtifact }));
+
     const declaredRequirements = await declaredRequirementsFromFile(flags.requirementsFile, cwd);
     const files = await discoverScenarios({ globs: config.scenariosGlob, cwd });
     const compiled = await compileScenarios(
@@ -442,7 +436,7 @@ export async function runCommand(flags = {}, io = {}) {
       return EXIT.USAGE_ERROR;
     }
 
-    const lowered = lowerSelected({ selected, bindingsBySurface, appArtifact });
+    const lowered = lowerSelected({ selected, bindingsBySurface, appArtifact, registry });
     if (lowered.errors.length > 0) {
       for (const error of lowered.errors) {
         write(stderr, formatError(error));
@@ -479,7 +473,7 @@ export async function runCommand(flags = {}, io = {}) {
     const { record } = await runSuiteWithRefedEventLoop({
       plans: lowered.plans,
       skips: lowered.skips,
-      adapterFor: io.adapterFor ?? adapterForFactory(env),
+      adapterFor: io.adapterFor ?? registry.adapterFor,
       bundle,
       config: runConfig(config, flags),
       now: nowFn(io)

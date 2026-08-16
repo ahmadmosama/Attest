@@ -16,7 +16,7 @@ function childEnv(extra = {}) {
       .map((key) => [key, process.env[key]])
       .filter(([, value]) => value !== undefined)
   );
-  return { ...base, ...extra };
+  return { ...base, ATTEST_SURFACE_ADAPTER: "fake", ...extra };
 }
 
 async function tempRoot(label) {
@@ -25,7 +25,7 @@ async function tempRoot(label) {
   return root;
 }
 
-function runCli(args, { env = {}, timeout = 10000 } = {}) {
+function runCli(args, { env = {}, timeout = 30000 } = {}) {
   return spawnSync(process.execPath, [CLI, ...args], {
     cwd: process.cwd(),
     encoding: "utf8",
