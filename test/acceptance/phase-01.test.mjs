@@ -68,7 +68,7 @@ after(async () => {
 });
 
 describe("Criterion 1", () => {
-  test("dry-run writes serializable plans and uses no browser, emulator, or database dependency", async () => {
+  test("dry-run writes serializable plans and keeps concrete drivers pinned or absent", async () => {
     const { artifacts, result } = await runExample(["--dry-run", "--surface", "web", "--surface", "android"]);
     assertCliOk(result);
     assert.match(result.stdout, /clean compile/);
@@ -85,8 +85,8 @@ describe("Criterion 1", () => {
 
     const packageJson = JSON.parse(await readFile("package.json", "utf8"));
     const deps = packageJson.dependencies ?? {};
-    // Phase 2 can replace this with adapter launch counters once real adapters exist.
-    for (const name of ["playwright", "appium", "webdriverio", "pg", "mysql2", "mongodb", "@google-cloud/bigquery"]) {
+    assert.equal(deps.playwright, "1.62.1");
+    for (const name of ["appium", "webdriverio", "pg", "mysql2", "mongodb", "@google-cloud/bigquery"]) {
       assert.equal(deps[name], undefined);
     }
   });

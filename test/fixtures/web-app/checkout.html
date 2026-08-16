@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Checkout</title>
+  </head>
+  <body>
+    <main>
+      <h1>Checkout</h1>
+      <form data-testid="checkout-form">
+        <label>
+          Email
+          <input aria-label="email-input" name="email" type="email" required>
+        </label>
+        <button type="submit">Place order</button>
+      </form>
+      <p data-testid="order-confirmation" hidden>Order placed</p>
+    </main>
+    <script>
+      document.querySelector("[data-testid='checkout-form']").addEventListener("submit", (event) => {
+        event.preventDefault();
+        document.querySelector("[data-testid='order-confirmation']").hidden = false;
+      });
+    </script>
+  </body>
+</html>
