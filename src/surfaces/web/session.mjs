@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 
 import { chromium, selectors } from "playwright";
 
+import { createRedactor } from "../../evidence/redact.mjs";
 import { InfraError, UsageError } from "../../errors.mjs";
+import { attachNetworkCollector } from "./network.mjs";
 
 const CLOSED_SESSIONS = new WeakSet();
 
@@ -111,6 +113,14 @@ async function ignoreCleanup({ page, context, browser }) {
   await ignoreClose(browser);
 }
 
+function detachNetwork(session) {
+  try {
+    session?.network?.detach?.();
+  } catch {
+    // Network detachment is cleanup and must not hide the scenario result.
+  }
+}
+
 async function abortable(promise, signal, cleanup) {
   if (signal === undefined) {
     return promise;
@@ -178,8 +188,8 @@ function freezeSession(fields) {
     page: fields.page,
     baseUrl: fields.baseUrl,
     bundle: fields.bundle,
-    redactor: null,
-    network: [],
+    redactor: fields.redactor,
+    network: fields.network,
     closed: false,
     startedAt: fields.startedAt,
     channel: fields.channel,
@@ -200,6 +210,7 @@ export async function openWebSession(options = {}) {
     videoDir = WEB_SESSION_DEFAULTS.videoDir,
     tracesDir = WEB_SESSION_DEFAULTS.tracesDir,
     extraHTTPHeaders = WEB_SESSION_DEFAULTS.extraHTTPHeaders,
+    secrets = WEB_SESSION_DEFAULTS.secrets,
     bundle = null,
     now = Date.now,
     signal
@@ -209,10 +220,12 @@ export async function openWebSession(options = {}) {
   assertChromeChannel(channel);
   const parsedBaseUrl = parsedHttpBaseUrl(baseUrl);
   const configuredAttribute = configureTestIdAttribute(testIdAttribute);
+  const redactor = createRedactor({ secrets });
 
   let browser = null;
   let context = null;
   let page = null;
+  let network = null;
 
   try {
     browser = await abortable(
@@ -249,6 +262,7 @@ export async function openWebSession(options = {}) {
 
     throwIfAborted(signal);
     page = await abortable(context.newPage(), signal, (createdPage) => ignoreClose(createdPage));
+    network = attachNetworkCollector(page, { redactor });
 
     return freezeSession({
       id: `web-session-${randomUUID()}`,
@@ -257,6 +271,8 @@ export async function openWebSession(options = {}) {
       page,
       baseUrl: parsedBaseUrl,
       bundle,
+      redactor,
+      network,
       startedAt: now(),
       channel,
       testIdAttribute: configuredAttribute,
@@ -265,6 +281,7 @@ export async function openWebSession(options = {}) {
       tempDirs: [videoDir, tracesDir].filter((dir) => typeof dir === "string" && dir.length > 0)
     });
   } catch (error) {
+    detachNetwork({ network });
     await ignoreCleanup({ page, context, browser });
     if (isAbortFromSignal(error, signal)) {
       throw error;
@@ -284,6 +301,7 @@ export async function closeWebSession(session) {
   }
 
   CLOSED_SESSIONS.add(session);
+  detachNetwork(session);
   await ignoreClose(session.page);
   await ignoreClose(session.context);
   await ignoreClose(session.browser);

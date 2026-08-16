@@ -165,15 +165,16 @@ async function executeLoop({ plan, adapter, ctx, scenarioSignal, startedAt, plan
 
       const stepStartedAt = timeValue(ctx.now());
       try {
+        let executeResult;
         if (DB_WINDOW_OPS.has(op.kind)) {
-          await withTimeout(({ signal }) => runDbWindow(op, ctx, signal), {
+          executeResult = await withTimeout(({ signal }) => runDbWindow(op, ctx, signal), {
             ms: ctx.timeouts.stepMs,
             kind: "step",
             at: op.i,
             parentSignal: scenarioSignal
           });
         } else {
-          await withTimeout(({ signal }) => adapter.execute(session, op, { signal }), {
+          executeResult = await withTimeout(({ signal }) => adapter.execute(session, op, { signal }), {
             ms: ctx.timeouts.stepMs,
             kind: "step",
             at: op.i,
@@ -181,7 +182,8 @@ async function executeLoop({ plan, adapter, ctx, scenarioSignal, startedAt, plan
           });
         }
 
-        steps.push(passedStep(op, durationFrom(stepStartedAt, ctx.now)));
+        const evidence = Array.isArray(executeResult?.evidence) ? executeResult.evidence : [];
+        steps.push(passedStep(op, durationFrom(stepStartedAt, ctx.now), evidence));
       } catch (error) {
         const classification = classifyError(error);
         const evidence = await collectFailureEvidence({ adapter, session, ctx });

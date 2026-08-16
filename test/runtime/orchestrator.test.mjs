@@ -120,6 +120,75 @@ test("passing ops return a pass with one duration per step", async () => {
     assert.equal(result.steps.length, 2);
     assert(result.steps.every((step) => step.status === "pass"));
     assert(result.steps.every((step) => Number.isInteger(step.durationMs)));
+    assert(result.steps.every((step) => step.evidence.length === 0));
+  });
+});
+
+test("passed execute evidence is attached to the step record", async () => {
+  await withRuntimeTemp("pass-evidence", async (root) => {
+    const executionPlan = plan({ ops: [{ i: 0, kind: "checkpoint", label: "after click" }] });
+    const ref = Object.freeze({
+      kind: "png",
+      path: "scenarios/checkout.guest_purchase__fake/evidence/step-0-checkpoint-after-click.png",
+      bytes: 12,
+      sha256: "a".repeat(64)
+    });
+    const base = createFakeSurface(defineScript({ surface: "fake" }));
+    const adapter = {
+      describeCapabilities: (...args) => base.describeCapabilities(...args),
+      preflight: (...args) => base.preflight(...args),
+      open: (...args) => base.open(...args),
+      execute(session, op, options) {
+        base.execute(session, op, options);
+        return Object.freeze({
+          ok: true,
+          detail: Object.freeze({ i: op.i, kind: op.kind }),
+          evidence: Object.freeze([ref])
+        });
+      },
+      collectEvidence: (...args) => base.collectEvidence(...args),
+      close: (...args) => base.close(...args)
+    };
+
+    const result = await runScenario({
+      plan: executionPlan,
+      adapter,
+      ctx: await contextFor(root, executionPlan)
+    });
+
+    assert.equal(result.result, "pass");
+    assert.deepEqual(result.steps[0].evidence, [ref]);
+  });
+});
+
+test("non array passed execute evidence is ignored", async () => {
+  await withRuntimeTemp("pass-bad-evidence", async (root) => {
+    const executionPlan = plan({ ops: [{ i: 0, kind: "checkpoint", label: "after click" }] });
+    const base = createFakeSurface(defineScript({ surface: "fake" }));
+    const adapter = {
+      describeCapabilities: (...args) => base.describeCapabilities(...args),
+      preflight: (...args) => base.preflight(...args),
+      open: (...args) => base.open(...args),
+      execute(session, op, options) {
+        base.execute(session, op, options);
+        return Object.freeze({
+          ok: true,
+          detail: Object.freeze({ i: op.i, kind: op.kind }),
+          evidence: Object.freeze({ path: "wrong-shape" })
+        });
+      },
+      collectEvidence: (...args) => base.collectEvidence(...args),
+      close: (...args) => base.close(...args)
+    };
+
+    const result = await runScenario({
+      plan: executionPlan,
+      adapter,
+      ctx: await contextFor(root, executionPlan)
+    });
+
+    assert.equal(result.result, "pass");
+    assert.deepEqual(result.steps[0].evidence, []);
   });
 });
 

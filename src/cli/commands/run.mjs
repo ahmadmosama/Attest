@@ -1,7 +1,5 @@
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-
-import stableStringify from "json-stable-stringify";
 
 import { createBundle } from "../../evidence/bundle.mjs";
 import { UsageError } from "../../errors.mjs";
@@ -16,6 +14,7 @@ import { createSurfaceRegistry } from "../../surfaces/registry.mjs";
 import { renderConsoleSummary } from "../../report/console.mjs";
 import { toJUnitXml } from "../../report/junit.mjs";
 import { computeCoverage } from "../../report/coverage.mjs";
+import { renderHtmlReport } from "../../report/html.mjs";
 import { EXIT } from "../exit-codes.mjs";
 import { discoverScenarios, applyFilters } from "../discover.mjs";
 import { classifyAppArtifact } from "../../config/app-artifact.mjs";
@@ -31,16 +30,6 @@ function nowFn(io) {
 
 function refsUsed(irs) {
   return [...new Set(irs.flatMap((ir) => ir.refs))].toSorted();
-}
-
-function stableJson(value) {
-  const text = stableStringify(value, { space: 2 });
-  if (typeof text !== "string") {
-    throw new UsageError("E_BAD_ARTIFACT_JSON", "Artifact JSON value is not serializable", {
-      reason: "json_stringify_returned_empty"
-    });
-  }
-  return `${text}\n`;
 }
 
 function formatError(error) {
@@ -297,8 +286,52 @@ function extendedRecord(record, coverage) {
   };
 }
 
-async function rewriteRunJson(record) {
-  await writeFile(path.join(record.artifactDir, "run.json"), stableJson(record));
+function schemaRecord(record) {
+  return {
+    ...record,
+    requirements: {
+      covered: record.requirements.covered,
+      byScenario: record.requirements.byScenario
+    }
+  };
+}
+
+async function writeHtmlReport(bundle, record) {
+  const html = await renderHtmlReport(record, { artifactDir: record.artifactDir });
+  await bundle.write("report.html", html);
+  return path.join(record.artifactDir, "report.html");
+}
+
+function reportableBundle(bundle, coverage) {
+  let recordForReport = null;
+  let reportPath = null;
+
+  return {
+    ...bundle,
+    async writeJson(relPath, value) {
+      if (relPath !== "run.json") {
+        return bundle.writeJson(relPath, value);
+      }
+
+      recordForReport = extendedRecord(value, coverage);
+      return bundle.writeJson(relPath, recordForReport);
+    },
+    async finalize() {
+      if (recordForReport !== null) {
+        reportPath = await writeHtmlReport(bundle, recordForReport);
+      }
+      return bundle.finalize();
+    },
+    get reportPath() {
+      return reportPath;
+    }
+  };
+}
+
+function writeReportPath(stdout, reportPath) {
+  if (typeof reportPath === "string" && reportPath.length > 0) {
+    write(stdout, `HTML report: ${reportPath}\n`);
+  }
 }
 
 async function writeDryRunRecord({ bundle, config, flags, plans, skips, planRefs, coverage, selected, now }) {
@@ -466,24 +499,26 @@ export async function runCommand(flags = {}, io = {}) {
         write(stdout, `${skip.scenarioId} [${skip.surface}] skipped ${skip.capabilities.join(",")}\n`);
       }
       write(stdout, requirementsSummaryLine(coverage, declaredRequirements));
+      await bundle.write("junit.xml", toJUnitXml(schemaRecord(record)));
+      const reportPath = await writeHtmlReport(bundle, record);
       await bundle.finalize();
+      writeReportPath(stdout, reportPath);
       return record.exitCode;
     }
 
+    const suiteBundle = reportableBundle(bundle, coverage);
     const { record } = await runSuiteWithRefedEventLoop({
       plans: lowered.plans,
       skips: lowered.skips,
       adapterFor: io.adapterFor ?? registry.adapterFor,
-      bundle,
+      bundle: suiteBundle,
       config: runConfig(config, flags),
       now: nowFn(io)
     });
 
-    const recordWithCoverage = extendedRecord(record, coverage);
-    await rewriteRunJson(recordWithCoverage);
-    await writeFile(path.join(record.artifactDir, "junit.xml"), toJUnitXml(record));
     write(stdout, renderConsoleSummary(record, { color: config.color }));
     write(stdout, requirementsSummaryLine(coverage, declaredRequirements));
+    writeReportPath(stdout, suiteBundle.reportPath);
     return record.exitCode;
   } catch (error) {
     write(stderr, formatError(error));

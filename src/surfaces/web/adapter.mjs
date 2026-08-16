@@ -1,5 +1,4 @@
 import { rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { chromium } from "playwright";
@@ -11,6 +10,7 @@ import { assertImplementsSurfacePort } from "../port.mjs";
 import { executeAct, ACT_KINDS } from "./act.mjs";
 import { executeAssert, ASSERT_KINDS } from "./assert.mjs";
 import { webSurfaceCapabilities } from "./capabilities.mjs";
+import { captureScreenshot, discardVideo, retainVideo, writeNetworkLog } from "./evidence.mjs";
 import { closeWebSession, openWebSession, WEB_SESSION_DEFAULTS } from "./session.mjs";
 
 const DEFAULT_TEMP_ROOT = "attest-web";
@@ -95,12 +95,11 @@ function safeSegment(value) {
 }
 
 function tempDirsFor(ctx) {
-  const root = path.join(
-    tmpdir(),
-    DEFAULT_TEMP_ROOT,
-    safeSegment(ctx?.runId),
-    safeSegment(ctx?.scenarioId)
-  );
+  const baseDir =
+    typeof ctx?.bundle?.dir === "string" && ctx.bundle.dir.length > 0
+      ? ctx.bundle.dir
+      : path.join(process.cwd(), DEFAULT_TEMP_ROOT, safeSegment(ctx?.runId), safeSegment(ctx?.scenarioId));
+  const root = path.join(baseDir, "tmp");
 
   return Object.freeze({
     videoDir: path.join(root, "video"),
@@ -110,16 +109,22 @@ function tempDirsFor(ctx) {
 
 async function removeTempDirs(session) {
   const dirs = Array.isArray(session?.tempDirs) ? session.tempDirs : [];
+  const parents = [
+    ...new Set(
+      dirs
+        .map((dir) => path.dirname(dir))
+        .filter((dir) => path.basename(dir) === "tmp")
+    )
+  ];
+  const cleanupDirs = [...dirs, ...parents].toSorted((left, right) => right.length - left.length);
 
-  await Promise.all(
-    dirs.map(async (dir) => {
-      try {
-        await rm(dir, { recursive: true, force: true });
-      } catch {
-        // close is best effort and must never mask the scenario result.
-      }
-    })
-  );
+  for (const dir of cleanupDirs) {
+    try {
+      await rm(dir, { recursive: true, force: true });
+    } catch {
+      // close is best effort and must never mask the scenario result.
+    }
+  }
 }
 
 function opKind(planOp) {
@@ -134,6 +139,39 @@ function opKind(planOp) {
 
 function freezeOk() {
   return Object.freeze({ ok: true });
+}
+
+function okDetail(op, detail = {}, evidence = []) {
+  return Object.freeze({
+    ok: true,
+    detail: Object.freeze({
+      i: op.i,
+      kind: op.kind,
+      ...detail
+    }),
+    evidence: Object.freeze(evidence)
+  });
+}
+
+async function executeCheckpoint(session, planOp) {
+  const label = safeSegment(
+    session.redactor?.redactText?.(planOp.label ?? "checkpoint") ?? planOp.label ?? "checkpoint"
+  );
+  const ref = await captureScreenshot(session, {
+    name: `step-${planOp.i}-checkpoint-${label}`,
+    fullPage: true
+  });
+  return okDetail(planOp, { label }, ref === null ? [] : [ref]);
+}
+
+async function collectFailureEvidenceFor(session, networkWrittenSessions) {
+  const screenshot = await captureScreenshot(session, { name: "failure", fullPage: true });
+  const network = await writeNetworkLog(session);
+  if (network !== null) {
+    networkWrittenSessions.add(session);
+  }
+
+  return screenshot;
 }
 
 function withStepTimeouts(session, ctx) {
@@ -232,6 +270,8 @@ export function createWebSurface(options = {}) {
   const baseUrl = options.baseUrl;
   const descriptor = webSurfaceCapabilities();
   const closedSessions = new WeakSet();
+  const failedSessions = new WeakSet();
+  const networkWrittenSessions = new WeakSet();
 
   const adapter = {
     describeCapabilities() {
@@ -295,7 +335,7 @@ export function createWebSurface(options = {}) {
       }
 
       if (kind === "checkpoint") {
-        return Object.freeze({ ok: true, detail: Object.freeze({ i: planOp.i, kind }) });
+        return executeCheckpoint(session, planOp);
       }
 
       if (kind === "db_window_open" || kind === "db_window_close") {
@@ -311,8 +351,13 @@ export function createWebSurface(options = {}) {
       });
     },
 
-    collectEvidence() {
-      return null;
+    collectEvidence(session, kind) {
+      if (kind !== "failure") {
+        return null;
+      }
+
+      failedSessions.add(session);
+      return collectFailureEvidenceFor(session, networkWrittenSessions);
     },
 
     async close(session) {
@@ -320,7 +365,33 @@ export function createWebSurface(options = {}) {
         if (session !== null && typeof session === "object") {
           closedSessions.add(session);
         }
+        if (!networkWrittenSessions.has(session)) {
+          const network = await writeNetworkLog(session);
+          if (network !== null) {
+            networkWrittenSessions.add(session);
+          }
+        }
+      } catch {
+        // Evidence writes must not hide the real scenario result.
+      }
+
+      try {
+        if (failedSessions.has(session)) {
+          await retainVideo(session);
+        } else {
+          await discardVideo(session);
+        }
+      } catch {
+        // Video retention is best effort and must never mask the scenario result.
+      }
+
+      try {
         await closeWebSession(session);
+      } catch {
+        // The surface port requires close to be idempotent and non throwing.
+      }
+
+      try {
         await removeTempDirs(session);
       } catch {
         // The surface port requires close to be idempotent and non throwing.
