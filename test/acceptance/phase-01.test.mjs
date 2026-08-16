@@ -86,7 +86,8 @@ describe("Criterion 1", () => {
     const packageJson = JSON.parse(await readFile("package.json", "utf8"));
     const deps = packageJson.dependencies ?? {};
     assert.equal(deps.playwright, "1.62.1");
-    for (const name of ["appium", "webdriverio", "pg", "mysql2", "mongodb", "@google-cloud/bigquery"]) {
+    assert.equal(deps.pg, "8.23.0");
+    for (const name of ["appium", "webdriverio", "mysql2", "mongodb", "@google-cloud/bigquery"]) {
       assert.equal(deps[name], undefined);
     }
   });

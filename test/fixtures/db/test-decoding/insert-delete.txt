@@ -1,0 +1,6 @@
+0/269BE50|82865|BEGIN 82865
+0/269BE50|82865|table public.attest_td_0307_users: INSERT: id[integer]:1 name[text]:'ahmad'
+0/269BF38|82865|table public.attest_td_0307_posts: INSERT: id[integer]:10 user_id[integer]:1
+0/269C030|82865|table public.attest_td_0307_posts: DELETE: id[integer]:10
+0/269C070|82865|table public.attest_td_0307_users: DELETE: id[integer]:1
+0/269C0E0|82865|COMMIT 82865

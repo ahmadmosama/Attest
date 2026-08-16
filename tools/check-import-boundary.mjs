@@ -15,6 +15,8 @@ export const LLM_PACKAGE_DENYLIST = Object.freeze([
   "ai"
 ]);
 
+export const DB_CLIENT_DENYLIST = Object.freeze(["@supabase/supabase-js"]);
+
 const SKIPPED_DIRECTORIES = new Set(["node_modules", ".git", "fixtures"]);
 const STATIC_FROM_RE = /^\s*(?:import|export)\s+[^"']*\sfrom\s*["']([^"']+)["']/;
 const BARE_IMPORT_RE = /^\s*import\s*["']([^"']+)["']/;
@@ -35,6 +37,12 @@ function isInside(parentDir, candidatePath) {
 
 function isDeniedLlmPackage(specifier) {
   return LLM_PACKAGE_DENYLIST.some(
+    (denied) => specifier === denied || specifier.startsWith(`${denied}/`)
+  );
+}
+
+function isDeniedDbClient(specifier) {
+  return DB_CLIENT_DENYLIST.some(
     (denied) => specifier === denied || specifier.startsWith(`${denied}/`)
   );
 }
@@ -102,6 +110,16 @@ function createLlmViolation({ file, line, specifier, rootDir }) {
   });
 }
 
+function createDbClientViolation({ file, line, specifier, rootDir }) {
+  return Object.freeze({
+    file: relativePath(rootDir, file),
+    line,
+    specifier,
+    rule: "no-postgrest-db-client",
+    reason: `${specifier} talks to PostgREST, and RLS can silently hide rows from the diff. That is disqualifying for an engine that must prove nothing unexplained changed.`
+  });
+}
+
 function createUnreadableViolation({ rootDir, file, reason }) {
   return Object.freeze({
     file: relativePath(rootDir, file),
@@ -118,9 +136,12 @@ function violationsForSpecifier({ file, line, specifier, rootDir, generateDir })
     !importerIsGenerate && isDeniedLlmPackage(specifier)
       ? [createLlmViolation({ file, line, specifier, rootDir })]
       : [];
+  const dbClientViolations = isDeniedDbClient(specifier)
+    ? [createDbClientViolation({ file, line, specifier, rootDir })]
+    : [];
 
   if (!specifier.startsWith(".") && !path.isAbsolute(specifier)) {
-    return llmViolations;
+    return [...llmViolations, ...dbClientViolations];
   }
 
   const resolvedPath = path.resolve(path.dirname(file), specifier);
@@ -129,7 +150,7 @@ function violationsForSpecifier({ file, line, specifier, rootDir, generateDir })
       ? [createGenerateViolation({ file, line, specifier, resolvedPath, rootDir, generateDir })]
       : [];
 
-  return [...llmViolations, ...generateViolations];
+  return [...llmViolations, ...dbClientViolations, ...generateViolations];
 }
 
 async function inspectFile({ file, rootDir, generateDir }) {

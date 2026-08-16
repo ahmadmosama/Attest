@@ -1,0 +1,3 @@
+0/26AB488|82872|BEGIN 82872
+0/26AB488|82872|table public.attest_td_0307_update_default: UPDATE: id[integer]:1 name[text]:'after' amount[numeric]:19.99 flag[boolean]:true payload[jsonb]:'{"a": 1}' deleted_at[timestamp with time zone]:null data[bytea]:'\x0102'
+0/26AB528|82872|COMMIT 82872

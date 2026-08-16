@@ -5,7 +5,11 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { checkImportBoundary, LLM_PACKAGE_DENYLIST } from "../../tools/check-import-boundary.mjs";
+import {
+  checkImportBoundary,
+  DB_CLIENT_DENYLIST,
+  LLM_PACKAGE_DENYLIST
+} from "../../tools/check-import-boundary.mjs";
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(testDir, "../..");
@@ -43,6 +47,37 @@ test("LLM packages are violations outside generate", async () => {
 
 test("the LLM denylist is frozen", () => {
   assert.throws(() => LLM_PACKAGE_DENYLIST.push("example"));
+});
+
+test("PostgREST database clients are violations with the named RLS reason", async () => {
+  const rootDir = path.join(repoRoot, "test", ".tmp-import-boundary-db-client");
+
+  await rm(rootDir, { force: true, recursive: true });
+  await mkdir(path.join(rootDir, "db"), { recursive: true });
+  await writeFile(
+    path.join(rootDir, "db", "client.mjs"),
+    'import { createClient } from "@supabase/supabase-js";\nexport default createClient;\n'
+  );
+
+  try {
+    const result = await checkImportBoundary(rootDir);
+    const violation = result.violations.find(
+      (entry) => entry.rule === "no-postgrest-db-client"
+    );
+
+    assert.equal(result.ok, false);
+    assert.equal(violation.file, "db/client.mjs");
+    assert.equal(violation.line, 1);
+    assert.equal(violation.specifier, "@supabase/supabase-js");
+    assert.match(violation.reason, /PostgREST/);
+    assert.match(violation.reason, /RLS can silently hide rows/);
+  } finally {
+    await rm(rootDir, { force: true, recursive: true });
+  }
+});
+
+test("the database client denylist is frozen", () => {
+  assert.throws(() => DB_CLIENT_DENYLIST.push("example"));
 });
 
 test("generate modules may import generate modules", async () => {
