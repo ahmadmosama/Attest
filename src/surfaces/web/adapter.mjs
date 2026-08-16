@@ -12,6 +12,7 @@ import { executeAssert, ASSERT_KINDS } from "./assert.mjs";
 import { webSurfaceCapabilities } from "./capabilities.mjs";
 import { captureScreenshot, discardVideo, retainVideo, writeNetworkLog } from "./evidence.mjs";
 import { closeWebSession, openWebSession, WEB_SESSION_DEFAULTS } from "./session.mjs";
+import { discardTrace, retainTrace } from "./trace.mjs";
 
 const DEFAULT_TEMP_ROOT = "attest-web";
 
@@ -373,6 +374,16 @@ export function createWebSurface(options = {}) {
         }
       } catch {
         // Evidence writes must not hide the real scenario result.
+      }
+
+      try {
+        if (failedSessions.has(session)) {
+          await retainTrace(session);
+        } else {
+          await discardTrace(session);
+        }
+      } catch {
+        // Trace retention is best effort and must never mask the scenario result.
       }
 
       try {
