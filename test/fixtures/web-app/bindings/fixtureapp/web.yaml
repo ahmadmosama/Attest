@@ -1,0 +1,13 @@
+surface: web
+elements:
+  list:product_grid: { testId: product-grid }
+  badge:cart_count: { testId: cart-count }
+  link:checkout: { role: link, name: "Checkout" }
+  field:email: { accessibilityId: email-input }
+  button:place_order: { role: button, name: "Place order" }
+screens:
+  screen:catalog: { path: "/", ready: { testId: product-grid } }
+  screen:checkout: { path: "/checkout.html", ready: { testId: checkout-form } }
+states:
+  state:order_confirmed: { testId: order-confirmation }
+  state:never_revealed: { testId: never-revealed-state }

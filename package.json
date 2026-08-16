@@ -12,6 +12,7 @@
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:acceptance": "node --test \"test/acceptance/*.test.mjs\"",
+    "test:live": "node --test --test-timeout=300000 test/acceptance/live-web.test.mjs",
     "lint": "oxlint src test tools",
     "lint:boundary": "node tools/check-import-boundary.mjs",
     "check": "npm run lint && npm run lint:boundary && npm test && npm run test:acceptance"

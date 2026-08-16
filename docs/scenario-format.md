@@ -91,9 +91,20 @@ Each run writes a per run artifact directory under the configured artifact root.
 <artifactRoot>/<runId>/
   run.json
   junit.xml
+  report.html
   manifest.json
-  scenarios/<scenarioId>__<surface>/plan.json
-  scenarios/<scenarioId>__<surface>/evidence/
+  scenarios/
+    <scenarioId>__<surface>/
+      plan.json
+      evidence/
+        network.jsonl
+        step-<index>-checkpoint-<label>.png
+        failure.png
+        video.webm
+        trace.zip
+        trace-error.json
 ```
 
-`run.json` contains filters, scenario results, timeout telemetry, requirement coverage, escape hatch counts, and artifact references. `junit.xml` is generated from the same run record.
+`run.json` contains filters, scenario results, timeout telemetry, requirement coverage, escape hatch counts, and artifact references. `junit.xml` and `report.html` are generated from the same run record.
+
+For web binding details see [web-surface.md](web-surface.md). For retention and redaction details see [evidence-bundle.md](evidence-bundle.md).

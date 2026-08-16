@@ -1,0 +1,6 @@
+surface: web
+elements:
+  field:people_search: { accessibilityId: "people search" }
+screens:
+  screen:home: { path: "/", ready: { accessibilityId: "people search" } }
+states: {}

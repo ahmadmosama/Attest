@@ -1,0 +1,15 @@
+id: fixture.checkout_fail
+requirement: [WEB-02, EVID-01]
+tags: [phase-02, fixture]
+
+steps:
+  - open: screen:catalog
+  - expect_visible: list:product_grid
+  - checkpoint: catalog_grid
+  - tap: link:checkout
+  - expect_visible: field:email
+  - tap: field:email
+  - press_key: "A"
+  - checkpoint: checkout_ready
+  - tap: button:place_order
+  - expect_visible: state:never_revealed

@@ -1,0 +1,8 @@
+id: candor.home
+requirement: [WEB-01]
+tags: [phase-02, live]
+
+steps:
+  - open: screen:home
+  - expect_visible: field:people_search
+  - checkpoint: home_loaded
