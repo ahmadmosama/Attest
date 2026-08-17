@@ -56,6 +56,32 @@ project. The app under test is a separate process with its own connections, so i
 the harness's uncommitted data and the harness cannot roll back what the app committed.
 Isolation is scenario scoped tenancy by default.
 
+### C6: Android driver backend (RESOLVED 2026-08-17: adb direct, superseding Appium for v1)
+
+STACK.md recommended Appium 3 plus WebdriverIO and PITFALLS.md rejected Maestro, so the recorded
+decision read "Appium 3 plus WebdriverIO, not Maestro". That comparison was Appium against Maestro.
+Driving adb directly was never the alternative under consideration, so this is a gap being filled
+rather than a settled decision being reopened.
+
+Resolution: the Android adapter drives adb directly for v1. The element tree comes from
+`uiautomator dump` and interaction from `input tap` and `input text`, which ENV-VERIFIED already
+proved working on this machine, including an addressable tree carrying `resource-id`.
+
+Reasoning:
+
+- It satisfies all four DROID requirements. DROID-01 boot gating, DROID-03 argv only adb, and
+  DROID-04 screenshots plus screen recording plus hierarchy dump are all adb level regardless of
+  driver. Only DROID-02's interaction layer was ever in question.
+- Appium adds three large dependencies, a Java on PATH requirement this machine does not currently
+  satisfy, and a server lifecycle to manage, against a project rule of no new dependencies unless
+  a plan says so.
+- The cost is real and is recorded here rather than hidden: coordinate based tapping derived from
+  the dumped bounds is cruder than a W3C element click, and it is more sensitive to layout changes.
+
+This is a v1 scope decision, not a permanent one. The adapter sits behind the same surface port and
+passes the same conformance suite as the web adapter, so an Appium backed backend can replace the
+interaction layer later without touching the port, the scenarios, or the bindings.
+
 ## v1 Requirements
 
 ### Scenario format and compilation
