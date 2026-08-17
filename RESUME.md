@@ -6,13 +6,13 @@ Updated 2026-08-17. Working tree is clean, everything below is committed.
 
 | Thing | State |
 |---|---|
-| Phases done | 4 of 7 (Phases 1, 2, 3, 4 complete) |
+| Phases done | 4 of 7 complete, Phase 5 in progress |
 | Phase 3 | Complete and SIGNED OFF, with a 90.91 percent kill rate |
 | Phase 4 | Complete, 6 of 6 plans |
-| Next | Phase 5 (Android), then 6 (remaining drivers plus generation), then 7 (iOS CI plus gate) |
-| Tests | 689 passing, 0 failing, 0 skipped |
+| Phase 5 | DROID-01 and DROID-03 done. DROID-02 locate done. Remaining: adapter, evidence, fixture APK |
+| Tests | 721 passing, 0 failing, 0 skipped |
 | Verified against | real PostgreSQL 17.6 and real Chrome, not mocks |
-| Last commit | `c2de67a feat(04-06)` |
+| Last commit | `ec4cc73 feat(05-03)` |
 
 ## Run the gate
 
@@ -54,11 +54,37 @@ above the real rate makes `selfcheck` exit with the scenario failure code.
 
 ## What is left
 
-| Phase | Scope | Planned? |
+| Phase | Scope | State |
 |---|---|---|
-| 5 | Android surface on the emulator, plus the milestone demo | Not yet, needs `/gsd:plan-phase 5` |
-| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | Not yet |
-| 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | Not yet |
+| 5 | Android surface, plus the milestone demo | In progress, see below |
+| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | Not planned |
+| 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | Not planned |
+
+### Phase 5, what is done and what is next
+
+Done and committed:
+
+- `src/surfaces/android/commands.mjs`, pure adb argv construction, 12 builders, snapshot pinned.
+- `src/surfaces/android/exec.mjs`, the only place that spawns adb, `shell: false`.
+- `src/surfaces/android/emulator.mjs`, AVD start, real boot gating, infra classification, teardown.
+- `src/surfaces/android/hierarchy.mjs`, uiautomator dump parsing, locate, ambiguity refusal.
+
+DROID-01 and DROID-03 are complete. DROID-02's locate half is complete.
+
+Next, in order:
+
+1. `src/surfaces/android/adapter.mjs`, the surface port implementation, wiring locate plus
+   `input tap` and `input text`, and registering the adapter in `src/surfaces/registry.mjs`.
+2. Wire the Android adapter into `test/conformance/surface-port.mjs`, which Phase 4 built for
+   exactly this. It should be one call.
+3. Evidence capture for DROID-04: screenshot per checkpoint, `screenrecord` on failure, and the
+   hierarchy dump at the failing step.
+4. The fixture APK. Decision taken 2026-08-17: build a minimal Android app under
+   `fixtures/self-verify/android` that talks to the existing fixture HTTP server on `10.0.2.2`,
+   so the same Postgres delta assertions run on mobile. Gradle 8.14 is already cached in
+   `~/.gradle/wrapper/dists`, and the JDK is the Android Studio JBR at
+   `C:\Program Files\Android\Android Studio\jbr`. `java` is NOT on PATH, set `JAVA_HOME`.
+5. Phase 5 acceptance against the live emulator, plus the milestone demo.
 
 Phase 4 already landed two things Phases 5 and 7 inherit, so they should be
 cheaper than they look:
@@ -133,7 +159,17 @@ commit, move on.
    enforces it by walking every source file. Use `src/runtime/converge.mjs`.
 8. **The CSP is emitted through `escapeHtml`.** A probe that greps the raw policy
    string produces a false failure, the single quotes appear as `&#39;`.
-9. **The fixture app has no foreign keys, deliberately.** `fixtures/self-verify/app/schema.sql`
+9. **`converge` does not hold the Node event loop open.** It waits on
+   `AbortSignal.timeout`, which is unref'd, so a standalone script that awaits
+   `converge` exits early with "Detected unsettled top-level await".
+   `src/cli/commands/run.mjs` already solves this with a ref'd `setInterval`
+   keepalive around `runSuite`. Any new entry point that awaits convergence
+   outside the test runner needs the same.
+10. **Only one instance of an AVD can run at a time.** A crashed run that leaves
+   an emulator booting will make the next `startEmulator` wait for a serial that
+   never appears, because the second launch is refused. Check `adb devices` and
+   for stray `qemu-system-x86_64*` processes before blaming the code.
+11. **The fixture app has no foreign keys, deliberately.** `fixtures/self-verify/app/schema.sql`
    omits both `ON DELETE CASCADE` and the parent foreign keys. Cascade in the
    database makes the orphan bug unseedable; an enforced key blocks it a
    different way, by aborting the transaction so the scenario fails on a page
@@ -163,6 +199,9 @@ commit, move on.
 - iOS takes a zipped simulator `.app`, never a device `.ipa`.
 - Mobile driver is Appium 3 plus WebdriverIO, not Maestro.
 - Execution performs zero LLM calls, enforced by `tools/check-import-boundary.mjs`.
+- **Android drives adb directly, not Appium** (decision C6, 2026-08-17). The old note said
+  "Appium 3 plus WebdriverIO, not Maestro", but that compared Appium against Maestro and never
+  considered plain adb. Full reasoning is in `.planning/REQUIREMENTS.md` under C6.
 
 Full reasoning for each is in `.planning/REQUIREMENTS.md` under
 "Adjudicated conflicts".
