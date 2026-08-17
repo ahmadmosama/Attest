@@ -106,16 +106,73 @@ test("resolveTarget refuses Supabase transaction pooler port 6543 before allowli
   );
 });
 
-test("resolveTarget refuses unsupported schemes with Phase 6 wording", () => {
+test("resolveTarget refuses a scheme that is not one of the five engines", () => {
   assertRefusal(
     () =>
       resolveTarget({
-        url: "mysql://user:secret@db.example.test:3306/app_test",
+        url: "redis://user:secret@db.example.test:6379/0",
         allowlist: ALLOWLIST
       }),
     "E_DB_TARGET_UNSUPPORTED",
     ["secret", "user"]
   );
+});
+
+test("every supported engine resolves to a typed target under the same allowlist rule", () => {
+  const cases = [
+    { url: "postgres://user:secret@db.example.test:5432/app_test", driver: "postgres", port: 5432 },
+    { url: "postgresql://user:secret@db.example.test/app_test", driver: "postgres", port: 5432 },
+    { url: "mysql://user:secret@db.example.test/app_test", driver: "mysql", port: 3306 },
+    { url: "mongodb://user:secret@db.example.test/app_test", driver: "mongo", port: 27017 },
+    { url: "mongodb+srv://user:secret@db.example.test/app_test", driver: "mongo", port: null }
+  ];
+
+  for (const item of cases) {
+    const target = resolveTarget({ url: item.url, allowlist: ALLOWLIST });
+    assert.equal(target.driver, item.driver, item.url);
+    assert.equal(target.port, item.port, item.url);
+    assert.equal(describeTarget(target), "db.example.test/app_test");
+    // The credential never reaches an enumerable field, on any engine.
+    assert.doesNotMatch(JSON.stringify(target), /secret/u, item.url);
+  }
+});
+
+test("a sqlite file and a bigquery dataset are targets like any other", () => {
+  const sqliteAllowlist = [
+    { host: "file", database: "./fixtures/local.db", nonProd: true, note: "sqlite fixture" }
+  ];
+  const sqlite = resolveTarget({ url: "sqlite:./fixtures/local.db", allowlist: sqliteAllowlist });
+
+  assert.equal(sqlite.driver, "sqlite");
+  assert.equal(sqlite.database, "./fixtures/local.db");
+  assert.equal(sqlite.port, null);
+
+  // Pointing a run at a production sqlite file is exactly as bad as pointing it
+  // at a production Postgres, so DB-09 applies to it too.
+  assertRefusal(
+    () => resolveTarget({ url: "sqlite:./production.db", allowlist: sqliteAllowlist }),
+    "E_DB_TARGET_NOT_ALLOWLISTED",
+    []
+  );
+
+  const bigQuery = resolveTarget({
+    url: "bigquery://analytics-project/staging_dataset",
+    allowlist: [{ host: "analytics-project", database: "staging_dataset", nonProd: true, note: "bq staging" }]
+  });
+
+  assert.equal(bigQuery.driver, "bigquery");
+  assert.equal(describeTarget(bigQuery), "analytics-project/staging_dataset");
+});
+
+test("the transaction pooler refusal stays Postgres specific", () => {
+  // 6543 means pgbouncer transaction mode on Supabase. On MySQL it is just a
+  // port, and refusing it there would be superstition rather than a rule.
+  const target = resolveTarget({
+    url: "mysql://user:secret@db.example.test:6543/app_test",
+    allowlist: ALLOWLIST
+  });
+
+  assert.equal(target.port, 6543);
 });
 
 test("resolveTarget refuses malformed URLs without echoing the original input", () => {

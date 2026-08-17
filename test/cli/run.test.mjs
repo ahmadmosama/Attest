@@ -614,8 +614,10 @@ test("createDbDriver declares planned drivers and returns the Postgres driver", 
       () => createDbDriver({ target: { ...target, driver: name }, runId: "run", scenarioId: "scenario.one" }),
       (error) => {
         assert.equal(error.code, "E_DB_DRIVER_NOT_IMPLEMENTED");
-        assert.match(error.message, /Phase 6/);
         assert.equal(error.details.roadmapPhase, "Phase 6");
+        // The error names the plan that lands this driver, so an operator can
+        // tell whether it is coming soon or not coming at all.
+        assert.match(error.details.remediation, /Phase 6 plan 06-0\d/u);
         return true;
       }
     );

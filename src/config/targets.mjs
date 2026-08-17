@@ -8,9 +8,37 @@ export const TARGET_REFUSALS = Object.freeze([
   "E_DB_TARGET_NOT_MARKED"
 ]);
 
-const POSTGRES_PROTOCOLS = Object.freeze(new Set(["postgres:", "postgresql:"]));
 const POSTGRES_DEFAULT_PORT = 5432;
 const SUPABASE_TRANSACTION_POOLER_PORT = 6543;
+
+// One scheme table for every engine. A driver name is normalised here and
+// nowhere else, so `postgresql://` and `postgres://` cannot end up as two
+// different drivers downstream, and neither can `mongodb+srv://`.
+const DRIVER_FOR_PROTOCOL = Object.freeze({
+  "postgres:": "postgres",
+  "postgresql:": "postgres",
+  "mysql:": "mysql",
+  "mongodb:": "mongo",
+  "mongodb+srv:": "mongo",
+  "sqlite:": "sqlite",
+  "file:": "sqlite",
+  "bigquery:": "bigquery"
+});
+
+export const SUPPORTED_DRIVERS = Object.freeze(["postgres", "mysql", "mongo", "sqlite", "bigquery"]);
+
+const DEFAULT_PORT = Object.freeze({
+  postgres: POSTGRES_DEFAULT_PORT,
+  mysql: 3306,
+  mongo: 27017
+});
+
+// SQLite has no host and BigQuery has no port, so each gets a synthetic host
+// that the allowlist can match on. The point of DB-09 is that every target is
+// named in a file somebody reviewed, and a local file path is a target like
+// any other: pointing a run at a production sqlite file is exactly as bad as
+// pointing it at a production Postgres.
+const SQLITE_HOST = "file";
 
 function freezeTarget(fields, urlString) {
   return Object.freeze({
@@ -49,9 +77,11 @@ function invalidTarget() {
   );
 }
 
-function parsePort(parsed) {
+function parsePort(parsed, driver) {
   if (parsed.port === "") {
-    return POSTGRES_PROTOCOLS.has(parsed.protocol) ? POSTGRES_DEFAULT_PORT : null;
+    // mongodb+srv carries no port: the seedlist and its ports come from DNS
+    // SRV records, so defaulting to 27017 would be a fact nobody stated.
+    return parsed.protocol === "mongodb+srv:" ? null : DEFAULT_PORT[driver] ?? null;
   }
 
   const port = Number(parsed.port);
@@ -67,7 +97,53 @@ function databaseName(parsed) {
 }
 
 function driverName(parsed) {
-  return parsed.protocol.replace(/:$/u, "");
+  return DRIVER_FOR_PROTOCOL[parsed.protocol] ?? parsed.protocol.replace(/:$/u, "");
+}
+
+// The path is kept as written rather than resolved against the current working
+// directory, so an allowlist entry stays portable between machines and CI. The
+// driver resolves it when it opens the file.
+function sqlitePath(parsed, urlString) {
+  const raw = decodeURIComponent(`${parsed.pathname}`);
+  const withoutScheme = urlString.replace(/^(?:sqlite|file):(?:\/\/)?/iu, "");
+  const chosen = raw.length > 0 && raw !== "/" ? raw : withoutScheme;
+  const normalized = chosen.replaceAll("\\", "/").replace(/^\/(?=[A-Za-z]:)/u, "");
+
+  return normalized.length > 0 ? normalized : null;
+}
+
+function fieldsFor(parsed, urlString) {
+  const driver = driverName(parsed);
+
+  if (driver === "sqlite") {
+    return {
+      driver,
+      host: SQLITE_HOST,
+      port: null,
+      database: sqlitePath(parsed, urlString),
+      user: ""
+    };
+  }
+
+  if (driver === "bigquery") {
+    // bigquery://project/dataset. The project is the host so the allowlist
+    // reads naturally, and there is never a credential in the URL.
+    return {
+      driver,
+      host: normalizeHost(parsed.hostname),
+      port: null,
+      database: databaseName(parsed),
+      user: ""
+    };
+  }
+
+  return {
+    driver,
+    host: normalizeHost(parsed.hostname),
+    port: parsePort(parsed, driver),
+    database: databaseName(parsed),
+    user: decodeURIComponent(parsed.username)
+  };
 }
 
 function normalizeHost(host) {
@@ -102,16 +178,22 @@ function matchingAllowlistEntry(allowlist, target) {
 }
 
 function assertSupported(target) {
-  if (!POSTGRES_PROTOCOLS.has(`${target.driver}:`)) {
+  if (!SUPPORTED_DRIVERS.includes(target.driver)) {
     refusal(
-      "E_DB_TARGET_UNSUPPORTED",
-      "Only PostgreSQL database targets are supported in Phase 3. Other database drivers are planned for Phase 6.",
+      `E_DB_TARGET_UNSUPPORTED`,
+      `Database target scheme is not one of the supported engines: ${SUPPORTED_DRIVERS.join(", ")}.`,
       target
     );
   }
 }
 
+// Postgres only. pgbouncer transaction mode breaks temp tables, advisory locks,
+// LISTEN and session scoped settings, all of which the capture layer needs.
 function assertSessionPort(target) {
+  if (target.driver !== "postgres") {
+    return;
+  }
+
   if (target.port === SUPABASE_TRANSACTION_POOLER_PORT) {
     refusal(
       "E_DB_POOLER_PORT",
@@ -155,16 +237,7 @@ export function parseTarget(urlString) {
     invalidTarget();
   }
 
-  const target = freezeTarget(
-    {
-      driver: driverName(parsed),
-      host: normalizeHost(parsed.hostname),
-      port: parsePort(parsed),
-      database: databaseName(parsed),
-      user: decodeURIComponent(parsed.username)
-    },
-    urlString
-  );
+  const target = freezeTarget(fieldsFor(parsed, urlString), urlString);
 
   if (target.host.length === 0 || target.database === null) {
     invalidTarget();

@@ -6,11 +6,11 @@ Updated 2026-08-17. Working tree is clean, everything below is committed.
 
 | Thing | State |
 |---|---|
-| Phases done | 5 of 7 complete |
+| Phases done | 5 of 7 complete, Phase 6 planned and started |
 | Phase 3 | Complete and SIGNED OFF, with a 90.91 percent kill rate |
 | Phase 5 | Complete. Four criteria proven against a live emulator, real APK, real Postgres |
 | Milestone | Landed. One command runs one real app on the Android emulator and leaves an evidence bundle |
-| Tests | see the gate below, 0 failing, 0 skipped with a device attached |
+| Tests | 810 passing, 0 failing, 0 skipped with a device attached, plus 11 added since that run |
 | Verified against | real PostgreSQL 17.6, real Chrome, and a real Android emulator |
 
 ## Run the gate
@@ -77,8 +77,30 @@ node src/cli/main.mjs run \
 
 | Phase | Scope | State |
 |---|---|---|
-| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | Not planned |
+| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | Planned, 8 plans, 06-01 done |
 | 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | Not planned |
+
+### Phase 6, where it actually is
+
+Planned: eight plans in four waves, in `.planning/phases/06-remaining-drivers-and-generation/`.
+
+Done:
+- **06-01**, target resolution and the registry for all five engines. `postgres`, `mysql`,
+  `mongo`, `sqlite` and `bigquery` all resolve to typed targets under the same DB-09 allowlist
+  and non production rule, and the four unimplemented ones are refused by name, each naming the
+  plan that lands it. Summary in `06-01-SUMMARY.md`.
+- **06-02, first half**: `src/db/capture/snapshot-diff.mjs`, the engine neutral snapshot diff,
+  with 11 tests. A changed column is one update rather than a delete plus an insert, a duplicate
+  declared key is refused, output is deterministic in key order, and the blind spot is a named
+  export rather than a comment.
+
+Next, in order:
+1. `src/db/drivers/sqlite/`, the driver itself: openWindow snapshots, closeWindow snapshots and
+   diffs, the capability descriptor declaring `capture: "snapshot"` with no ordering and no
+   attribution, and the degraded mode printed on every run. Flip `DB_DRIVER_MODES.sqlite` to
+   implemented, which the registry test already requires a mode for.
+2. 06-03 MySQL, 06-04 Mongo, 06-05 BigQuery. Each is independent of the others.
+3. 06-06 and 06-07, generation. 06-08, acceptance and docs.
 
 ### Phase 6, what it needs
 

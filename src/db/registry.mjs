@@ -35,15 +35,25 @@ function unknownDriverError(driver) {
   );
 }
 
+// Which plan lands which driver, so an operator hitting this error can tell
+// whether it is coming soon or not coming at all.
+const PLANNED_BY = Object.freeze({
+  sqlite: "06-02",
+  mysql: "06-03",
+  mongo: "06-04",
+  bigquery: "06-05"
+});
+
 function plannedDriverError(driver) {
   return new UsageError(
     "E_DB_DRIVER_NOT_IMPLEMENTED",
-    `Database driver ${driver} is declared but not implemented until Phase 6.`,
+    `Database driver ${driver} is declared but not implemented yet.`,
     {
       driver,
       status: PLANNED,
       roadmapPhase: "Phase 6",
-      remediation: "Use postgres for Phase 3 database delta runs, or wait for the Phase 6 driver release."
+      plan: PLANNED_BY[driver] ?? null,
+      remediation: `Use postgres for database delta runs until the ${driver} driver lands in Phase 6 plan ${PLANNED_BY[driver] ?? "TBD"}.`
     }
   );
 }
@@ -116,10 +126,9 @@ export function createDbDriver({
 } = {}) {
   assertTarget(target);
 
-  const driver = driverName(target);
-  if (driver === "postgresql") {
-    return createPostgres({ target, config, runId, scenarioId, surface });
-  }
+  // `postgresql` is accepted because a target can still arrive from a caller
+  // that did not go through resolveTarget, which normalises the alias.
+  const driver = driverName(target) === "postgresql" ? "postgres" : driverName(target);
 
   if (!DRIVER_SET.has(driver)) {
     throw unknownDriverError(driver);

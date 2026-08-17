@@ -85,7 +85,7 @@ export function createFakeAdb({
     }
   }
 
-  function handleShell(args, argv, encoding) {
+  function handleShell(args, argv) {
     const line = joined(argv);
 
     if (argv[0] === "getprop") {
@@ -125,7 +125,7 @@ export function createFakeAdb({
 
     const shellArgv = shellArgvOf(args);
     if (shellArgv !== null) {
-      return handleShell(args, shellArgv, encoding);
+      return handleShell(args, shellArgv);
     }
 
     const execOut = args.indexOf("exec-out");
