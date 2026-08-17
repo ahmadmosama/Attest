@@ -52,6 +52,21 @@ jobs:
             exit 1
           fi
 
+      - name: Install idb
+        # The UI driver. simctl can boot, install and launch, but it has no
+        # accessibility tree and no tap, so without this the surface can start an
+        # app and then not touch it.
+        #
+        # Two halves, and both are needed: idb-companion is the native process
+        # that talks to CoreSimulator, fb-idb is the Python CLI that talks to the
+        # companion. Installing one and not the other fails at the first `ui`
+        # command, not at install time.
+        run: |
+          brew tap facebook/fb
+          brew install idb-companion
+          pipx install fb-idb || pip3 install --user fb-idb
+          idb --help > /dev/null
+
       - name: Boot the simulator
         id: boot
         run: |
@@ -59,11 +74,24 @@ jobs:
           echo "device-id=${DEVICE_ID}" >> "$GITHUB_OUTPUT"
           xcrun simctl bootstatus "${DEVICE_ID}" -b
 
+      - name: Assert idb can actually see the booted simulator
+        # Before the suite, for the same reason the runtime check is: "idb cannot
+        # reach the companion" should fail with that sentence, not as a locator
+        # miss thirty steps in that reads like the app is broken.
+        run: |
+          idb list-targets --json
+          if ! idb list-targets --json | grep -q "${{ steps.boot.outputs.device-id }}"; then
+            echo "::error::idb cannot see simulator ${{ steps.boot.outputs.device-id }}."
+            exit 1
+          fi
+          idb ui describe-all --udid "${{ steps.boot.outputs.device-id }}" > /dev/null
+
       - name: Run the iOS scenarios
         env:
           ATTEST_IOS_DEVICE: ${{ steps.boot.outputs.device-id }}
           ATTEST_XCODE_VERSION: ${{ env.XCODE_VERSION }}
           ATTEST_IOS_RUNTIME_VERSION: ${{ env.IOS_RUNTIME_VERSION }}
+          ATTEST_IOS_DRIVER: idb
         run: npm run test:ios
 
       - name: Shut the simulator down
@@ -71,6 +99,7 @@ jobs:
         # the next job on a reused runner.
         if: always()
         run: |
+          idb kill || true
           xcrun simctl shutdown "${{ steps.boot.outputs.device-id }}" || true
           xcrun simctl delete "${{ steps.boot.outputs.device-id }}" || true
 
