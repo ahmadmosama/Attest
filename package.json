@@ -16,7 +16,8 @@
     "lint": "oxlint src test tools",
     "lint:boundary": "node tools/check-import-boundary.mjs",
     "check": "npm run lint && npm run lint:boundary && npm test",
-    "test:acceptance": "node --test --test-concurrency=1 \"test/acceptance/*.test.mjs\""
+    "test:acceptance": "node --test --test-concurrency=1 \"test/acceptance/*.test.mjs\"",
+    "test:ios": "node --test --test-concurrency=1 \"test/surfaces/ios/*.test.mjs\" \"test/acceptance/phase-07-ios.test.mjs\""
   },
   "dependencies": {
     "cli-table3": "0.6.5",

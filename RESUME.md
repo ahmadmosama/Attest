@@ -6,7 +6,7 @@ Updated 2026-08-17. Working tree is clean, everything below is committed.
 
 | Thing | State |
 |---|---|
-| Phases done | 6 of 7 complete, Phase 7 remains |
+| Phases done | 6 of 7 complete, Phase 7 at 2 of 3 |
 | Phase 3 | Complete and SIGNED OFF, with a 90.91 percent kill rate |
 | Phase 5 | Complete. Four criteria proven against a live emulator, real APK, real Postgres |
 | Milestone | Landed. One command runs one real app on the Android emulator and leaves an evidence bundle |
@@ -78,7 +78,7 @@ node src/cli/main.mjs run \
 | Phase | Scope | State |
 |---|---|---|
 | 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | Complete, GEN-03 crawler deferred |
-| 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | Not planned |
+| 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | 2 of 3, integration remains |
 
 ### Phase 6, complete with two stated gaps
 
@@ -169,6 +169,31 @@ Phase 5 left two things Phase 6 and Phase 7 inherit:
   simulators want the same shape.
 - `test/helpers/fake-adb.mjs`: a scripted transport that answers the real argv, so the adapter's
   own logic executes with no device. The same seam works for `simctl`.
+
+### Phase 7, where it actually is
+
+Planned: three plans, in `.planning/phases/07-ios-on-ci-and-the-pipeline-gate/`.
+
+Done:
+- **07-01**, the iOS adapter, IOS-02. Built on Windows where it cannot run, and fully exercised
+  there: it is the fourth name in the conformance suite alongside fake, android and web. Both
+  portable locator strategies map to `accessibilityIdentifier` rather than the translated label.
+  Two capabilities declared, and simctl can do more, deliberately. 23 tests.
+- **07-02**, the workflows, IOS-01. `ios.yml` on `macos-26` with Xcode and the runtime both
+  pinned, the runtime asserted before the suite starts, the simulator shut down in an always
+  step, and no `continue-on-error` anywhere, asserted by a test that parses the file.
+  `check.yml` runs the gate on ubuntu and windows with a real Postgres, which is DROID-03's
+  second half.
+
+Next:
+1. **07-03, the integration**, INTEG-01 to INTEG-03. The plan is written and deliberately careful,
+   because two of the three requirements modify `Desktop/Claude/A to Z Deployment`, a separate
+   mature project with a frozen schema and a one-array stage order. Attest owns the adapter; AtoZ
+   owns whether and where to mount it. What Attest can land alone: the stage module matching the
+   AtoZ contract, the GSD validate hook, and the mounting instructions.
+
+Two rules from that plan worth carrying: the stage reads `run.json` and never the HTML report,
+and a missing verification is a failure rather than a pass. Silence must never read as success.
 
 ## Things that will bite you if forgotten
 

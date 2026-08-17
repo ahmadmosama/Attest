@@ -7,11 +7,14 @@ import { createRunContext } from "../../src/runtime/run-context.mjs";
 import { InfraError } from "../../src/errors.mjs";
 import { createAndroidSurface } from "../../src/surfaces/android/adapter.mjs";
 import { ANDROID_SURFACE_SUPPORTS } from "../../src/surfaces/android/capabilities.mjs";
+import { createIosSurface } from "../../src/surfaces/ios/adapter.mjs";
+import { IOS_SURFACE_SUPPORTS } from "../../src/surfaces/ios/capabilities.mjs";
 import { createFakeSurface } from "../../src/surfaces/fake/adapter.mjs";
 import { defineScript } from "../../src/surfaces/fake/script.mjs";
 import { WEB_SURFACE_SUPPORTS } from "../../src/surfaces/web/capabilities.mjs";
 import { createWebSurface } from "../../src/surfaces/web/adapter.mjs";
 import { createFakeAdb, fakeDeviceLease } from "../helpers/fake-adb.mjs";
+import { createFakeSimctl, fakeSimulatorLease } from "../helpers/fake-simctl.mjs";
 import { startStaticServer } from "../helpers/static-server.mjs";
 import { runSurfaceConformance } from "./surface-port.mjs";
 
@@ -187,6 +190,48 @@ runSurfaceConformance({
   capabilities: ["raw_escape"],
   describe,
   test
+});
+
+// iOS runs against a scripted simctl and accessibility source. It is the only
+// surface that can never execute on this host, which is exactly why IOS-02
+// requires its contract to be asserted here: an adapter exercised only on CI
+// rots between runs, and the rot is invisible until the one time it matters.
+function createIosAdapter() {
+  const sim = createFakeSimctl();
+
+  return createIosSurface({
+    lease: fakeSimulatorLease(),
+    bundleId: "test.attest.fixture",
+    deps: {
+      runSimctl: sim.runSimctl,
+      describeElements: sim.describeElements,
+      tap: sim.tap,
+      type: sim.type
+    }
+  });
+}
+
+runSurfaceConformance({
+  name: "ios",
+  createAdapter: createIosAdapter,
+  capabilities: IOS_SURFACE_SUPPORTS,
+  // A simctl argv rather than a web script, and an identifier rather than a web
+  // testId. Everything else runs as written.
+  supportedOp: Object.freeze({
+    i: 20,
+    kind: "raw",
+    surface: "ios",
+    reason: "surface conformance",
+    block: Object.freeze({ simctl: Object.freeze(["simctl", "list", "devices"]) })
+  }),
+  missingLocatorOp: Object.freeze({
+    i: 30,
+    kind: "expect_visible",
+    locator: Object.freeze({ strategy: "accessibilityId", value: "attest_missing_locator" })
+  }),
+  describe,
+  test,
+  skip
 });
 
 runSurfaceConformance({

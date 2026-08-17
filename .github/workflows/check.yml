@@ -1,0 +1,85 @@
+name: check
+
+# The gate, on both host families. Everything except iOS runs here; iOS runs in
+# ios.yml on a macOS runner, because the simulator exists nowhere else.
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    name: check on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Both are run to completion. A failure on one host family is a failure,
+      # not a reason to look at the other one.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    services:
+      postgres:
+        # Real Postgres, with logical replication on, so the database tests RUN
+        # rather than skip. A green suite whose DB half quietly skipped is the
+        # exact failure mode this project exists to refuse.
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --name attest_pg
+        ports:
+          - 54322:5432
+
+    env:
+      ATTEST_PG_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
+      ATTEST_DB_URL: postgres://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Enable logical replication
+        # The image defaults to wal_level=replica, and the Postgres driver
+        # refuses anything less than logical at preflight rather than degrading.
+        run: |
+          docker exec attest_pg psql -U postgres -c "ALTER SYSTEM SET wal_level = logical"
+          docker restart attest_pg
+          for i in $(seq 1 30); do
+            docker exec attest_pg pg_isready -U postgres && break
+            sleep 2
+          done
+          docker exec attest_pg psql -U postgres -tAc "SHOW wal_level" | grep -q logical
+        shell: bash
+
+      - name: Install Chrome for the web surface
+        run: npx playwright install --with-deps chrome
+
+      - run: npm run check
+
+      - name: Assert no replication slot leaked
+        # A leaked slot is a disk risk that outlives the run, so it is checked
+        # rather than hoped for, and it runs even when the suite failed.
+        if: always()
+        run: |
+          docker exec attest_pg psql -U postgres -tAc \
+            "SELECT coalesce(string_agg(slot_name, ', '), 'NONE') FROM pg_replication_slots" | grep -qx NONE
+        shell: bash
+
+      - name: Upload evidence bundles
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: attest-artifacts-${{ matrix.os }}
+          path: .attest/runs
+          if-no-files-found: ignore

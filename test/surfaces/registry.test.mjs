@@ -12,6 +12,7 @@ import { createSurfaceRegistry, SURFACE_ADAPTER_MODES } from "../../src/surfaces
 
 const APP = Object.freeze({ kind: "web_url", url: "https://example.test", surface: "web" });
 const APK = Object.freeze({ kind: "android_apk", path: "build/app.apk", surface: "android" });
+const APP_BUNDLE = Object.freeze({ kind: "ios_app_bundle", path: "build/Runner.app", surface: "ios" });
 const START = new Date("2026-08-15T04:46:12.000Z");
 
 function config(overrides = {}) {
@@ -109,39 +110,66 @@ test("android without a configured package is refused rather than inferred", () 
   );
 });
 
-test("real ios is not implemented and points at the phase that lands it", () => {
+test("real ios builds an adapter and refuses anything that is not a simulator .app", () => {
   const registry = createSurfaceRegistry({
     mode: "real",
     surfaces: ["ios"],
-    appArtifact: APK,
-    config: config()
+    appArtifact: APP_BUNDLE,
+    config: config({ app: APP_BUNDLE.path })
   });
 
-  assert.deepEqual(registry.descriptorFor("ios").supports, []);
+  const descriptor = registry.descriptorFor("ios");
+  assert.deepEqual(descriptor.supports, ["app_lifecycle", "raw_escape"]);
+  assert.doesNotThrow(() => registry.adapterFor({ surface: "ios" }));
 
+  // An .apk is not an .app, and the refusal happens when the registry is built
+  // rather than when the first step runs.
   assert.throws(
-    () => registry.adapterFor({ surface: "ios" }),
+    () =>
+      createSurfaceRegistry({
+        mode: "real",
+        surfaces: ["ios"],
+        appArtifact: APK,
+        config: config({ app: "build/app.apk" })
+      }),
     (error) => {
-      assert(error instanceof InfraError);
-      assert.equal(error.code, "E_ADAPTER_NOT_IMPLEMENTED");
-      assert.equal(error.details.surface, "ios");
-      assert.match(error.details.remediation, /macOS runner/);
+      assert(error instanceof UsageError);
+      assert.equal(error.code, "E_IOS_APP_REQUIRED");
       return true;
     }
   );
+});
+
+test("an ios adapter on a host with no simulator refuses at preflight, by name", async () => {
+  const registry = createSurfaceRegistry({
+    mode: "real",
+    surfaces: ["ios"],
+    appArtifact: APP_BUNDLE,
+    config: config({ app: APP_BUNDLE.path })
+  });
+  const adapter = registry.adapterFor({ surface: "ios" });
+
+  // This is the honest behaviour on Windows: the adapter exists, is asserted by
+  // its contract tests, and says plainly that it cannot execute here.
+  await assert.rejects(() => adapter.preflight({}), (error) => {
+    assert(error instanceof InfraError);
+    assert.equal(error.code, "E_IOS_NO_SIMULATOR");
+    assert.match(error.details.remediation, /macOS runner/);
+    return true;
+  });
 });
 
 test("unimplemented adapter becomes a scenario infra_error through runSuite", async () => {
   await withTemp("registry-suite", async (root) => {
     const registry = createSurfaceRegistry({
       mode: "real",
-      surfaces: ["ios"],
+      surfaces: ["fake-surface"],
       appArtifact: APK,
       config: config()
     });
 
     const { record } = await runSuite({
-      plans: [tinyPlan("ios")],
+      plans: [tinyPlan("fake-surface")],
       adapterFor: registry.adapterFor,
       bundle: await createBundle({ root, runId: "20260815T044612Z-88888888" }),
       config: { timeouts: config().timeouts },

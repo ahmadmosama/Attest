@@ -186,11 +186,12 @@ if (process.argv[2] === "update-snapshot") {
       assert.match(out.join(""), /infra/);
       const [runDir] = await readdir(artifacts);
       const record = JSON.parse(await readFile(path.join(artifacts, runDir, "run.json"), "utf8"));
-      assert.equal(record.scenarios[0].error.code, "E_ADAPTER_NOT_IMPLEMENTED");
-      assert.match(record.scenarios[0].error.message, /Surface adapter for ios is not implemented/);
-      // Phase 5 landed Android, so the message no longer names it. iOS is
-      // Phase 7, on a macOS runner, and the remediation says so.
-      assert.equal(record.scenarios[0].error.details.roadmapPhase, "Phase 7");
+      // Phase 7 landed the adapter, so this is no longer "not implemented". It
+      // is implemented, asserted on this host by its contract tests, and it
+      // refuses to execute here because the simulator does not exist on
+      // Windows. Failing fast with a named reason is the point either way.
+      assert.equal(record.scenarios[0].error.code, "E_IOS_NO_SIMULATOR");
+      assert.match(record.scenarios[0].error.details.remediation, /macOS runner/);
     });
   });
 }

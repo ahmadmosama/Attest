@@ -1,0 +1,83 @@
+name: ios
+
+# The only place the iOS surface can execute. The simulator does not run on
+# Windows or Linux, so the adapter is built locally and run here. Relocated,
+# not deferred.
+#
+# This job is BLOCKING from day one. There is no continue-on-error anywhere in
+# this file, deliberately: a surface that silently skips is how a gate becomes a
+# lie, and this is the one surface nobody can check locally, so an ignored
+# failure would go unseen for a long time.
+on:
+  push:
+  pull_request:
+
+env:
+  # Pinned, both of them. Runner image issue 13853 had Xcode shipping ahead of
+  # its matching simulator runtime, so the image default was unusable. Trusting
+  # the default is how a green job stops meaning anything.
+  XCODE_VERSION: "26.1"
+  IOS_RUNTIME_VERSION: "26.1"
+  SIMULATOR_NAME: "iPhone 17"
+
+jobs:
+  ios:
+    name: ios simulator
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Pin Xcode
+        run: |
+          sudo xcode-select -switch "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
+          xcodebuild -version
+
+      - name: Assert the simulator runtime exists
+        # Before the suite, not during it. A missing runtime should fail with a
+        # sentence naming what is missing, rather than with a confusing simctl
+        # error thirty steps later.
+        run: |
+          if ! xcrun simctl list runtimes | grep -q "iOS ${IOS_RUNTIME_VERSION}"; then
+            echo "::error::iOS ${IOS_RUNTIME_VERSION} runtime is not installed on this image."
+            echo "Installed runtimes:"
+            xcrun simctl list runtimes
+            exit 1
+          fi
+
+      - name: Boot the simulator
+        id: boot
+        run: |
+          DEVICE_ID=$(xcrun simctl create attest-ci "${SIMULATOR_NAME}" "com.apple.CoreSimulator.SimRuntime.iOS-${IOS_RUNTIME_VERSION//./-}")
+          echo "device-id=${DEVICE_ID}" >> "$GITHUB_OUTPUT"
+          xcrun simctl bootstatus "${DEVICE_ID}" -b
+
+      - name: Run the iOS scenarios
+        env:
+          ATTEST_IOS_DEVICE: ${{ steps.boot.outputs.device-id }}
+          ATTEST_XCODE_VERSION: ${{ env.XCODE_VERSION }}
+          ATTEST_IOS_RUNTIME_VERSION: ${{ env.IOS_RUNTIME_VERSION }}
+        run: npm run test:ios
+
+      - name: Shut the simulator down
+        # Always, so a failed run does not leave a booted simulator behind for
+        # the next job on a reused runner.
+        if: always()
+        run: |
+          xcrun simctl shutdown "${{ steps.boot.outputs.device-id }}" || true
+          xcrun simctl delete "${{ steps.boot.outputs.device-id }}" || true
+
+      - name: Upload evidence bundles
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: attest-ios-artifacts
+          path: .attest/runs
+          if-no-files-found: ignore

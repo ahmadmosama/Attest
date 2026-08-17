@@ -3,6 +3,7 @@ import { defineSurfaceCapabilities } from "../capabilities/surface-caps.mjs";
 import { createAndroidSurface } from "./android/adapter.mjs";
 import { createDeviceLease } from "./android/device.mjs";
 import { createFakeSurface } from "./fake/adapter.mjs";
+import { createIosSurface } from "./ios/adapter.mjs";
 import { defineScript } from "./fake/script.mjs";
 import { createWebSurface } from "./web/adapter.mjs";
 
@@ -132,6 +133,35 @@ function assertAndroidPackage(android) {
   });
 }
 
+function assertIosTarget(appArtifact) {
+  if (appArtifact?.kind === "ios_app_bundle" && typeof appArtifact.path === "string") {
+    return appArtifact.path;
+  }
+
+  // The .ipa refusal itself lives in the command layer, where it carries the
+  // full explanation. This only has to refuse anything that is not a simulator
+  // .app bundle.
+  throw new UsageError("E_IOS_APP_REQUIRED", "iOS surface requires a simulator .app bundle", {
+    surface: "ios",
+    artifactKind: appArtifact?.kind ?? null,
+    app: appArtifact?.path ?? appArtifact?.url ?? null
+  });
+}
+
+function createRealIosFactory({ appArtifact, config, deps }) {
+  assertIosTarget(appArtifact);
+  const ios = config.ios ?? {};
+
+  // No lease on a non macOS host. preflight refuses with a named error rather
+  // than the adapter pretending a simulator might appear.
+  return () =>
+    createIosSurface({
+      lease: deps.iosLease ?? null,
+      bundleId: ios.bundleId ?? null,
+      deps
+    });
+}
+
 function createRealAndroidFactory({ appArtifact, config, env, deps }) {
   const android = config.android ?? {};
   const apkPath = assertAndroidTarget(appArtifact);
@@ -169,6 +199,7 @@ function createRealRegistry({ surfaces, appArtifact, config, env, deps }) {
   const androidFactory = surfaces.includes("android")
     ? createRealAndroidFactory({ appArtifact, config, env, deps })
     : null;
+  const iosFactory = surfaces.includes("ios") ? createRealIosFactory({ appArtifact, config, deps }) : null;
   const descriptorCache = new Map();
 
   function factoryFor(surface) {
@@ -177,6 +208,9 @@ function createRealRegistry({ surfaces, appArtifact, config, env, deps }) {
     }
     if (surface === "android") {
       return androidFactory;
+    }
+    if (surface === "ios") {
+      return iosFactory;
     }
     return null;
   }
