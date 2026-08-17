@@ -27,6 +27,21 @@ export const DEFAULTS = Object.freeze({
       height: 720
     })
   }),
+  // Android defaults are all null on purpose. An adb backend that guessed an
+  // AVD name, or defaulted a serial, would silently drive whichever device
+  // happened to be attached, which is the mobile version of taking the first
+  // of several matching nodes.
+  android: Object.freeze({
+    avd: null,
+    serial: null,
+    package: null,
+    activity: null,
+    install: true,
+    record: true,
+    bootTimeoutMs: 180000,
+    recordSeconds: 180,
+    extras: Object.freeze({})
+  }),
   failOnSkip: true,
   concurrency: 1,
   color: false,
@@ -100,6 +115,22 @@ export const ConfigSchema = z
       })
       .strict()
       .default(DEFAULTS.web),
+    android: z
+      .object({
+        avd: NonEmptyString.nullable().default(DEFAULTS.android.avd),
+        serial: NonEmptyString.nullable().default(DEFAULTS.android.serial),
+        package: NonEmptyString.nullable().default(DEFAULTS.android.package),
+        activity: NonEmptyString.nullable().default(DEFAULTS.android.activity),
+        install: z.boolean().default(DEFAULTS.android.install),
+        record: z.boolean().default(DEFAULTS.android.record),
+        bootTimeoutMs: TimeoutMs.default(DEFAULTS.android.bootTimeoutMs),
+        // adb screenrecord refuses anything longer, so the config cannot ask
+        // for something the device will reject at run time.
+        recordSeconds: z.number().int().positive().max(180).default(DEFAULTS.android.recordSeconds),
+        extras: z.record(z.string(), z.string()).default(DEFAULTS.android.extras)
+      })
+      .strict()
+      .default(DEFAULTS.android),
     failOnSkip: z.boolean().default(DEFAULTS.failOnSkip),
     concurrency: z.number().int().positive().default(DEFAULTS.concurrency),
     color: z.boolean().default(DEFAULTS.color),

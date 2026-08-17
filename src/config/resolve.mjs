@@ -104,6 +104,14 @@ function envConfig(env = {}) {
       scenarioMs: parsePositiveInteger(env.ATTEST_TIMEOUT_SCENARIO_MS, "ATTEST_TIMEOUT_SCENARIO_MS")
     });
   }
+  // Which device this machine or this CI job has is environment, not project
+  // configuration, so these two are the only Android fields read from env.
+  if (env.ATTEST_ANDROID_AVD !== undefined) {
+    config.android = Object.assign(config.android ?? {}, { avd: env.ATTEST_ANDROID_AVD });
+  }
+  if (env.ATTEST_ANDROID_SERIAL !== undefined) {
+    config.android = Object.assign(config.android ?? {}, { serial: env.ATTEST_ANDROID_SERIAL });
+  }
   if (env.ATTEST_FAIL_ON_SKIP !== undefined) {
     config.failOnSkip = parseBoolean(env.ATTEST_FAIL_ON_SKIP, "ATTEST_FAIL_ON_SKIP");
   }

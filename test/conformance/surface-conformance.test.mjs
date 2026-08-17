@@ -5,10 +5,13 @@ import { describe, test } from "node:test";
 import { createBundle } from "../../src/evidence/bundle.mjs";
 import { createRunContext } from "../../src/runtime/run-context.mjs";
 import { InfraError } from "../../src/errors.mjs";
+import { createAndroidSurface } from "../../src/surfaces/android/adapter.mjs";
+import { ANDROID_SURFACE_SUPPORTS } from "../../src/surfaces/android/capabilities.mjs";
 import { createFakeSurface } from "../../src/surfaces/fake/adapter.mjs";
 import { defineScript } from "../../src/surfaces/fake/script.mjs";
 import { WEB_SURFACE_SUPPORTS } from "../../src/surfaces/web/capabilities.mjs";
 import { createWebSurface } from "../../src/surfaces/web/adapter.mjs";
+import { createFakeAdb, fakeDeviceLease } from "../helpers/fake-adb.mjs";
 import { startStaticServer } from "../helpers/static-server.mjs";
 import { runSurfaceConformance } from "./surface-port.mjs";
 
@@ -160,6 +163,23 @@ async function createWebAdapter() {
   }
 }
 
+// Android runs against a scripted adb transport rather than an emulator. The
+// adapter's own command construction, hierarchy parsing, locate, ambiguity
+// refusal, tap arithmetic and evidence writing all execute for real: only the
+// device is simulated, which is the same seam startEmulator already takes for
+// spawnEmulator. That is what makes DROID-03's "passes on Linux CI as well as
+// on Windows" true rather than aspirational.
+function createAndroidAdapter() {
+  const adb = createFakeAdb();
+
+  return createAndroidSurface({
+    lease: fakeDeviceLease(),
+    packageName: "attest.selfverify",
+    activity: ".MainActivity",
+    deps: { runAdb: adb.runAdb, startAdb: adb.startAdb }
+  });
+}
+
 runSurfaceConformance({
   name: "fake",
   createAdapter: async () => createFakeSurface(fakeScript()),
@@ -167,6 +187,30 @@ runSurfaceConformance({
   capabilities: ["raw_escape"],
   describe,
   test
+});
+
+runSurfaceConformance({
+  name: "android",
+  createAdapter: createAndroidAdapter,
+  capabilities: ANDROID_SURFACE_SUPPORTS,
+  // The default raw block carries a web script, and the default missing
+  // locator is a web testId. Both have to be surface shaped: an Android raw
+  // block is an adb argv array. Nothing else is overridden.
+  supportedOp: Object.freeze({
+    i: 20,
+    kind: "raw",
+    surface: "android",
+    reason: "surface conformance",
+    block: Object.freeze({ shell: Object.freeze(["input", "keyevent", "KEYCODE_BACK"]) })
+  }),
+  missingLocatorOp: Object.freeze({
+    i: 30,
+    kind: "expect_visible",
+    locator: Object.freeze({ strategy: "testId", value: "attest_missing_locator" })
+  }),
+  describe,
+  test,
+  skip
 });
 
 describe("web surface adapter conformance", { timeout: TEST_TIMEOUT }, () => {

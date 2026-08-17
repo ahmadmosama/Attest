@@ -187,7 +187,10 @@ if (process.argv[2] === "update-snapshot") {
       const [runDir] = await readdir(artifacts);
       const record = JSON.parse(await readFile(path.join(artifacts, runDir, "run.json"), "utf8"));
       assert.equal(record.scenarios[0].error.code, "E_ADAPTER_NOT_IMPLEMENTED");
-      assert.match(record.scenarios[0].error.message, /Surface adapter for ios is not implemented until Phase 5/);
+      assert.match(record.scenarios[0].error.message, /Surface adapter for ios is not implemented/);
+      // Phase 5 landed Android, so the message no longer names it. iOS is
+      // Phase 7, on a macOS runner, and the remediation says so.
+      assert.equal(record.scenarios[0].error.details.roadmapPhase, "Phase 7");
     });
   });
 }

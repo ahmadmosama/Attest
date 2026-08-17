@@ -1,0 +1,13 @@
+surface: android
+# The same semantic refs the web bindings carry, bound to android resource ids.
+# The scenario file is not edited between surfaces: only this file changes.
+elements:
+  button:create_order: { testId: create_order_action }
+  button:delete_customer: { testId: delete_customer_action }
+screens:
+  # A mobile screen is reached by deeplink rather than by URL path. Attest
+  # always starts the activity by explicit component as well, so the intent
+  # resolver never gets to choose a handler.
+  screen:customers: { deeplink: "attest-selfverify://customers", ready: { testId: customer_list } }
+states:
+  state:customer_detail: { testId: status_text }

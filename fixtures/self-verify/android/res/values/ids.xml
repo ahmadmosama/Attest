@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Declared ids, not programmatic ones.
+
+  uiautomator reports resource-id from the resource name, so a View given an
+  integer id with setId(1234) dumps an empty resource-id and would have to be
+  located by text. Declaring the ids here is what lets the android bindings
+  address this app the same way the web bindings address testids.
+-->
+<resources>
+  <item name="customer_list" type="id" />
+  <item name="create_order_action" type="id" />
+  <item name="delete_customer_action" type="id" />
+  <item name="status_text" type="id" />
+</resources>

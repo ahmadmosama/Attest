@@ -618,6 +618,10 @@ export async function runCommand(flags = {}, io = {}) {
   const env = io.env ?? {};
   const cwd = io.cwd ?? process.cwd();
   const deps = dependencySet(io);
+  // Assigned once the registry exists, torn down in the outer finally, so an
+  // emulator this run started is stopped even when the run throws. A leaked
+  // emulator is the one failure that breaks the NEXT run rather than this one.
+  let shutdownRegistry = null;
 
   try {
     const configFlags = {
@@ -644,7 +648,14 @@ export async function runCommand(flags = {}, io = {}) {
 
     const appArtifact = classifyAppArtifact(appValue);
     const surfaces = config.surfaces;
-    const registry = createSurfaceRegistry({ surfaces, appArtifact, config: resolvedConfig, env });
+    const registry = createSurfaceRegistry({
+      surfaces,
+      appArtifact,
+      config: resolvedConfig,
+      env,
+      deps: io.surfaceDeps ?? {}
+    });
+    shutdownRegistry = registry.shutdown ?? null;
     write(stdout, adapterBanner({ registry, config: resolvedConfig, appArtifact }));
     const dbCaps = await probeDbCapabilities({ config: resolvedConfig, flags, deps });
     write(stdout, dbBanner({ config: resolvedConfig, dbCaps }));
@@ -770,5 +781,14 @@ export async function runCommand(flags = {}, io = {}) {
   } catch (error) {
     write(stderr, formatError(error));
     return error instanceof UsageError ? EXIT.USAGE_ERROR : EXIT.HARNESS_ERROR;
+  } finally {
+    if (typeof shutdownRegistry === "function") {
+      try {
+        await shutdownRegistry();
+      } catch {
+        // Teardown is best effort. It must never change the exit code, because
+        // a run that already produced a verdict has to report that verdict.
+      }
+    }
   }
 }

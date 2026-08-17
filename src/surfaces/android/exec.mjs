@@ -44,6 +44,51 @@ function truncate(buffers) {
  * two fixes conflict, so the answer is to never involve a shell at all. It is
  * also what makes argument injection structurally impossible here.
  */
+/**
+ * Start a long running adb child and hand back a stop handle.
+ *
+ * `screenrecord` is the only caller: it runs for the length of the scenario and
+ * is stopped, not awaited. It goes through this file rather than spawning its
+ * own child so the "one spawn site, shell false, argv only" rule stays true.
+ *
+ * SIGINT rather than SIGKILL matters here. screenrecord finalises the mp4
+ * container on interrupt, and a killed recording leaves an unplayable file,
+ * which is evidence that looks present and is not.
+ */
+export function startAdb(command) {
+  const { command: binary, args, env } = assertCommand(command);
+
+  const child = spawn(binary, args, {
+    shell: false,
+    windowsHide: true,
+    env: { ...process.env, ...env },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  const exited = new Promise((resolve) => {
+    child.once("close", (code) => resolve(code));
+    child.once("error", () => resolve(null));
+  });
+
+  let stopped = false;
+
+  return Object.freeze({
+    argv: Object.freeze([...args]),
+    async stop() {
+      if (!stopped) {
+        stopped = true;
+        try {
+          child.kill("SIGINT");
+        } catch {
+          // Already gone. The exit promise below still settles.
+        }
+      }
+
+      return exited;
+    }
+  });
+}
+
 export async function runAdb(command, { signal, encoding = "utf8" } = {}) {
   const { command: binary, args, env } = assertCommand(command);
 

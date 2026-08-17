@@ -1,7 +1,14 @@
 import { PLAN_OP_KINDS } from "../plan.mjs";
 
 function targetLocator(step, ctx) {
-  return ctx.resolve(step.value.target).locator;
+  const locator = ctx.resolve(step.value.target).locator;
+
+  // Asserting on a screen means asserting on the thing the screen binding
+  // declared as its readiness marker. Passing the screen locator through would
+  // hand every adapter a `strategy: "screen"` it has no way to match, so
+  // `expect_visible: screen:customers` would fail on the strategy rather than
+  // on the screen, on web and on Android alike.
+  return locator.strategy === "screen" ? locator.ready : locator;
 }
 
 export function lowerAssertion(step, ctx) {

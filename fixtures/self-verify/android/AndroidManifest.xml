@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="attest.selfverify"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+  <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="35" />
+  <uses-permission android:name="android.permission.INTERNET" />
+
+  <!--
+    Cleartext is on because the fixture server is plain HTTP on the host
+    loopback, reached from the emulator through its 10.0.2.2 alias. This app
+    exists only to be driven by Attest against a local fixture and is never
+    installed anywhere else.
+  -->
+  <application
+      android:label="Attest Self Verify"
+      android:usesCleartextTraffic="true"
+      android:allowBackup="false">
+
+    <!--
+      NoActionBar is load bearing, not cosmetic. With the default theme the
+      ActionBar is drawn over the top of the content view, so the first button's
+      dumped bounds centre falls underneath it and a coordinate tap lands on the
+      action bar instead of the button. Attest does not model z order (see the
+      known limits in docs/android.md), so the fixture does not create the
+      situation in the first place.
+    -->
+    <activity
+        android:name=".MainActivity"
+        android:exported="true"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+
+      <!--
+        The deeplink the android bindings name. Attest always starts this
+        activity by explicit component as well, so the intent resolver never
+        gets to choose a handler, but the filter is what makes the scheme legal.
+      -->
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="attest-selfverify" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

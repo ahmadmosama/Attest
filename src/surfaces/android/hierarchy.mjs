@@ -110,8 +110,34 @@ export function parseHierarchy(xml) {
   return Object.freeze(nodes);
 }
 
-function matchesSelector(node, selector) {
+// `android.widget.Button` -> `Button`. Matching on the simple name is what lets
+// one declared role cover Button, AppCompatButton and MaterialButton without
+// the binding having to know which support library the app was built against.
+export function simpleClassName(className) {
+  const index = String(className ?? "").lastIndexOf(".");
+  return index === -1 ? String(className ?? "") : String(className).slice(index + 1);
+}
+
+// Android resource ids are package qualified (`com.example:id/submit`) and a
+// binding is not. Accepting the `:id/<value>` suffix is what makes one binding
+// file work against a debug build and a release build with different ids.
+function matchesResourceId(node, selector) {
   if (selector.resourceId !== undefined && node.resourceId !== selector.resourceId) {
+    return false;
+  }
+
+  if (selector.resourceIdSuffix !== undefined) {
+    const value = selector.resourceIdSuffix;
+    if (node.resourceId !== value && !node.resourceId.endsWith(`:id/${value}`)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function matchesSelector(node, selector) {
+  if (!matchesResourceId(node, selector)) {
     return false;
   }
   if (selector.text !== undefined && node.text !== selector.text) {
@@ -120,10 +146,50 @@ function matchesSelector(node, selector) {
   if (selector.contentDesc !== undefined && node.contentDesc !== selector.contentDesc) {
     return false;
   }
+  // A name in the shared vocabulary is an accessible name, and Android spells
+  // that as either text or content-desc depending on the widget.
+  if (
+    selector.nameAny !== undefined &&
+    node.text !== selector.nameAny &&
+    node.contentDesc !== selector.nameAny
+  ) {
+    return false;
+  }
   if (selector.className !== undefined && node.className !== selector.className) {
     return false;
   }
+  if (
+    selector.classNameOneOf !== undefined &&
+    !selector.classNameOneOf.includes(simpleClassName(node.className))
+  ) {
+    return false;
+  }
   return true;
+}
+
+function containedIn(node, container) {
+  if (container === null) {
+    return true;
+  }
+
+  const bounds = node.bounds;
+  return (
+    bounds !== null &&
+    bounds.left >= container.left &&
+    bounds.top >= container.top &&
+    bounds.right <= container.right &&
+    bounds.bottom <= container.bottom
+  );
+}
+
+function boundedSample(candidates) {
+  // Bounded on purpose. A hostile or merely large screen must not put an
+  // unbounded dump into an artifact.
+  return Object.freeze(
+    candidates.slice(0, 5).map((node) =>
+      Object.freeze({ index: node.index, resourceId: node.resourceId, text: node.text, bounds: node.bounds })
+    )
+  );
 }
 
 export function selectorFromBinding(binding) {
@@ -155,19 +221,48 @@ export function selectorFromBinding(binding) {
 }
 
 /**
+ * Every node matching a selector, in document order.
+ */
+export function findAll(nodes, selector, { requireVisible = true, container = null } = {}) {
+  return Object.freeze(
+    nodes.filter(
+      (node) =>
+        matchesSelector(node, selector) &&
+        containedIn(node, container) &&
+        (!requireVisible || (node.displayed && node.bounds !== null))
+    )
+  );
+}
+
+/**
  * Find exactly one node.
  *
  * Ambiguity is an ERROR, never a silent first match. Taking the first of three
  * matches is how a scenario passes while driving the wrong widget, and this
- * project exists to not do that.
+ * project exists to not do that. `nth` is the declared way to disambiguate, so
+ * choosing among several matches is always something the bindings said out
+ * loud rather than something the adapter decided.
  */
-export function findOne(nodes, selector, { requireVisible = true } = {}) {
-  const candidates = nodes.filter(
-    (node) => matchesSelector(node, selector) && (!requireVisible || (node.displayed && node.bounds !== null))
-  );
+export function findOne(nodes, selector, { requireVisible = true, container = null, nth = null } = {}) {
+  const candidates = findAll(nodes, selector, { requireVisible, container });
 
   if (candidates.length === 0) {
     return Object.freeze({ ok: false, reason: "not_found", selector, matches: 0 });
+  }
+
+  if (nth !== null) {
+    if (nth >= candidates.length) {
+      return Object.freeze({
+        ok: false,
+        reason: "nth_out_of_range",
+        selector,
+        matches: candidates.length,
+        nth,
+        sample: boundedSample(candidates)
+      });
+    }
+
+    return Object.freeze({ ok: true, node: candidates[nth] });
   }
 
   if (candidates.length > 1) {
@@ -176,13 +271,7 @@ export function findOne(nodes, selector, { requireVisible = true } = {}) {
       reason: "ambiguous",
       selector,
       matches: candidates.length,
-      // Bounded on purpose. A hostile or merely large screen must not put an
-      // unbounded dump into an artifact.
-      sample: Object.freeze(
-        candidates.slice(0, 5).map((node) =>
-          Object.freeze({ index: node.index, resourceId: node.resourceId, text: node.text, bounds: node.bounds })
-        )
-      )
+      sample: boundedSample(candidates)
     });
   }
 

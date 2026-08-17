@@ -241,7 +241,11 @@ function demandedCapabilities(planOp) {
     return Object.freeze([]);
   }
 
-  return capabilitiesFor(sourceKind, planOp.value ?? planOp);
+  // The whole plan op, never `planOp.value`. On a fill or select_option the
+  // value is the text being typed, and capabilitiesFor would try to read it as
+  // a SemanticRef and reject the step with E_BAD_SEMANTIC_REF, which is a
+  // failure about the wrong thing entirely.
+  return capabilitiesFor(sourceKind, planOp);
 }
 
 function assertCapabilitiesSupported(descriptor, planOp) {

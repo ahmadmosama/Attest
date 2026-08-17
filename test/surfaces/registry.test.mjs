@@ -11,6 +11,7 @@ import { runSuite } from "../../src/runtime/suite.mjs";
 import { createSurfaceRegistry, SURFACE_ADAPTER_MODES } from "../../src/surfaces/registry.mjs";
 
 const APP = Object.freeze({ kind: "web_url", url: "https://example.test", surface: "web" });
+const APK = Object.freeze({ kind: "android_apk", path: "build/app.apk", surface: "android" });
 const START = new Date("2026-08-15T04:46:12.000Z");
 
 function config(overrides = {}) {
@@ -70,36 +71,61 @@ test("real web registry returns the web adapter descriptor and fresh web adapter
   assert.equal(adapterDescriptor.has("app_lifecycle"), false);
 });
 
-test("real unimplemented surfaces expose empty descriptors and throw InfraError", () => {
+test("real android registry returns the android adapter descriptor", () => {
   const registry = createSurfaceRegistry({
     mode: "real",
-    surfaces: ["android", "ios"],
-    appArtifact: Object.freeze({ kind: "android_apk", path: "build/app.apk", surface: "android" }),
-    config: config()
+    surfaces: ["android"],
+    appArtifact: APK,
+    config: config({ app: "build/app.apk", android: { package: "attest.selfverify", serial: "emulator-5554" } })
   });
 
-  assert.deepEqual(registry.descriptorFor("android").supports, []);
-  assert.deepEqual(registry.descriptorFor("ios").supports, []);
+  const descriptor = registry.descriptorFor("android");
+  const adapter = registry.adapterFor({ surface: "android" });
 
+  assert.deepEqual(descriptor.supports, ["app_lifecycle", "raw_escape"]);
+  assert.deepEqual(adapter.describeCapabilities().supports, descriptor.supports);
+  // The adb backend cannot do these honestly, so they are absent rather than
+  // present and no-opped.
+  assert.equal(descriptor.has("file_upload"), false);
+  assert.equal(descriptor.has("network_control"), false);
+  assert.equal(typeof registry.shutdown, "function");
+});
+
+test("android without a configured package is refused rather than inferred", () => {
   assert.throws(
-    () => registry.adapterFor({ surface: "android" }),
+    () =>
+      createSurfaceRegistry({
+        mode: "real",
+        surfaces: ["android"],
+        appArtifact: APK,
+        config: config({ app: "build/app.apk" })
+      }),
     (error) => {
-      assert(error instanceof InfraError);
-      assert.equal(error.code, "E_ADAPTER_NOT_IMPLEMENTED");
-      assert.match(error.message, /Phase 5/);
-      assert.equal(error.details.surface, "android");
-      assert.match(error.details.remediation, /Phase 5/);
+      assert(error instanceof UsageError);
+      assert.equal(error.code, "E_ANDROID_PACKAGE_REQUIRED");
+      assert.match(error.details.remediation, /android\.package/);
       return true;
     }
   );
+});
+
+test("real ios is not implemented and points at the phase that lands it", () => {
+  const registry = createSurfaceRegistry({
+    mode: "real",
+    surfaces: ["ios"],
+    appArtifact: APK,
+    config: config()
+  });
+
+  assert.deepEqual(registry.descriptorFor("ios").supports, []);
 
   assert.throws(
     () => registry.adapterFor({ surface: "ios" }),
     (error) => {
       assert(error instanceof InfraError);
       assert.equal(error.code, "E_ADAPTER_NOT_IMPLEMENTED");
-      assert.match(error.message, /Phase 5/);
       assert.equal(error.details.surface, "ios");
+      assert.match(error.details.remediation, /macOS runner/);
       return true;
     }
   );
@@ -109,13 +135,13 @@ test("unimplemented adapter becomes a scenario infra_error through runSuite", as
   await withTemp("registry-suite", async (root) => {
     const registry = createSurfaceRegistry({
       mode: "real",
-      surfaces: ["android"],
-      appArtifact: Object.freeze({ kind: "android_apk", path: "build/app.apk", surface: "android" }),
+      surfaces: ["ios"],
+      appArtifact: APK,
       config: config()
     });
 
     const { record } = await runSuite({
-      plans: [tinyPlan("android")],
+      plans: [tinyPlan("ios")],
       adapterFor: registry.adapterFor,
       bundle: await createBundle({ root, runId: "20260815T044612Z-88888888" }),
       config: { timeouts: config().timeouts },

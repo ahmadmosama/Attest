@@ -15,7 +15,10 @@ export const ADB_COMMANDS = Object.freeze({
   screenrecord: "screenrecord",
   uiDump: "ui_dump",
   pull: "pull",
+  readFile: "read_file",
+  removeFile: "remove_file",
   inputTap: "input_tap",
+  inputSwipe: "input_swipe",
   inputText: "input_text",
   inputKeyevent: "input_keyevent",
   emuKill: "emu_kill"
@@ -33,6 +36,12 @@ const PACKAGE_RE = /^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/u;
 const COMPONENT_RE = /^[A-Za-z][A-Za-z0-9_.]*\/[A-Za-z0-9_.$]+$/u;
 const PROP_RE = /^[A-Za-z0-9_.]+$/u;
 const KEYEVENT_RE = /^[A-Z0-9_]+$/u;
+const EXTRA_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/u;
+// Free text. A newline would end the device side command, so it is refused
+// rather than escaped: a scenario that wants to send Enter has press_key.
+const TEXT_RE = /^[^\r\n]*$/u;
+const URI_RE = /^[a-z][a-z0-9+.-]*:\/\/[^\s'\r\n]*$/u;
+const MAX_KEYEVENTS = 200;
 
 // Device side paths are POSIX and always absolute. The host side never appears
 // in an argv we construct for the device, which is the half that MSYS rewrote.
@@ -208,7 +217,7 @@ function buildOne(kind, input, adbPath, env) {
     return sh(["am", "force-stop", matching(input.packageName, PACKAGE_RE, "packageName")]);
   }
   if (kind === ADB_COMMANDS.startActivity) {
-    return sh(["am", "start", "-W", "-n", matching(input.component, COMPONENT_RE, "component")]);
+    return sh(startActivityArgv(input));
   }
   if (kind === ADB_COMMANDS.screencap) {
     return cmd(["exec-out", "screencap", "-p"]);
@@ -222,14 +231,36 @@ function buildOne(kind, input, adbPath, env) {
   if (kind === ADB_COMMANDS.pull) {
     return cmd(["pull", devicePath(input.devicePath, "devicePath"), matching(input.hostPath, /^.+$/u, "hostPath")]);
   }
+  // exec-out streams the file's bytes back on stdout, so no host path is ever
+  // handed to adb. That is what keeps the Git Bash path rewriting trap out of
+  // the evidence path entirely, rather than working around it.
+  if (kind === ADB_COMMANDS.readFile) {
+    return cmd(["exec-out", "cat", devicePath(input.devicePath, "devicePath")]);
+  }
+  if (kind === ADB_COMMANDS.removeFile) {
+    return sh(["rm", "-f", devicePath(input.devicePath, "devicePath")]);
+  }
   if (kind === ADB_COMMANDS.inputTap) {
     return sh(["input", "tap", String(coordinate(input, "x")), String(coordinate(input, "y"))]);
   }
+  if (kind === ADB_COMMANDS.inputSwipe) {
+    return sh([
+      "input",
+      "swipe",
+      String(coordinate(input, "x1")),
+      String(coordinate(input, "y1")),
+      String(coordinate(input, "x2")),
+      String(coordinate(input, "y2")),
+      String(swipeDurationMs(input))
+    ]);
+  }
   if (kind === ADB_COMMANDS.inputText) {
-    return sh(["input", "text", matching(input.text, /^[^\r\n]*$/u, "text")]);
+    return sh(["input", "text", deviceShellArg(matching(input.text, TEXT_RE, "text"))]);
   }
   if (kind === ADB_COMMANDS.inputKeyevent) {
-    return sh(["input", "keyevent", matching(input.keyevent, KEYEVENT_RE, "keyevent")]);
+    // `input keyevent` accepts several keycodes in one invocation, which is how
+    // clearing a field stays one adb round trip instead of one per character.
+    return sh(["input", "keyevent", ...keyevents(input)]);
   }
 
   return cmd(["emu", "kill"]);
@@ -239,6 +270,74 @@ function coordinate(input, field) {
   const value = input?.[field];
   if (!Number.isSafeInteger(value) || value < 0) {
     throw commandError("invalid_coordinate", { field, value: typeof value === "number" ? value : null });
+  }
+  return value;
+}
+
+/**
+ * Quote one value for the DEVICE side shell.
+ *
+ * The host side never sees a shell, and that is what DROID-03 is about. The
+ * device side is different and cannot be avoided: `adb shell` joins the argv
+ * with spaces and hands the result to /system/bin/sh on the device. So
+ * `input text hello world` types only "hello". Free text and URIs are quoted
+ * here so the device shell hands the whole value to `input` as one argument.
+ * Everything else in this file is validated against a pattern with no spaces
+ * and no metacharacters, so nothing else needs quoting.
+ */
+export function deviceShellArg(value) {
+  return `'${String(value).replaceAll("'", "'\\''")}'`;
+}
+
+function startActivityArgv(input) {
+  const argv = ["am", "start", "-W"];
+
+  if (input.data !== undefined && input.data !== null) {
+    argv.push("-a", "android.intent.action.VIEW", "-d", deviceShellArg(matching(input.data, URI_RE, "data")));
+  }
+
+  // The component is always explicit, even for a deeplink. Letting the intent
+  // resolver pick a handler is how a run silently launches a chooser dialog,
+  // or another app, and then fails on the first locate.
+  argv.push("-n", matching(input.component, COMPONENT_RE, "component"));
+
+  for (const [key, value] of extraPairs(input.extras)) {
+    argv.push("--es", key, deviceShellArg(value));
+  }
+
+  return argv;
+}
+
+function extraPairs(extras) {
+  if (extras === undefined || extras === null) {
+    return [];
+  }
+
+  const entries = extras instanceof Map ? [...extras.entries()] : Object.entries(extras);
+  return entries.map(([key, value]) => [
+    matching(key, EXTRA_KEY_RE, "extras.key"),
+    matching(value, TEXT_RE, `extras.${key}`)
+  ]);
+}
+
+function keyevents(input) {
+  const values = input?.keyevents ?? [input?.keyevent];
+
+  if (!Array.isArray(values) || values.length === 0 || values.length > MAX_KEYEVENTS) {
+    throw commandError("invalid_keyevent_count", { count: Array.isArray(values) ? values.length : null });
+  }
+
+  return values.map((value) => matching(value, KEYEVENT_RE, "keyevent"));
+}
+
+// `input swipe` takes the press duration in milliseconds. A long press is the
+// same command with the same start and end point and a longer duration, which
+// is why this is bounded rather than free: an unbounded duration would be a
+// fixed wait wearing a different hat.
+function swipeDurationMs(input) {
+  const value = input?.durationMs ?? 300;
+  if (!Number.isSafeInteger(value) || value <= 0 || value > 10_000) {
+    throw commandError("invalid_swipe_duration", { value: typeof value === "number" ? value : null });
   }
   return value;
 }

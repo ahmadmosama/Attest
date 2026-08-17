@@ -67,8 +67,44 @@
       "-s",
       "emulator-5554",
       "shell",
+      "am",
+      "start",
+      "-W",
+      "-a",
+      "android.intent.action.VIEW",
+      "-d",
+      "'attest-fixture://customers'",
+      "-n",
+      "com.attest.fixture/.MainActivity",
+      "--es",
+      "attest_api_base",
+      "'http://10.0.2.2:54321'"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
       "uiautomator",
       "dump",
+      "/sdcard/ui.xml"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "exec-out",
+      "cat",
       "/sdcard/ui.xml"
     ],
     "env": {
@@ -110,8 +146,41 @@
       "emulator-5554",
       "shell",
       "input",
+      "swipe",
+      "540",
+      "1600",
+      "540",
+      "400",
+      "300"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "input",
       "text",
-      "hello"
+      "'hello world'"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "input",
+      "keyevent",
+      "KEYCODE_MOVE_END",
+      "KEYCODE_DEL"
     ],
     "env": {
       "ANDROID_SERIAL": "emulator-5554"
@@ -125,6 +194,35 @@
       "exec-out",
       "screencap",
       "-p"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "screenrecord",
+      "--time-limit",
+      "180",
+      "/sdcard/rec.mp4"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "rm",
+      "-f",
+      "/sdcard/rec.mp4"
     ],
     "env": {
       "ANDROID_SERIAL": "emulator-5554"

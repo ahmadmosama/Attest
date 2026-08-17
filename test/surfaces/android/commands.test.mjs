@@ -29,11 +29,30 @@ function lifecycle() {
     buildAdbCommand(ADB_COMMANDS.getProp, { serial: SERIAL, prop: "sys.boot_completed" }, opts),
     buildAdbCommand(ADB_COMMANDS.install, { serial: SERIAL, apkPath: "C:\\builds\\fixture.apk" }, opts),
     buildAdbCommand(ADB_COMMANDS.startActivity, { serial: SERIAL, component: "com.attest.fixture/.MainActivity" }, opts),
+    buildAdbCommand(
+      ADB_COMMANDS.startActivity,
+      {
+        serial: SERIAL,
+        component: "com.attest.fixture/.MainActivity",
+        data: "attest-fixture://customers",
+        extras: { attest_api_base: "http://10.0.2.2:54321" }
+      },
+      opts
+    ),
     buildAdbCommand(ADB_COMMANDS.uiDump, { serial: SERIAL, devicePath: "/sdcard/ui.xml" }, opts),
+    buildAdbCommand(ADB_COMMANDS.readFile, { serial: SERIAL, devicePath: "/sdcard/ui.xml" }, opts),
     buildAdbCommand(ADB_COMMANDS.pull, { serial: SERIAL, devicePath: "/sdcard/ui.xml", hostPath: "C:\\runs\\ui.xml" }, opts),
     buildAdbCommand(ADB_COMMANDS.inputTap, { serial: SERIAL, x: 120, y: 340 }, opts),
-    buildAdbCommand(ADB_COMMANDS.inputText, { serial: SERIAL, text: "hello" }, opts),
+    buildAdbCommand(
+      ADB_COMMANDS.inputSwipe,
+      { serial: SERIAL, x1: 540, y1: 1600, x2: 540, y2: 400, durationMs: 300 },
+      opts
+    ),
+    buildAdbCommand(ADB_COMMANDS.inputText, { serial: SERIAL, text: "hello world" }, opts),
+    buildAdbCommand(ADB_COMMANDS.inputKeyevent, { serial: SERIAL, keyevents: ["KEYCODE_MOVE_END", "KEYCODE_DEL"] }, opts),
     buildAdbCommand(ADB_COMMANDS.screencap, { serial: SERIAL }, opts),
+    buildAdbCommand(ADB_COMMANDS.screenrecord, { serial: SERIAL, devicePath: "/sdcard/rec.mp4", seconds: 180 }, opts),
+    buildAdbCommand(ADB_COMMANDS.removeFile, { serial: SERIAL, devicePath: "/sdcard/rec.mp4" }, opts),
     buildAdbCommand(ADB_COMMANDS.forceStop, { serial: SERIAL, packageName: "com.attest.fixture" }, opts),
     buildAdbCommand(ADB_COMMANDS.emuKill, { serial: SERIAL }, opts)
   ];
@@ -124,16 +143,89 @@ describe("android adb command construction", () => {
     assert.deepEqual(JSON.parse(JSON.stringify(lifecycle())), snapshot);
   });
 
-  test("no snapshot entry needs a shell to be correct", async () => {
+  test("no snapshot entry needs a HOST shell to be correct", async () => {
     const snapshot = JSON.parse(await readFile(SNAPSHOT_PATH, "utf8"));
     for (const entry of snapshot) {
       assert.equal(Array.isArray(entry.args), true);
-      // A shell metacharacter in an argv element is harmless because there is
-      // no shell, but its presence in the snapshot would mean a builder had
-      // started concatenating, which is the regression worth catching.
+      // The host side never sees a shell, so a metacharacter in an argv element
+      // cannot be interpreted here. What this catches is a builder that started
+      // concatenating: an argument holding a space or a metacharacter must be
+      // one the device shell will receive whole, which means it is quoted.
       for (const arg of entry.args) {
-        assert.doesNotMatch(arg, /[;&|><`$]/u);
+        if (/[;&|><`$\s]/u.test(arg)) {
+          assert.match(arg, /^'.*'$/u, `unquoted device shell argument: ${arg}`);
+        }
       }
     }
+  });
+
+  test("free text is quoted for the DEVICE shell, which adb always involves", () => {
+    // `adb shell` joins argv with spaces and hands the string to /system/bin/sh
+    // on the device, so `input text hello world` would type only "hello".
+    const typed = buildAdbCommand(ADB_COMMANDS.inputText, { serial: SERIAL, text: "hello world" }, { adbPath: ADB });
+    assert.equal(typed.args.at(-1), "'hello world'");
+
+    const quoted = buildAdbCommand(ADB_COMMANDS.inputText, { serial: SERIAL, text: "it's fine" }, { adbPath: ADB });
+    assert.equal(quoted.args.at(-1), "'it'\\''s fine'");
+
+    // A newline would terminate the device side command, so it is refused
+    // rather than escaped. press_key covers sending Enter.
+    assert.throws(() => buildAdbCommand(ADB_COMMANDS.inputText, { serial: SERIAL, text: "a\nb" }), {
+      code: "E_ADB_COMMAND_INVALID"
+    });
+  });
+
+  test("keyevent lists are bounded and validated per entry", () => {
+    const cleared = buildAdbCommand(
+      ADB_COMMANDS.inputKeyevent,
+      { serial: SERIAL, keyevents: ["KEYCODE_MOVE_END", "KEYCODE_DEL", "KEYCODE_DEL"] },
+      { adbPath: ADB }
+    );
+    assert.deepEqual(cleared.args.slice(-3), ["KEYCODE_MOVE_END", "KEYCODE_DEL", "KEYCODE_DEL"]);
+
+    assert.throws(
+      () => buildAdbCommand(ADB_COMMANDS.inputKeyevent, { serial: SERIAL, keyevents: [] }),
+      { code: "E_ADB_COMMAND_INVALID" }
+    );
+    assert.throws(
+      () => buildAdbCommand(ADB_COMMANDS.inputKeyevent, { serial: SERIAL, keyevent: "rm -rf /" }),
+      { code: "E_ADB_COMMAND_INVALID" }
+    );
+  });
+
+  test("an activity start always names the component, even for a deeplink", () => {
+    const started = buildAdbCommand(
+      ADB_COMMANDS.startActivity,
+      { serial: SERIAL, component: "com.attest.fixture/.MainActivity", data: "attest-fixture://customers" },
+      { adbPath: ADB }
+    );
+
+    // Without -n the intent resolver picks the handler, which can be a chooser
+    // dialog or another app entirely.
+    assert(started.args.includes("-n"));
+    assert(started.args.includes("com.attest.fixture/.MainActivity"));
+    assert.throws(
+      () => buildAdbCommand(ADB_COMMANDS.startActivity, { serial: SERIAL, component: "com.attest.fixture/.MainActivity", data: "not a uri" }),
+      { code: "E_ADB_COMMAND_INVALID" }
+    );
+  });
+
+  test("an intent extra key that is not a plain identifier is refused", () => {
+    assert.throws(
+      () =>
+        buildAdbCommand(ADB_COMMANDS.startActivity, {
+          serial: SERIAL,
+          component: "com.attest.fixture/.MainActivity",
+          extras: { "bad key": "value" }
+        }),
+      { code: "E_ADB_COMMAND_INVALID" }
+    );
+  });
+
+  test("a swipe duration outside the accepted range is refused", () => {
+    assert.throws(
+      () => buildAdbCommand(ADB_COMMANDS.inputSwipe, { serial: SERIAL, x1: 0, y1: 0, x2: 1, y2: 1, durationMs: 60000 }),
+      { code: "E_ADB_COMMAND_INVALID" }
+    );
   });
 });
