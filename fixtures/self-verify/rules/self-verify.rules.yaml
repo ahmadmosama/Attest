@@ -1,0 +1,12 @@
+version: 1
+rules:
+  - id: order_create_audit
+    kind: derived
+    entity: order_audit
+    caused_by:
+      entity: orders
+      op: insert
+    mechanism: application_audit_write
+    per_source: 1
+    cap: 5
+    note: Creating one order writes one bounded audit row.

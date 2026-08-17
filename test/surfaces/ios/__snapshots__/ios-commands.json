@@ -1,0 +1,152 @@
+[
+  {
+    "name": "session capabilities",
+    "value": {
+      "surface": "ios",
+      "runner": "simulator",
+      "xcode": {
+        "version": "16.2",
+        "developerDir": "/Applications/Xcode_16.2.app/Contents/Developer"
+      },
+      "runtime": {
+        "name": "iOS",
+        "version": "18.2",
+        "identifier": "iOS 18.2"
+      },
+      "simulator": {
+        "name": "Attest iPhone 15"
+      },
+      "app": {
+        "bundleId": "com.example.attest.runner"
+      },
+      "commands": [
+        "list_runtimes",
+        "assert_runtime",
+        "boot_simulator",
+        "install_app",
+        "launch_app",
+        "screenshot",
+        "shutdown"
+      ]
+    }
+  },
+  {
+    "name": "list runtimes",
+    "value": {
+      "command": "xcrun",
+      "args": [
+        "simctl",
+        "list",
+        "runtimes",
+        "available"
+      ],
+      "env": {
+        "DEVELOPER_DIR": "/Applications/Xcode_16.2.app/Contents/Developer",
+        "ATTEST_XCODE_VERSION": "16.2",
+        "ATTEST_IOS_RUNTIME": "iOS 18.2"
+      }
+    }
+  },
+  {
+    "name": "assert pinned runtime exists",
+    "value": {
+      "command": "xcrun",
+      "args": [
+        "simctl",
+        "list",
+        "runtimes",
+        "available"
+      ],
+      "env": {
+        "DEVELOPER_DIR": "/Applications/Xcode_16.2.app/Contents/Developer",
+        "ATTEST_XCODE_VERSION": "16.2",
+        "ATTEST_IOS_RUNTIME": "iOS 18.2",
+        "ATTEST_EXPECTED_IOS_RUNTIME": "iOS 18.2"
+      }
+    }
+  },
+  {
+    "name": "boot named simulator",
+    "value": {
+      "command": "xcrun",
+      "args": [
+        "simctl",
+        "boot",
+        "Attest iPhone 15"
+      ],
+      "env": {
+        "DEVELOPER_DIR": "/Applications/Xcode_16.2.app/Contents/Developer",
+        "ATTEST_XCODE_VERSION": "16.2",
+        "ATTEST_IOS_RUNTIME": "iOS 18.2"
+      }
+    }
+  },
+  {
+    "name": "install app bundle",
+    "value": {
+      "command": "xcrun",
+      "args": [
+        "simctl",
+        "install",
+        "booted",
+        "build/ios/Build/Products/Debug-iphonesimulator/Runner.app"
+      ],
+      "env": {
+        "DEVELOPER_DIR": "/Applications/Xcode_16.2.app/Contents/Developer",
+        "ATTEST_XCODE_VERSION": "16.2",
+        "ATTEST_IOS_RUNTIME": "iOS 18.2"
+      }
+    }
+  },
+  {
+    "name": "launch app",
+    "value": {
+      "command": "xcrun",
+      "args": [
+        "simctl",
+        "launch",
+        "booted",
+        "com.example.attest.runner"
+      ],
+      "env": {
+        "DEVELOPER_DIR": "/Applications/Xcode_16.2.app/Contents/Developer",
+        "ATTEST_XCODE_VERSION": "16.2",
+        "ATTEST_IOS_RUNTIME": "iOS 18.2"
+      }
+    }
+  },
+  {
+    "name": "capture screenshot",
+    "value": {
+      "command": "xcrun",
+      "args": [
+        "simctl",
+        "io",
+        "booted",
+        "screenshot",
+        "artifacts/ios/checkout-open.png"
+      ],
+      "env": {
+        "DEVELOPER_DIR": "/Applications/Xcode_16.2.app/Contents/Developer",
+        "ATTEST_XCODE_VERSION": "16.2",
+        "ATTEST_IOS_RUNTIME": "iOS 18.2"
+      }
+    }
+  },
+  {
+    "name": "shutdown simulator",
+    "value": {
+      "command": "xcrun",
+      "args": [
+        "simctl",
+        "shutdown",
+        "Attest iPhone 15"
+      ],
+      "env": {
+        "DEVELOPER_DIR": "/Applications/Xcode_16.2.app/Contents/Developer",
+        "ATTEST_XCODE_VERSION": "16.2",
+        "ATTEST_IOS_RUNTIME": "iOS 18.2"
+      }
+    }
+  }
+]

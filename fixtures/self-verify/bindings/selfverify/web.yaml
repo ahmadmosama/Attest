@@ -1,0 +1,10 @@
+surface: web
+elements:
+  button:create_order: { testId: create-order-action }
+  button:delete_customer: { testId: delete-customer-action }
+  item:customer_ada: { role: link, name: "Ada Lovelace" }
+  item:customer_katherine: { role: link, name: "Katherine Johnson" }
+screens:
+  screen:customers: { path: "/", ready: { testId: customer-list } }
+states:
+  state:customer_detail: { testId: customer-detail }

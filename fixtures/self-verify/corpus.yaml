@@ -1,0 +1,100 @@
+version: 1
+mutants:
+  - id: create_wrong_status
+    kind: wrong_value
+    file: fixtures/self-verify/app/server.mjs
+    find: '      status: String(parsed.status ?? "created"),'
+    replace: '      status: "pending",'
+    seeds: The created order is persisted with the wrong status.
+    caught_by: DELTA-01
+    note: The create scenario expects the order row status to be created.
+
+  - id: create_wrong_total
+    kind: wrong_value
+    file: fixtures/self-verify/app/server.mjs
+    find: "      totalCents: Number(parsed.totalCents),"
+    replace: "      totalCents: Number(parsed.totalCents) + 1,"
+    seeds: The created order total is saved one cent too high.
+    caught_by: DELTA-01
+    note: The order expectation includes total_cents.
+
+  - id: create_wrong_item_quantity
+    kind: wrong_value
+    file: fixtures/self-verify/app/server.mjs
+    find: "    quantity: Number(item.quantity),"
+    replace: "    quantity: Number(item.quantity) + 1,"
+    seeds: Each created order item is saved with an inflated quantity.
+    caught_by: DELTA-01
+    note: The item expectations include quantity for each line.
+
+  - id: create_omit_items
+    kind: omit_write
+    file: fixtures/self-verify/app/server.mjs
+    find: "    for (const item of input.items) {\n      await client.query(\n        `INSERT INTO ${qname(context.schema, \"order_items\")} (tenant_key, order_id, line_number, sku, quantity, unit_cents) VALUES ($1, $2, $3, $4, $5, $6)`,\n        [context.tenantKey, input.orderId, item.lineNumber, item.sku, item.quantity, item.unitCents]\n      );\n    }"
+    replace: "    for (const item of []) {\n      await client.query(\n        `INSERT INTO ${qname(context.schema, \"order_items\")} (tenant_key, order_id, line_number, sku, quantity, unit_cents) VALUES ($1, $2, $3, $4, $5, $6)`,\n        [context.tenantKey, input.orderId, item.lineNumber, item.sku, item.quantity, item.unitCents]\n      );\n    }"
+    seeds: The order is created without any line items.
+    caught_by: DELTA-01
+    note: Missing item inserts are required mutations.
+
+  - id: create_extra_audit
+    kind: extra_write
+    file: fixtures/self-verify/app/server.mjs
+    find: "    await client.query(\n      `INSERT INTO ${qname(context.schema, \"order_audit\")} (tenant_key, id, order_id, action, detail) VALUES ($1, $2, $3, $4, $5)`,\n      [context.tenantKey, `audit_created_${input.orderId}`, input.orderId, \"created\", \"order created\"]\n    );"
+    replace: "    await client.query(\n      `INSERT INTO ${qname(context.schema, \"order_audit\")} (tenant_key, id, order_id, action, detail) VALUES ($1, $2, $3, $4, $5)`,\n      [context.tenantKey, `audit_created_${input.orderId}`, input.orderId, \"created\", \"order created\"]\n    );\n    await client.query(\n      `INSERT INTO ${qname(context.schema, \"order_audit\")} (tenant_key, id, order_id, action, detail) VALUES ($1, $2, $3, $4, $5)`,\n      [context.tenantKey, `audit_created_extra_${input.orderId}`, input.orderId, \"created\", \"duplicate audit\"]\n    );"
+    seeds: Creating one order writes an extra audit row.
+    caught_by: DELTA-03
+    note: The derived rule has per_source 1, so the second audit row is unexplained.
+
+  - id: delete_wrong_customer_target
+    kind: wrong_target
+    file: fixtures/self-verify/app/server.mjs
+    find: "    await client.query(`DELETE FROM ${qname(context.schema, \"customers\")} WHERE tenant_key = $1 AND id = $2`, [context.tenantKey, customerId]);"
+    replace: "    await client.query(`DELETE FROM ${qname(context.schema, \"customers\")} WHERE tenant_key = $1 AND id = $2`, [context.tenantKey, \"cust_b\"]);"
+    seeds: Deleting Katherine removes Grace instead and leaves Katherine present.
+    caught_by: DELTA-01
+    note: The delete scenario expects customer cust_c to be deleted.
+
+  - id: delete_skip_second_audit
+    kind: skip_cascade
+    file: fixtures/self-verify/app/server.mjs
+    find: "    for (const orderId of orderIds) {\n      await client.query(\n        `INSERT INTO ${qname(context.schema, \"order_audit\")} (tenant_key, id, order_id, action, detail) VALUES ($1, $2, $3, $4, $5)`,\n        [context.tenantKey, `audit_deleted_${orderId}`, orderId, \"deleted\", `deleted with customer ${customerId}`]\n      );\n    }"
+    replace: "    for (const orderId of orderIds.slice(0, 1)) {\n      await client.query(\n        `INSERT INTO ${qname(context.schema, \"order_audit\")} (tenant_key, id, order_id, action, detail) VALUES ($1, $2, $3, $4, $5)`,\n        [context.tenantKey, `audit_deleted_${orderId}`, orderId, \"deleted\", `deleted with customer ${customerId}`]\n      );\n    }"
+    seeds: Deleting a customer records only one audit row for two deleted orders.
+    caught_by: DELTA-01
+    note: The delete cascade expects two deleted order audit rows.
+
+  - id: delete_wrong_audit_action
+    kind: wrong_value
+    file: fixtures/self-verify/app/server.mjs
+    find: '        [context.tenantKey, `audit_deleted_${orderId}`, orderId, "deleted", `deleted with customer ${customerId}`]'
+    replace: '        [context.tenantKey, `audit_deleted_${orderId}`, orderId, "archived", `deleted with customer ${customerId}`]'
+    seeds: Deleting a customer records audit rows with the wrong action.
+    caught_by: DELTA-01
+    note: The delete scenario expects action deleted.
+
+  - id: delete_extra_orphan_audit
+    kind: extra_write
+    file: fixtures/self-verify/app/server.mjs
+    find: "    await client.query(\"COMMIT\");\n    send(response, 303, \"\", TEXT_PLAIN);"
+    replace: "    await client.query(\n      `INSERT INTO ${qname(context.schema, \"order_audit\")} (tenant_key, id, order_id, action, detail) VALUES ($1, $2, $3, $4, $5)`,\n      [context.tenantKey, \"audit_deleted_order_orphan\", \"order_orphan\", \"deleted\", \"orphan audit\"]\n    );\n    await client.query(\"COMMIT\");\n    send(response, 303, \"\", TEXT_PLAIN);"
+    seeds: Deleting a customer writes an audit row for order_orphan, which is not one of the deleted orders.
+    caught_by: DELTA-03
+    note: Reference orphan row case, the failure must name audit_deleted_order_orphan.
+
+  - id: survivor_create_audit_detail
+    kind: wrong_value
+    file: fixtures/self-verify/app/server.mjs
+    find: '      [context.tenantKey, `audit_created_${input.orderId}`, input.orderId, "created", "order created"]'
+    replace: '      [context.tenantKey, `audit_created_${input.orderId}`, input.orderId, "created", "wrong detail"]'
+    seeds: The create audit detail is wrong, but the current gate only proves bounded audit cardinality.
+    caught_by: DELTA-03
+    note: Known survivor, derived audit rules do not validate the detail payload.
+
+  - id: delete_orphan_child_rows
+    kind: skip_cascade
+    file: fixtures/self-verify/app/server.mjs
+    find: "    await client.query(`DELETE FROM ${qname(context.schema, \"order_items\")} WHERE tenant_key = $1 AND order_id = ANY($2::text[])`, [context.tenantKey, orderIds]);\n    await client.query(`DELETE FROM ${qname(context.schema, \"orders\")} WHERE tenant_key = $1 AND customer_id = $2`, [context.tenantKey, customerId]);"
+    replace: "    // orphan bug: the customer is deleted but their orders and order items are left behind"
+    seeds: Deleting a customer removes the customer but leaves their orders and order items behind as orphaned rows.
+    caught_by: DELTA-01
+    note: This is the reference orphan row on delete case named in the roadmap, the bug this project was started to catch.

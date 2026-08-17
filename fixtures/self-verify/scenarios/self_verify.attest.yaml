@@ -1,0 +1,62 @@
+id: self_verify.customer_order_lifecycle
+requirement: [SELF-01, SELF-02, DELTA-01, DELTA-03, DELTA-04]
+tags: [self_verify, postgres_delta]
+data:
+  seed: self_verify_shop
+steps:
+  - open: screen:customers
+  - expect_visible: screen:customers
+  - delta_window: open
+  - tap: button:create_order
+  - delta_window: close
+    expect_mutations:
+      - entity: orders
+        op: insert
+        count: 1
+        where: { id: order_300, customer_id: cust_a, status: created, total_cents: 9900 }
+      - entity: order_items
+        op: insert
+        count: 1
+        where: { order_id: order_300, line_number: 1, sku: new_lamp, quantity: 2, unit_cents: 3000 }
+      - entity: order_items
+        op: insert
+        count: 1
+        where: { order_id: order_300, line_number: 2, sku: new_shade, quantity: 1, unit_cents: 3900 }
+    require_no_unexplained: true
+  - delta_window: open
+  - tap: button:delete_customer
+  - delta_window: close
+    expect_mutations:
+      - entity: order_items
+        op: delete
+        count: 1
+        where: { order_id: order_100, line_number: 1, sku: seed_clock }
+      - entity: order_items
+        op: delete
+        count: 1
+        where: { order_id: order_100, line_number: 2, sku: seed_bag }
+      - entity: order_items
+        op: delete
+        count: 1
+        where: { order_id: order_101, line_number: 1, sku: seed_pen }
+      - entity: order_items
+        op: delete
+        count: 1
+        where: { order_id: order_101, line_number: 2, sku: seed_pad }
+      - entity: orders
+        op: delete
+        count: 1
+        where: { id: order_100, customer_id: cust_c }
+      - entity: orders
+        op: delete
+        count: 1
+        where: { id: order_101, customer_id: cust_c }
+      - entity: customers
+        op: delete
+        count: 1
+        where: { id: cust_c }
+      - entity: order_audit
+        op: insert
+        count: 2
+        where: { action: deleted }
+    require_no_unexplained: true
