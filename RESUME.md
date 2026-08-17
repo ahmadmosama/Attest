@@ -6,7 +6,7 @@ Updated 2026-08-17. Working tree is clean, everything below is committed.
 
 | Thing | State |
 |---|---|
-| Phases done | 5 of 7 complete, Phase 6 planned and started |
+| Phases done | 6 of 7 complete, Phase 7 remains |
 | Phase 3 | Complete and SIGNED OFF, with a 90.91 percent kill rate |
 | Phase 5 | Complete. Four criteria proven against a live emulator, real APK, real Postgres |
 | Milestone | Landed. One command runs one real app on the Android emulator and leaves an evidence bundle |
@@ -77,10 +77,10 @@ node src/cli/main.mjs run \
 
 | Phase | Scope | State |
 |---|---|---|
-| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | 7 of 8, acceptance remains |
+| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | Complete, GEN-03 crawler deferred |
 | 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | Not planned |
 
-### Phase 6, where it actually is
+### Phase 6, complete with two stated gaps
 
 Planned: eight plans in four waves, in `.planning/phases/06-remaining-drivers-and-generation/`.
 
@@ -121,9 +121,22 @@ implemented.
 RUN-02 forbids. There are now two binaries. `attest` runs, `attest-generate` authors, and the
 process that runs scenarios never loads the generator at all.
 
-Next, in order:
-1. **GEN-03, the crawler**, which is the one thing 06-07 did not land. The quarantine and
-   promotion machinery it needs is built and tested, so it drops into an existing safety net.
+- **06-08**, acceptance and docs. Five criteria, six tests, all running with no server and no
+  credentials. `docs/drivers.md` carries the per engine capability table and a live proof status
+  table; `docs/generation.md` carries the generation rules. A test compares the documented table
+  against the descriptors the drivers actually return, so the docs cannot drift into fiction.
+
+**Two gaps Phase 6 did not close, both deliberate:**
+
+1. **GEN-03, the crawler.** Not built. Its safety net is built and tested, so it drops into an
+   existing quarantine rather than needing one built around it. What is missing: driving the web
+   adapter within a step budget, refusing destructive looking actions, and emitting ungrounded
+   assertions commented out with a review report.
+2. **MySQL, Mongo and BigQuery have no live proof**, because plan 03-04 makes every dependency
+   install a blocking human checkpoint that is explicitly never auto approvable. Their clients sit
+   behind injected seams. Installing `@vlasky/zongji`, `mongodb` and `@google-cloud/bigquery` and
+   running one live window each needs that checkpoint plus a MySQL, a replica set and a GCP
+   project.
 2. **06-08, acceptance and docs**, which is also where the live halves land.
 
 Three things 06-08 has to reconcile, all now concrete rather than predicted:

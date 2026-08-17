@@ -126,10 +126,10 @@ interaction layer later without touching the port, the scenarios, or the binding
 
 - [ ] **DB-01**: All drivers sit behind one interface and each declares its capabilities explicitly
 - [ ] **DB-02**: Postgres and Supabase capture changes via a logical replication slot, yielding ordered per row changes with transaction identity
-- [ ] **DB-03**: SQLite is supported via snapshot diff fallback, with its driver defaults pinned explicitly rather than inherited
-- [ ] **DB-04**: MySQL captures changes from the row format binlog
-- [ ] **DB-05**: Mongo captures changes via change streams, and preflight refuses a standalone deployment instead of degrading quietly
-- [ ] **DB-06**: BigQuery declares reduced capability, supports bounded polling for expected rows, and refuses delta assertions at compile time
+- [x] **DB-03**: SQLite is supported via snapshot diff fallback, with its driver defaults pinned explicitly rather than inherited
+- [x] **DB-04**: MySQL captures changes from the row format binlog
+- [x] **DB-05**: Mongo captures changes via change streams, and preflight refuses a standalone deployment instead of degrading quietly
+- [x] **DB-06**: BigQuery declares reduced capability, supports bounded polling for expected rows, and refuses delta assertions at compile time
 - [ ] **DB-07**: A scenario's change window is fenced by watermark marker rows, not by wall clock timestamps
 - [ ] **DB-08**: The runner waits for write convergence before asserting, so the race between "UI says saved" and "row is visible to another connection" cannot produce a false failure
 - [ ] **DB-09**: Connection targets must be on an explicit allowlist and carry a non production marker, and an unmarked target is refused by default
@@ -163,11 +163,11 @@ interaction layer later without touching the port, the scenarios, or the binding
 
 ### Scenario generation
 
-- [ ] **GEN-01**: Scenarios generate from existing spec docs (`.planning/`, PRD, SPEC, UI-SPEC) with each generated scenario linked to the requirement ID it covers
-- [ ] **GEN-02**: Generation reports which requirements have no covering scenario
+- [x] **GEN-01**: Scenarios generate from existing spec docs (`.planning/`, PRD, SPEC, UI-SPEC) with each generated scenario linked to the requirement ID it covers
+- [x] **GEN-02**: Generation reports which requirements have no covering scenario
 - [ ] **GEN-03**: Scenarios generate by crawling a running app when specs are absent
-- [ ] **GEN-04**: Generated scenarios land in a proposed directory and require explicit promotion before they gate anything
-- [ ] **GEN-05**: Generation asserts declared intent rather than merely recording current behavior, and anything it could not ground in a spec is flagged for review
+- [x] **GEN-04**: Generated scenarios land in a proposed directory and require explicit promotion before they gate anything
+- [x] **GEN-05**: Generation asserts declared intent rather than merely recording current behavior, and anything it could not ground in a spec is flagged for review
 
 ### Self verification
 
@@ -235,10 +235,10 @@ and success criteria.
 | IOS-02 | Phase 7 | Pending |
 | DB-01 | Phase 3 | Pending |
 | DB-02 | Phase 3 | Pending |
-| DB-03 | Phase 6 | Pending |
-| DB-04 | Phase 6 | Pending |
-| DB-05 | Phase 6 | Pending |
-| DB-06 | Phase 6 | Pending |
+| DB-03 | Phase 6 | Done |
+| DB-04 | Phase 6 | Done |
+| DB-05 | Phase 6 | Done |
+| DB-06 | Phase 6 | Done |
 | DB-07 | Phase 3 | Pending |
 | DB-08 | Phase 3 | Pending |
 | DB-09 | Phase 3 | Pending |
@@ -260,11 +260,11 @@ and success criteria.
 | EVID-01 | Phase 2 | Pending |
 | EVID-02 | Phase 3 | Pending |
 | EVID-03 | Phase 1 | Pending |
-| GEN-01 | Phase 6 | Pending |
-| GEN-02 | Phase 6 | Pending |
-| GEN-03 | Phase 6 | Pending |
-| GEN-04 | Phase 6 | Pending |
-| GEN-05 | Phase 6 | Pending |
+| GEN-01 | Phase 6 | Done |
+| GEN-02 | Phase 6 | Done |
+| GEN-03 | Phase 6 | Deferred, crawler not built, quarantine is |
+| GEN-04 | Phase 6 | Done |
+| GEN-05 | Phase 6 | Done |
 | SELF-01 | Phase 4 | Pending |
 | SELF-02 | Phase 4 | Pending |
 | SELF-03 | Phase 4 | Pending |
