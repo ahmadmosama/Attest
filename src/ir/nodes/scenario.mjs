@@ -23,6 +23,10 @@ export function createScenarioNode({ ast, steps }) {
     file: ast.file,
     requirements: [...scenario.requirement],
     tags: Array.isArray(scenario.tags) ? [...scenario.tags] : [],
+    // Carried into the IR so the runtime can refuse a proposal without going
+    // back to the file, and so a proposal cannot lose its marker by being
+    // compiled and re serialised somewhere else.
+    proposed: scenario.proposed === true,
     capabilities: sortedUnique([...scenarioCapabilities, ...stepCapabilities]),
     refs: sortedUnique(steps.flatMap((step) => step.refs)),
     seed: scenario.data?.seed ?? null,

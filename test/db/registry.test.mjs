@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import { resolveTarget } from "../../src/config/targets.mjs";
-import { UsageError } from "../../src/errors.mjs";
 import { createDbDriver, DB_DRIVER_MODES } from "../../src/db/registry.mjs";
 import { assertImplementsDbPort } from "../../src/db/port.mjs";
 
@@ -50,31 +49,26 @@ describe("database driver registry", () => {
     assert.doesNotThrow(() => assertImplementsDbPort(driver));
   });
 
-  test("sqlite and bigquery are implemented and build drivers behind the same port", () => {
-    for (const url of ["sqlite:./fixtures/local.db", "bigquery://analytics-project/staging_dataset"]) {
+  test("every implemented engine builds a driver behind the same port", () => {
+    for (const url of [
+      "sqlite:./fixtures/local.db",
+      "bigquery://analytics-project/staging_dataset",
+      "mongodb://user:secret@db.example.test/app_test",
+      "mysql://user:secret@db.example.test/app_test"
+    ]) {
       assert.doesNotThrow(() => assertImplementsDbPort(driverFor(url)), url);
     }
   });
 
-  test("a declared but unimplemented driver is refused by name, never substituted", () => {
-    // Substituting Postgres for a MySQL target would produce a green run that
-    // verified a database nobody asked about.
-    for (const [url, driver] of [
-      ["mysql://user:secret@db.example.test/app_test", "mysql"],
-      ["mongodb://user:secret@db.example.test/app_test", "mongo"]
-    ]) {
-      assert.throws(
-        () => driverFor(url),
-        (error) => {
-          assert(error instanceof UsageError);
-          assert.equal(error.code, "E_DB_DRIVER_NOT_IMPLEMENTED");
-          assert.equal(error.details.driver, driver);
-          assert.match(error.details.remediation, /Phase 6/u);
-          return true;
-        },
-        url
-      );
-    }
+  test("every declared engine is implemented, so nothing is refused as planned", () => {
+    // Substituting one engine for another would produce a green run that
+    // verified a database nobody asked about, so the fallback never existed.
+    // Now there is nothing left to refuse either.
+    assert.equal(
+      Object.values(DB_DRIVER_MODES).every((mode) => mode === "implemented"),
+      true,
+      JSON.stringify(DB_DRIVER_MODES)
+    );
   });
 
   test("an unknown driver names the accepted set", () => {

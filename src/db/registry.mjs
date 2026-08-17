@@ -2,6 +2,8 @@ import { UsageError } from "../errors.mjs";
 import { createPgClient } from "./drivers/postgres/connect.mjs";
 import { createPostgresDriver } from "./drivers/postgres/driver.mjs";
 import { createBigQueryDriver } from "./drivers/bigquery/driver.mjs";
+import { createMongoDriver } from "./drivers/mongo/driver.mjs";
+import { createMysqlDriver } from "./drivers/mysql/driver.mjs";
 import { createSqliteDriver } from "./drivers/sqlite/driver.mjs";
 
 const DRIVER_NAMES = Object.freeze(["postgres", "sqlite", "mysql", "mongo", "bigquery"]);
@@ -11,8 +13,8 @@ const PLANNED = "planned";
 export const DB_DRIVER_MODES = Object.freeze({
   postgres: IMPLEMENTED,
   sqlite: IMPLEMENTED,
-  mysql: PLANNED,
-  mongo: PLANNED,
+  mysql: IMPLEMENTED,
+  mongo: IMPLEMENTED,
   bigquery: IMPLEMENTED
 });
 
@@ -37,12 +39,9 @@ function unknownDriverError(driver) {
   );
 }
 
-// Which plan lands which driver, so an operator hitting this error can tell
-// whether it is coming soon or not coming at all.
-const PLANNED_BY = Object.freeze({
-  mysql: "06-03",
-  mongo: "06-04"
-});
+// Every declared engine is implemented. The map is kept because the registry
+// test requires a mode for each, so an engine cannot be added without one.
+const PLANNED_BY = Object.freeze({});
 
 function plannedDriverError(driver) {
   return new UsageError(
@@ -144,6 +143,26 @@ export function createDbDriver({
 
   if (driver === "sqlite") {
     return createSqliteDriver({
+      target,
+      config: postgresConfig(config, surface),
+      runId,
+      scenarioId,
+      dependencies: config?.dependencies
+    });
+  }
+
+  if (driver === "mysql") {
+    return createMysqlDriver({
+      target,
+      config: postgresConfig(config, surface),
+      runId,
+      scenarioId,
+      dependencies: config?.dependencies
+    });
+  }
+
+  if (driver === "mongo") {
+    return createMongoDriver({
       target,
       config: postgresConfig(config, surface),
       runId,

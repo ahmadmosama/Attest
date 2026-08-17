@@ -223,6 +223,10 @@ export const ScenarioSchema = z
     requirement: z.array(z.string().regex(REQUIREMENT_ID_PATTERN)).min(1),
     tags: z.array(z.string().regex(TAG_PATTERN)).optional(),
     capabilities: z.array(NonEmptyStringSchema).optional(),
+    // A generated scenario carries this in the file itself, not only in its
+    // path. A proposal copied somewhere else is still a proposal, and the
+    // runner refuses it wherever it finds it. Promotion is what removes it.
+    proposed: z.literal(true).optional(),
     data: z
       .object({
         seed: NonEmptyStringSchema

@@ -77,7 +77,7 @@ node src/cli/main.mjs run \
 
 | Phase | Scope | State |
 |---|---|---|
-| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | 3 of 8 plans done |
+| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | 7 of 8, acceptance remains |
 | 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | Not planned |
 
 ### Phase 6, where it actually is
@@ -95,32 +95,51 @@ Done:
   reaches the operator through the CLI banner, every close result, and a new `database` block in
   run.json. 30 tests, no server needed. Summary in `06-02-SUMMARY.md`.
 
-- **06-05**, BigQuery, DB-06 and conflict C3. Taken out of order because its load bearing
-  requirement needs no infrastructure. `deltaAssertion: false` in the descriptor makes the
-  compile time refusal structural rather than a runtime check, proven by lowering a real scenario
-  against the real descriptor. Bounded polling, an opt in and a hard byte budget are all asserted
-  behind an injected client seam. 17 tests. Summary in `06-05-SUMMARY.md`.
+- **06-05**, BigQuery, DB-06 and conflict C3. `deltaAssertion: false` makes the compile time
+  refusal structural, proven by lowering a real scenario against the real descriptor. Bounded
+  polling, an opt in and a hard byte budget behind an injected client seam. 17 tests.
+- **06-04**, Mongo, DB-05 and correction C4. Change streams, the cleanest signal of the five:
+  ordering, transaction attribution and per field updates from `updateDescription`. A standalone
+  mongod is refused by name with `--replSet` as the fix. Marker documents fence the window. 29
+  tests.
+- **06-03**, MySQL, DB-04. ROW format binlog capture. STATEMENT and MIXED refused with the
+  `SET GLOBAL` fix, binary log off refused, missing replication grant refused,
+  `binlog_row_image` MINIMAL degraded and printed. 28 tests.
+
+**All five engines are now behind one interface**, and `DB_DRIVER_MODES` reports every one as
+implemented.
+
+- **06-06 and 06-07**, generation, GEN-01, GEN-02, GEN-04 and GEN-05. A spec declares what a
+  requirement means in an ```attest block; prose never becomes steps, and a requirement stated
+  only in prose is reported uncovered. Everything emitted compiles through the real compiler
+  first. Quarantine is three layers: the glob, a `proposed: true` marker in the file and in the
+  IR, and a runner that refuses it wherever found. Promotion checks compile plus requirement and
+  shows up in a diff. 28 tests. Summary in `06-06-SUMMARY.md`.
+
+**The import boundary caught the first version of this** and the fix is worth knowing about:
+`attest generate` as a subcommand created three edges from `src/cli` into `src/generate`, which
+RUN-02 forbids. There are now two binaries. `attest` runs, `attest-generate` authors, and the
+process that runs scenarios never loads the generator at all.
 
 Next, in order:
-1. **06-04 Mongo.** The most tractable driver left: change streams come from the official driver
-   with no protocol parsing. Parser and the standalone refusal are fixture provable; the live
-   half needs a replica set.
-2. **06-03 MySQL.** Blocked on a decision, not on code. Its plan carries a correction that has
-   not been acted on: `mysql2` speaks the client protocol but does not read the binlog, so the
-   dependency is `@vlasky/zongji` (0.9.0, maintained fork of the abandoned `zongji`), which
-   brings `mysql2` transitively. It has to clear the 03-04 package legitimacy checkpoint first.
-   Hand writing a binlog parser was considered and rejected: the format is versioned per MySQL
-   release and its correctness cannot be asserted without a real server.
-2. 06-06 and 06-07, generation. 06-08, acceptance and docs.
+1. **GEN-03, the crawler**, which is the one thing 06-07 did not land. The quarantine and
+   promotion machinery it needs is built and tested, so it drops into an existing safety net.
+2. **06-08, acceptance and docs**, which is also where the live halves land.
 
-Two things 06-08 has to reconcile, both now concrete rather than predicted:
+Three things 06-08 has to reconcile, all now concrete rather than predicted:
 
-- **`poll` returns different shapes per driver.** SQLite returns `{ok, events, converge}`,
-  BigQuery returns `{ok, rows, converge}`. One of those has to win, or the port has to say both
-  are legal and why.
-- **Neither new driver is exercised through a full `attest run`**, because the fixture app is
-  Postgres shaped. BigQuery additionally has no live proof at all: its client sits behind an
-  injected seam and running one real bounded poll needs a GCP project.
+- **`poll` returns different shapes per driver.** SQLite, Mongo and MySQL return
+  `{ok, events, converge}`; BigQuery returns `{ok, rows, converge}` because it has no events to
+  return. One has to win, or the port has to say both are legal and why.
+- **No new driver is exercised through a full `attest run`**, because the fixture app is Postgres
+  shaped.
+- **Three drivers have no live proof at all.** MySQL, Mongo and BigQuery keep their clients behind
+  injected seams because plan 03-04 makes every dependency install a blocking human checkpoint
+  that is explicitly never auto approvable. Their parsers and refusals are fixture proven and run
+  anywhere; what is unproven is that real client responses match the shapes the code expects.
+  Installing `@vlasky/zongji`, `mongodb` and `@google-cloud/bigquery`, and running one live window
+  each, is the remaining work and needs that checkpoint plus a MySQL, a replica set and a GCP
+  project.
 
 ### Phase 6, what it needs
 

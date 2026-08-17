@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "bin": {
-    "attest": "./src/cli/main.mjs"
+    "attest": "./src/cli/main.mjs",
+    "attest-generate": "./src/generate/cli.mjs"
   },
   "engines": {
     "node": ">=24.13.0"

@@ -695,6 +695,20 @@ export async function runCommand(flags = {}, io = {}) {
       return EXIT.USAGE_ERROR;
     }
 
+    // A proposed scenario cannot gate anything (GEN-04). The default glob does
+    // not reach the proposed directory, and this refuses one wherever else it
+    // is found, because quarantine by path alone is quarantine somebody can
+    // undo with a copy.
+    const proposed = compiled.irs.filter((ir) => ir.proposed === true);
+    if (proposed.length > 0) {
+      throw new UsageError("E_SCENARIO_PROPOSED", "A proposed scenario cannot be run until it is promoted", {
+        scenarios: proposed.map((ir) => ir.id),
+        files: proposed.map((ir) => ir.file),
+        remediation:
+          "Review it, then run `attest promote <file>`. A generated scenario that gates a merge before anyone read it is worse than no scenario."
+      });
+    }
+
     const scenarioRecords = compiled.irs.map((ir) => scenarioRecordFromIr(ir, surfaces));
     const selected = applyFilters(scenarioRecords, {
       ids: flags.ids ?? [],

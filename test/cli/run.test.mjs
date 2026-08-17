@@ -590,12 +590,12 @@ test("runCommand loads a ruleset once, records its hash, and prints broken rules
   });
 });
 
-test("createDbDriver declares planned drivers and returns the Postgres driver", () => {
+test("createDbDriver reports every engine as implemented and builds them behind one port", () => {
   assert.deepEqual(DB_DRIVER_MODES, {
     postgres: "implemented",
     sqlite: "implemented",
-    mysql: "planned",
-    mongo: "planned",
+    mysql: "implemented",
+    mongo: "implemented",
     bigquery: "implemented"
   });
 
@@ -609,19 +609,27 @@ test("createDbDriver declares planned drivers and returns the Postgres driver", 
   const driver = createDbDriver({ target, runId: "run", scenarioId: "scenario.one" });
   assert.equal(typeof driver.preflight, "function");
 
-  for (const name of ["mysql", "mongo"]) {
-    assert.throws(
-      () => createDbDriver({ target: { ...target, driver: name }, runId: "run", scenarioId: "scenario.one" }),
-      (error) => {
-        assert.equal(error.code, "E_DB_DRIVER_NOT_IMPLEMENTED");
-        assert.equal(error.details.roadmapPhase, "Phase 6");
-        // The error names the plan that lands this driver, so an operator can
-        // tell whether it is coming soon or not coming at all.
-        assert.match(error.details.remediation, /Phase 6 plan 06-0\d/u);
-        return true;
-      }
-    );
+  // Every engine builds. Substituting one for another would produce a green run
+  // that verified a database nobody asked about, so there is no fallback path
+  // and an unknown driver is still refused by name.
+  for (const [name, extra] of [
+    ["sqlite", { host: "file", database: "./local.db", port: null }],
+    ["mysql", {}],
+    ["mongo", {}],
+    ["bigquery", { host: "project", database: "dataset", port: null }]
+  ]) {
+    const built = createDbDriver({
+      target: { ...target, driver: name, ...extra },
+      runId: "run",
+      scenarioId: "scenario.one"
+    });
+    assert.equal(typeof built.preflight, "function", name);
   }
+
+  assert.throws(
+    () => createDbDriver({ target: { ...target, driver: "cassandra" }, runId: "run", scenarioId: "scenario.one" }),
+    { code: "E_DB_DRIVER_UNKNOWN" }
+  );
 });
 
 test("runCommand database banner never prints credentials or connection strings", async () => {
