@@ -1,5 +1,7 @@
 import { RunRecordSchema } from "./run-record.mjs";
 import { escapeHtml, inlineArtifact } from "./inline.mjs";
+import { buildDeltaView } from "./delta-view.mjs";
+import { renderDeltaSummary, renderScenarioDelta } from "./html-delta.mjs";
 
 const CSP = "default-src 'none'; img-src data: ; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
 const EMPTY = Object.freeze([]);
@@ -215,14 +217,11 @@ function scenarioFacts(scenario) {
     </dl>`;
 }
 
-function databaseDeltaExtension() {
-  return `
-    <section class="database-delta" data-extension-point="classified-database-delta">
-      <h4>Database delta</h4>
-    </section>`;
+function databaseDeltaExtension(deltaView, scenario) {
+  return renderScenarioDelta(deltaView, scenario);
 }
 
-function scenarioBlock({ artifactDir, scenario }) {
+function scenarioBlock({ artifactDir, deltaView, scenario }) {
   const open = isProblemScenario(scenario) ? " open" : "";
   const rows = stepRows({ artifactDir, scenario });
   return `
@@ -231,7 +230,7 @@ function scenarioBlock({ artifactDir, scenario }) {
       <div class="scenario-body">
         ${scenarioFacts(scenario)}
         ${errorBlock(scenario.error, "Scenario error")}
-        ${databaseDeltaExtension()}
+        ${databaseDeltaExtension(deltaView, scenario)}
         <table>
           <thead>
             <tr>
@@ -250,8 +249,8 @@ function scenarioBlock({ artifactDir, scenario }) {
     </details>`;
 }
 
-function scenariosSection(record, artifactDir) {
-  const blocks = record.scenarios.map((scenario) => scenarioBlock({ artifactDir, scenario }));
+function scenariosSection(record, artifactDir, deltaView) {
+  const blocks = record.scenarios.map((scenario) => scenarioBlock({ artifactDir, deltaView, scenario }));
   const content = blocks.length === 0 ? `<p class="empty">No scenarios recorded</p>` : blocks.join("");
   return `
     <section class="run-section">
@@ -296,6 +295,17 @@ function styles() {
     .result-quarantined { color: #fff; background: var(--quarantine); }
     .error-block { margin: 12px 0; padding: 12px; border: 1px solid #f1b8b3; border-left: 5px solid var(--fail); background: #fff8f7; border-radius: 8px; }
     .database-delta { margin: 12px 0; padding: 10px 0 0; border-top: 1px solid var(--line); }
+    .delta-summary { padding-top: 4px; }
+    .delta-counts, .delta-health { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; padding: 0; }
+    .delta-counts span { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border-radius: 6px; font-weight: 700; background: #e7f4ef; color: #0c5b3c; }
+    .delta-health li { list-style: none; padding: 2px 8px; border-radius: 6px; background: #fff3cd; color: #6a4700; font-weight: 700; }
+    .delta-meta { margin: 6px 0; color: var(--muted); }
+    .delta-groups, .delta-shortfalls, .delta-cap-violations { margin-top: 10px; }
+    .delta-group { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+    h5, h6 { margin: 8px 0 4px; font-size: 13px; letter-spacing: 0; }
+    h6 { color: var(--muted); text-transform: uppercase; }
+    .delta-rule-table th:nth-child(1), .delta-rule-table td:nth-child(1) { width: 180px; }
+    .delta-row-table th:nth-child(1), .delta-row-table td:nth-child(1) { width: 220px; }
     table { width: 100%; margin-top: 12px; border-collapse: collapse; table-layout: fixed; }
     th, td { padding: 9px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
     th { color: var(--muted); font-size: 12px; text-transform: uppercase; background: #f9fafc; }
@@ -314,7 +324,8 @@ function styles() {
 export function renderHtmlReport(runRecord, { artifactDir } = {}) {
   const record = parseRecord(runRecord);
   const resolvedArtifactDir = artifactDir ?? record.artifactDir;
-  const scenarios = scenariosSection(record, resolvedArtifactDir);
+  const deltaView = buildDeltaView(record);
+  const scenarios = scenariosSection(record, resolvedArtifactDir, deltaView);
 
   return `<!doctype html>
 <html lang="en">
@@ -333,6 +344,7 @@ export function renderHtmlReport(runRecord, { artifactDir } = {}) {
   </header>
   <main>
     ${metadataGrid(record)}
+    ${renderDeltaSummary(deltaView)}
     ${requirementsBlock(record)}
     ${scenarios}
   </main>

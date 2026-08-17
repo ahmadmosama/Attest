@@ -44,6 +44,60 @@ function error(overrides = {}) {
   });
 }
 
+function delta(overrides = {}) {
+  return {
+    capturedEventCount: 4,
+    counts: {
+      expected: 1,
+      explained: 1,
+      suppressed_external: 1,
+      unexplained: 1
+    },
+    unexplained: [
+      {
+        entity: "public.customers",
+        op: "update",
+        count: 1,
+        rows: [
+          {
+            entity: "public.customers",
+            op: "update",
+            key: "{\"id\":\"<quoted>\"}",
+            columns: ["email"],
+            columnText: "email",
+            notes: ["sample note"]
+          }
+        ],
+        omitted: 0
+      }
+    ],
+    shortfalls: [{ index: 0, entity: "public.orders", op: "insert", expected: 2, matched: 1, missing: 1 }],
+    convergeMs: [14],
+    quiet: { quiet: true, elapsedMs: 3, events: 0, extensions: 0 },
+    quietPeriods: [{ quiet: true, elapsedMs: 3, events: 0, extensions: 0 }],
+    rulesetHash: "d".repeat(64),
+    rules: [
+      {
+        id: "ignore_jobs",
+        kind: "ignore",
+        entity: "public.jobs",
+        suppressed: 0,
+        overBudget: 0,
+        cap: 50,
+        dead: false,
+        expired: false
+      }
+    ],
+    capViolations: [],
+    health: {
+      dead: [{ ruleId: "unused_ignore", proposedAction: "delete_rule", consecutiveZeroRuns: 3 }],
+      expired: [{ ruleId: "old_ignore", expires: "2026-08-15" }],
+      expiringSoon: [{ ruleId: "soon_ignore", expires: "2026-08-20", daysUntilExpiry: 5 }]
+    },
+    ...overrides
+  };
+}
+
 function scenario(overrides = {}) {
   return {
     id: "checkout.guest_purchase",
@@ -214,7 +268,7 @@ test("renderHtmlReport returns a complete self contained document", async () => 
     assert.match(html, new RegExp(HASH));
     assert.match(html, /v24\.13\.0/);
     assert.match(html, /Exit code/);
-    assert.match(html, /Database delta/);
+    assert.doesNotMatch(html, /data-extension-point="classified-database-delta"/);
     assertNoExternalReferences(html);
 
     const step0 = html.indexOf("<td>0</td>");
@@ -222,6 +276,77 @@ test("renderHtmlReport returns a complete self contained document", async () => 
     const step2 = html.indexOf("<td>2</td>");
     assert.equal(step0 < step1 && step1 < step2, true);
   });
+});
+
+test("renderHtmlReport fills the database delta extension point from the shared view", async () => {
+  await withTempRun(async (root) => {
+    const failed = scenario({
+      id: "checkout.delta_failure",
+      result: "fail",
+      delta: delta(),
+      steps: [
+        step(0, {
+          status: "fail",
+          error: error()
+        })
+      ]
+    });
+    const passed = scenario({
+      id: "checkout.delta_pass",
+      delta: delta({
+        capturedEventCount: 0,
+        counts: { expected: 0, explained: 0, suppressed_external: 0, unexplained: 0 },
+        unexplained: [],
+        shortfalls: [],
+        convergeMs: []
+      })
+    });
+    const html = await renderHtmlReport(record({ artifactDir: root, scenarios: [failed, passed] }), { artifactDir: root });
+
+    assert.match(html, /data-extension-point="classified-database-delta"/);
+    assert.match(html, /expected 1/);
+    assert.match(html, /suppressed external 1/);
+    assert.match(html, /public\.customers update: 1 change\(s\)/);
+    assert.match(html, /Missing expected mutations/);
+    assert.match(html, /ignore_jobs/);
+    assert.match(html, /unused_ignore/);
+    assert.match(html, /old_ignore/);
+    assert.match(html, /soon_ignore/);
+    assert.match(html, /Ruleset hash/);
+    assert.match(html, /&quot;&lt;quoted&gt;&quot;/);
+    assert.doesNotMatch(html, /<script/i);
+    assertNoExternalReferences(html);
+  });
+});
+
+test("renderHtmlReport bounds oversized unexplained groups and states the remainder", async () => {
+  const rows = Array.from({ length: 500 }, (_, index) => ({
+    entity: "public.audit",
+    op: "insert",
+    key: `{"id":${index}}`,
+    columns: ["id"],
+    columnText: "id",
+    notes: []
+  }));
+  const runRecord = record({
+    scenarios: [
+      scenario({
+        result: "fail",
+        delta: delta({
+          capturedEventCount: 500,
+          counts: { expected: 0, explained: 0, suppressed_external: 0, unexplained: 500 },
+          unexplained: [{ entity: "public.audit", op: "insert", count: 500, rows, omitted: 0 }],
+          shortfalls: []
+        }),
+        steps: [step(0, { status: "fail", error: error() })]
+      })
+    ]
+  });
+
+  const html = await renderHtmlReport(runRecord);
+
+  assert.match(html, /495 more public\.audit insert change\(s\) omitted/);
+  assert.doesNotMatch(html, /\{"id":499\}/);
 });
 
 test("renderHtmlReport renders hostile input as text instead of markup", async () => {

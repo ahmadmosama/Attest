@@ -33,6 +33,53 @@ function scenario(overrides) {
   };
 }
 
+function delta(overrides = {}) {
+  return {
+    capturedEventCount: 4,
+    counts: {
+      expected: 1,
+      explained: 1,
+      suppressed_external: 1,
+      unexplained: 1
+    },
+    unexplained: [],
+    shortfalls: [],
+    convergeMs: [12],
+    quiet: { quiet: true, elapsedMs: 3, events: 0, extensions: 0 },
+    quietPeriods: [{ quiet: true, elapsedMs: 3, events: 0, extensions: 0 }],
+    rulesetHash: "d".repeat(64),
+    rules: [
+      {
+        id: "zero_rule",
+        kind: "ignore",
+        entity: "public.zero",
+        suppressed: 0,
+        overBudget: 0,
+        cap: 10,
+        dead: false,
+        expired: false
+      },
+      {
+        id: "broad_rule",
+        kind: "external_writer",
+        entity: "public.jobs",
+        suppressed: 4,
+        overBudget: 2,
+        cap: 2,
+        dead: true,
+        expired: true
+      }
+    ],
+    capViolations: [{ code: "rule_too_broad", ruleId: "broad_rule", reason: "absolute", count: 4, cap: 2 }],
+    health: {
+      dead: [{ ruleId: "broad_rule", proposedAction: "delete_rule", consecutiveZeroRuns: 3 }],
+      expired: [{ ruleId: "old_ignore", expires: "2026-08-15" }],
+      expiringSoon: [{ ruleId: "soon_ignore", expires: "2026-08-20", daysUntilExpiry: 5 }]
+    },
+    ...overrides
+  };
+}
+
 function baseInput(overrides = {}) {
   return {
     runId: "20260815T044612Z-9f3a1c07",
@@ -120,4 +167,36 @@ test("renderConsoleSummary prints raw escape hatch count and reasons", () => {
 
   assert.match(summary, /Raw escape hatch uses: 1/);
   assert.match(summary, /captcha has no accessible handle/);
+});
+
+test("renderConsoleSummary prints delta buckets, rule accounting, health flags, and ruleset hash", () => {
+  const runRecord = createRunRecord({
+    ...baseInput({
+      hashes: { bindings: { web: HASH }, ruleset: null },
+      scenarios: [scenario({ id: "checkout.delta", delta: delta() })]
+    })
+  });
+  const summary = renderConsoleSummary(runRecord, { color: false, width: 80 });
+
+  assert.match(summary, /expected 1, explained 1, suppressed external 1, unexplained 1/);
+  assert.match(summary, /Delta rule suppressions/);
+  assert.match(summary, /broad_rule \| external_writer \| public\.jobs \| 4 \| 2 \| 2 \| rule_too_broad, dead: delete_rule, expired/);
+  assert.match(summary, /zero_rule \| ignore \| public\.zero \| 0 \| 0 \| 10 \| ok/);
+  assert.match(summary, /Dead rule: broad_rule proposed delete_rule/);
+  assert.match(summary, /Expired ignore: old_ignore expired 2026-08-15/);
+  assert.match(summary, /Expiring ignore: soon_ignore expires 2026-08-20/);
+  assert.match(summary, new RegExp(`Run ID: ${runRecord.runId} \\| Ruleset hash: ${"d".repeat(64)}`));
+  assert.equal(summary.includes(ANSI_ESCAPE_PREFIX), false);
+});
+
+test("renderConsoleSummary keeps delta output valid with colour enabled", () => {
+  const runRecord = createRunRecord({
+    ...baseInput({
+      scenarios: [scenario({ id: "checkout.delta", delta: delta() })]
+    })
+  });
+  const summary = renderConsoleSummary(runRecord, { color: true, width: 80 });
+
+  assert.match(summary, /expected 1, explained 1, suppressed external 1, unexplained 1/);
+  assert.equal(summary.includes(ANSI_ESCAPE_PREFIX), true);
 });
