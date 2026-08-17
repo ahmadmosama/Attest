@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "updatedAt": "2026-08-17",
+  "corpus": "fixtures/self-verify/corpus.yaml",
+  "rate": 0.9090909090909091,
+  "ratePercent": 90.91,
+  "confidence": "clean",
+  "counts": {
+    "total": 11,
+    "killed": 10,
+    "survived": 1,
+    "errored": 0,
+    "scored": 11
+  },
+  "hashes": {
+    "corpus": "8c12819ca1e1e72c11e12b45bc6ea69067bee863ea4c32fd954d2c4f8fa142bf",
+    "ruleset": "759f22ae8ea36dcef55e08a539e94d6f83d54ecb2a1b8c21335f6b15326d1163",
+    "fixtureTree": "70950103e47cb930c7c7a7daef08a7c268d1b1b48972a5ee9e8efa9d5398a458"
+  },
+  "mutants": [
+    { "id": "create_wrong_status", "outcome": "killed" },
+    { "id": "create_wrong_total", "outcome": "killed" },
+    { "id": "create_wrong_item_quantity", "outcome": "killed" },
+    { "id": "create_omit_items", "outcome": "killed" },
+    { "id": "create_extra_audit", "outcome": "killed" },
+    { "id": "delete_wrong_customer_target", "outcome": "killed" },
+    { "id": "delete_skip_second_audit", "outcome": "killed" },
+    { "id": "delete_wrong_audit_action", "outcome": "killed" },
+    { "id": "delete_extra_orphan_audit", "outcome": "killed" },
+    { "id": "survivor_create_audit_detail", "outcome": "survived" },
+    { "id": "delete_orphan_child_rows", "outcome": "killed" }
+  ]
+}

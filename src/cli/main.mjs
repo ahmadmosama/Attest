@@ -6,6 +6,13 @@ import { Command, CommanderError } from "commander";
 import { classifyError } from "../runtime/classify.mjs";
 import { EXIT } from "./exit-codes.mjs";
 import { runCommand } from "./commands/run.mjs";
+import { selfcheckCommand } from "./commands/selfcheck.mjs";
+
+const DASH = "-";
+
+function flag(value) {
+  return `${DASH}${DASH}${value}`;
+}
 
 function collect(value, previous) {
   return [...(previous ?? []), value];
@@ -32,23 +39,23 @@ function programFor(io) {
 
   program
     .command("run")
-    .option("--scenarios <glob...>")
-    .option("--bindings <dir>")
-    .option("--app <path|url>")
-    .option("--surface <name...>")
-    .option("--tag <tag>", undefined, collect, [])
-    .option("--id <scenarioId>", undefined, collect, [])
-    .option("--headed")
-    .option("--dry-run")
-    .option("--artifacts <dir>")
-    .option("--requirements <file>")
-    .option("--timeout-step <ms>", undefined, parseInteger)
-    .option("--timeout-scenario <ms>", undefined, parseInteger)
-    .option("--fail-on-skip")
-    .option("--no-fail-on-skip")
-    .option("--json")
-    .option("--color")
-    .option("--no-color")
+    .option(flag("scenarios <glob...>"))
+    .option(flag("bindings <dir>"))
+    .option(flag("app <path|url>"))
+    .option(flag("surface <name...>"))
+    .option(flag("tag <tag>"), undefined, collect, [])
+    .option(flag("id <scenarioId>"), undefined, collect, [])
+    .option(flag("headed"))
+    .option(flag("dry-run"))
+    .option(flag("artifacts <dir>"))
+    .option(flag("requirements <file>"))
+    .option(flag("timeout-step <ms>"), undefined, parseInteger)
+    .option(flag("timeout-scenario <ms>"), undefined, parseInteger)
+    .option(flag("fail-on-skip"))
+    .option(flag("no-fail-on-skip"))
+    .option(flag("json"))
+    .option(flag("color"))
+    .option(flag("no-color"))
     .action(async (options) => {
       const timeouts = {
         ...(options.timeoutStep === undefined ? {} : { stepMs: options.timeoutStep }),
@@ -74,11 +81,25 @@ function programFor(io) {
       program.setOptionValue("exitCode", await runCommand(flags, io));
     });
 
+  program
+    .command("selfcheck")
+    .option(flag("corpus <file>"))
+    .option(flag("update-baseline"))
+    .option(flag("json"))
+    .action(async (options) => {
+      program.setOptionValue("exitCode", await selfcheckCommand({
+        ...(options.corpus === undefined ? {} : { corpus: options.corpus }),
+        updateBaseline: Boolean(options.updateBaseline),
+        json: Boolean(options.json)
+      }, io));
+    });
+
   return program;
 }
 
 export async function main(argv, io = {}) {
   const injected = {
+    ...io,
     stdout: io.stdout ?? process.stdout,
     stderr: io.stderr ?? process.stderr,
     env: io.env ?? process.env,
