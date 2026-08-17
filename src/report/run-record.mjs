@@ -6,7 +6,7 @@ import { exitCodeFor } from "../cli/exit-codes.mjs";
 import { AttestError } from "../errors.mjs";
 import { tallyResults } from "../runtime/result.mjs";
 
-export const RUN_RECORD_VERSION = 1;
+export const RUN_RECORD_VERSION = 2;
 
 const Text = z.string().trim().min(1);
 const Duration = z.number().int().nonnegative();
@@ -26,6 +26,93 @@ const ArtifactRefSchema = z
   .strict();
 
 const ErrorSchema = z.object({ code: Text, message: Text, details: JsonObject }).strict();
+
+const DeltaCountsSchema = z
+  .object({
+    expected: z.number().int().nonnegative(),
+    explained: z.number().int().nonnegative(),
+    suppressed_external: z.number().int().nonnegative(),
+    unexplained: z.number().int().nonnegative()
+  })
+  .strict();
+
+const DeltaRowSchema = z
+  .object({
+    entity: Text,
+    op: Text,
+    key: z.string(),
+    columns: TextArray,
+    columnText: z.string(),
+    notes: z.array(z.string())
+  })
+  .strict();
+
+const UnexplainedGroupSchema = z
+  .object({
+    entity: Text,
+    op: Text,
+    count: z.number().int().nonnegative(),
+    rows: z.array(DeltaRowSchema),
+    omitted: z.number().int().nonnegative()
+  })
+  .strict();
+
+const QuietSchema = z
+  .object({
+    quiet: z.boolean(),
+    elapsedMs: Duration,
+    events: z.number().int().nonnegative(),
+    extensions: z.number().int().nonnegative()
+  })
+  .strict();
+
+const RuleAccountingSchema = z
+  .object({
+    id: Text,
+    kind: Text,
+    entity: Text,
+    suppressed: z.number().int().nonnegative(),
+    overBudget: z.number().int().nonnegative(),
+    cap: z.number().int().nonnegative().nullable(),
+    dead: z.boolean(),
+    expired: z.boolean()
+  })
+  .strict();
+
+const DeltaHealthSchema = z
+  .object({
+    dead: z.array(JsonObject),
+    expired: z.array(JsonObject),
+    expiringSoon: z.array(JsonObject)
+  })
+  .strict();
+
+const ScenarioDeltaSchema = z
+  .object({
+    capturedEventCount: z.number().int().nonnegative(),
+    counts: DeltaCountsSchema,
+    unexplained: z.array(UnexplainedGroupSchema),
+    shortfalls: z.array(JsonObject),
+    convergeMs: z.array(Duration),
+    quiet: QuietSchema.nullable(),
+    quietPeriods: z.array(QuietSchema),
+    rulesetHash: HexSha,
+    rules: z.array(RuleAccountingSchema),
+    capViolations: z.array(JsonObject),
+    health: DeltaHealthSchema
+  })
+  .strict()
+  .superRefine((delta, ctx) => {
+    const bucketTotal =
+      delta.counts.expected +
+      delta.counts.explained +
+      delta.counts.suppressed_external +
+      delta.counts.unexplained;
+    if (bucketTotal !== delta.capturedEventCount) {
+      addIssue(ctx, ["counts"], "Delta bucket counts must sum to capturedEventCount");
+    }
+  });
+
 const StepSchema = z
   .object({
     index: z.number().int().nonnegative(),
@@ -33,7 +120,8 @@ const StepSchema = z
     status: z.enum(["pass", "fail", "skipped", "timed_out"]),
     durationMs: Duration,
     error: ErrorSchema.nullable(),
-    evidence: z.array(ArtifactRefSchema)
+    evidence: z.array(ArtifactRefSchema),
+    delta: ScenarioDeltaSchema.nullable().default(null)
   })
   .strict();
 
@@ -53,6 +141,7 @@ const ScenarioSchema = z
     rawOpUses: z.number().int().nonnegative(),
     skipped: z.object({ capabilities: TextArray.min(1) }).strict().nullable(),
     error: ErrorSchema.nullable(),
+    delta: ScenarioDeltaSchema.nullable().default(null),
     steps: z.array(StepSchema)
   })
   .strict()
@@ -96,8 +185,40 @@ const EscapeUseSchema = z
   })
   .strict();
 
-export const RunRecordSchema = z
+const DeltaSchedulingSchema = z
   .object({
+    forcedSerial: z.number().int().nonnegative(),
+    reason: Text.nullable()
+  })
+  .strict();
+
+const RunDeltaSchema = z
+  .object({
+    counts: DeltaCountsSchema,
+    rules: z.array(RuleAccountingSchema)
+  })
+  .strict();
+
+function upgradeRecordVersion(record) {
+  if (record === null || typeof record !== "object" || Array.isArray(record)) {
+    return record;
+  }
+
+  if (record.runRecordVersion === RUN_RECORD_VERSION) {
+    return record;
+  }
+
+  if (record.runRecordVersion === 1 && record.delta === undefined) {
+    return { ...record, runRecordVersion: RUN_RECORD_VERSION };
+  }
+
+  return record;
+}
+
+export const RunRecordSchema = z.preprocess(
+  upgradeRecordVersion,
+  z
+    .object({
     runRecordVersion: z.literal(RUN_RECORD_VERSION),
     runId: Text,
     startedAt: z.iso.datetime(),
@@ -130,17 +251,20 @@ export const RunRecordSchema = z
         uses: z.array(EscapeUseSchema)
       })
       .strict(),
-    hashes: z.object({ bindings: z.record(z.string(), Text), ruleset: Text.nullable() }).strict(),
+    hashes: z.object({ bindings: z.record(z.string(), Text), ruleset: HexSha.nullable() }).strict(),
     telemetry: z
       .object({
         timeouts: z.number().int().nonnegative(),
         retries: z.number().int().nonnegative(),
-        convergeMs: z.array(Duration)
+        convergeMs: z.array(Duration),
+        deltaScheduling: DeltaSchedulingSchema.default({ forcedSerial: 0, reason: null })
       })
       .strict(),
+    delta: RunDeltaSchema.nullable().default(null),
     scenarios: z.array(ScenarioSchema)
   })
-  .strict();
+    .strict()
+);
 
 function invalid(message, details) {
   return new AttestError("E_RUN_RECORD_INVALID", message, details);
@@ -181,14 +305,22 @@ function normalizeError(value) {
   return { code: value.code, message: value.message, details: value.details ?? {} };
 }
 
+function normalizeDelta(value) {
+  return value ?? null;
+}
+
 function normalizeScenario(scenario) {
   if (scenario === null || typeof scenario !== "object" || Array.isArray(scenario)) {
     return scenario;
   }
   const steps = Array.isArray(scenario.steps)
-    ? scenario.steps.map((step) => ({ ...step, error: normalizeError(step.error) }))
+    ? scenario.steps.map((step) => ({
+        ...step,
+        error: normalizeError(step.error),
+        delta: normalizeDelta(step.delta)
+      }))
     : scenario.steps;
-  return { ...scenario, error: normalizeError(scenario.error), steps };
+  return { ...scenario, error: normalizeError(scenario.error), delta: normalizeDelta(scenario.delta), steps };
 }
 
 function scenarioKey(scenario) {
@@ -254,6 +386,102 @@ function assertEscapeUseCoverage(scenarios, uses) {
   }
 }
 
+function emptyDeltaCounts() {
+  return {
+    expected: 0,
+    explained: 0,
+    suppressed_external: 0,
+    unexplained: 0
+  };
+}
+
+function addDeltaCounts(target, source = {}) {
+  target.expected += source.expected ?? 0;
+  target.explained += source.explained ?? 0;
+  target.suppressed_external += source.suppressed_external ?? 0;
+  target.unexplained += source.unexplained ?? 0;
+}
+
+function ruleKey(rule) {
+  return `${rule.id}\u0000${rule.kind}\u0000${rule.entity}`;
+}
+
+function mergeRuleAccounting(rules) {
+  const merged = new Map();
+
+  for (const rule of rules) {
+    const key = ruleKey(rule);
+    const current = merged.get(key) ?? {
+      id: rule.id,
+      kind: rule.kind,
+      entity: rule.entity,
+      suppressed: 0,
+      overBudget: 0,
+      cap: rule.cap ?? null,
+      dead: false,
+      expired: false
+    };
+
+    current.suppressed += rule.suppressed ?? 0;
+    current.overBudget += rule.overBudget ?? 0;
+    current.dead = current.dead || rule.dead === true;
+    current.expired = current.expired || rule.expired === true;
+    merged.set(key, current);
+  }
+
+  return [...merged.values()].toSorted(
+    (left, right) =>
+      left.id.localeCompare(right.id) ||
+      left.kind.localeCompare(right.kind) ||
+      left.entity.localeCompare(right.entity)
+  );
+}
+
+function scenarioDeltas(scenarios) {
+  return scenarios.map((scenario) => scenario.delta).filter(Boolean);
+}
+
+function deriveDelta(scenarios) {
+  const deltas = scenarioDeltas(scenarios);
+  if (deltas.length === 0) {
+    return null;
+  }
+
+  const counts = emptyDeltaCounts();
+  for (const delta of deltas) {
+    addDeltaCounts(counts, delta.counts);
+  }
+
+  return Object.freeze({
+    counts,
+    rules: mergeRuleAccounting(deltas.flatMap((delta) => delta.rules ?? []))
+  });
+}
+
+function deriveRulesetHash(inputHash, scenarios) {
+  if (inputHash !== undefined && inputHash !== null) {
+    return inputHash;
+  }
+
+  const hashes = [...new Set(scenarioDeltas(scenarios).map((delta) => delta.rulesetHash).filter(Boolean))];
+  return hashes.length === 1 ? hashes[0] : null;
+}
+
+function deriveConvergeMs(scenarios) {
+  return scenarioDeltas(scenarios).flatMap((delta) => delta.convergeMs ?? []);
+}
+
+function telemetryFor(input, scenarios) {
+  const convergeMs = deriveConvergeMs(scenarios);
+
+  return Object.freeze({
+    timeouts: input?.telemetry?.timeouts,
+    retries: input?.telemetry?.retries,
+    convergeMs,
+    deltaScheduling: input?.telemetry?.deltaScheduling ?? { forcedSerial: 0, reason: null }
+  });
+}
+
 export function createRunRecord(input) {
   const scenarios = Array.isArray(input?.scenarios) ? input.scenarios.map(normalizeScenario) : [];
   const escapeUses = sortedEscapeUses(input?.escapeHatch?.uses ?? []);
@@ -268,12 +496,22 @@ export function createRunRecord(input) {
   });
   const requirements = deriveRequirements(scenarios);
   const escapeHatch = Object.freeze({ rawOpUses: escapeUses.length, uses: escapeUses });
+  const delta = deriveDelta(scenarios);
+  const hashes = Object.freeze({
+    bindings: input?.hashes?.bindings ?? {},
+    ruleset: deriveRulesetHash(input?.hashes?.ruleset, scenarios)
+  });
+  const telemetry = telemetryFor(input, scenarios);
 
   assertSame("counts", input?.counts, counts);
   assertSame("status", input?.status, status);
   assertSame("exitCode", input?.exitCode, exitCode);
   assertSame("requirements", input?.requirements, requirements);
   assertSame("escapeHatch.rawOpUses", input?.escapeHatch?.rawOpUses, escapeHatch.rawOpUses);
+  assertSame("delta", input?.delta, delta);
+  if ((input?.telemetry?.convergeMs ?? []).length > 0 || telemetry.convergeMs.length === 0) {
+    assertSame("telemetry.convergeMs", input?.telemetry?.convergeMs, telemetry.convergeMs);
+  }
 
   const record = parseOrThrow({
     runRecordVersion: RUN_RECORD_VERSION,
@@ -290,8 +528,9 @@ export function createRunRecord(input) {
     artifactDir: input?.artifactDir,
     requirements,
     escapeHatch,
-    hashes: input?.hashes,
-    telemetry: input?.telemetry,
+    hashes,
+    telemetry,
+    delta,
     scenarios
   });
 

@@ -4,7 +4,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import test from "node:test";
 
-import { UnsupportedOpError } from "../../src/errors.mjs";
+import { AttestError, InfraError, UnsupportedOpError } from "../../src/errors.mjs";
 import { createBundle } from "../../src/evidence/bundle.mjs";
 import { createExecutionPlan } from "../../src/lower/plan.mjs";
 import { createRunContext } from "../../src/runtime/run-context.mjs";
@@ -384,6 +384,104 @@ test("db window ops pass through named hooks when present and pass without hooks
     assert.equal(result.result, "pass");
     assert.deepEqual(calls, ["db_window_open", "db_window_close"]);
     assert(result.steps.every((step) => step.status === "pass"));
+  });
+});
+
+test("db window close delta violation fails that close step with delta attached", async () => {
+  await withRuntimeTemp("db-window-delta-fail", async (root) => {
+    const delta = Object.freeze({
+      capturedEventCount: 1,
+      counts: Object.freeze({
+        expected: 0,
+        explained: 0,
+        suppressed_external: 0,
+        unexplained: 1
+      }),
+      unexplained: Object.freeze([]),
+      shortfalls: Object.freeze([]),
+      convergeMs: Object.freeze([5]),
+      quiet: null,
+      quietPeriods: Object.freeze([]),
+      rulesetHash: "d".repeat(64),
+      rules: Object.freeze([]),
+      capViolations: Object.freeze([]),
+      health: Object.freeze({ dead: Object.freeze([]), expired: Object.freeze([]), expiringSoon: Object.freeze([]) })
+    });
+    const executionPlan = plan({
+      demanded: ["db.delta_assertion"],
+      ops: [
+        { i: 0, kind: "db_window_open", seq: 1 },
+        { i: 1, kind: "db_window_close", seq: 1 }
+      ]
+    });
+    const bundle = await createBundle({ root, runId: RUN_ID });
+    const ctx = createRunContext({
+      runId: bundle.runId,
+      scenarioId: executionPlan.scenarioId,
+      surface: executionPlan.surface,
+      bundle,
+      now: clock,
+      db: {
+        onWindowOpen: () => Object.freeze({ ok: true }),
+        onWindowClose() {
+          throw new AttestError("E_DELTA_UNEXPLAINED", "unexplained change", { delta });
+        },
+        teardown: () => Object.freeze({ ok: true })
+      }
+    });
+    const result = await runScenario({
+      plan: executionPlan,
+      adapter: createFakeSurface(defineScript({ surface: "fake" })),
+      ctx
+    });
+
+    assert.equal(result.result, "fail");
+    assert.equal(result.steps[1].status, "fail");
+    assert.equal(result.steps[1].error.code, "E_DELTA_UNEXPLAINED");
+    assert.deepEqual(result.steps[1].delta, delta);
+    assert.deepEqual(result.delta, delta);
+  });
+});
+
+test("db infrastructure errors produce infra_error without failed scenario steps", async () => {
+  await withRuntimeTemp("db-window-infra", async (root) => {
+    const executionPlan = plan({
+      demanded: ["db.delta_assertion"],
+      ops: [
+        { i: 0, kind: "db_window_open", seq: 1 },
+        { i: 1, kind: "db_window_close", seq: 1 }
+      ]
+    });
+    const bundle = await createBundle({ root, runId: RUN_ID });
+    let teardownCalls = 0;
+    const ctx = createRunContext({
+      runId: bundle.runId,
+      scenarioId: executionPlan.scenarioId,
+      surface: executionPlan.surface,
+      bundle,
+      now: clock,
+      db: {
+        onWindowOpen() {
+          throw new InfraError("E_DB_UNREACHABLE", "database unreachable");
+        },
+        onWindowClose: () => Object.freeze({ ok: true }),
+        teardown() {
+          teardownCalls += 1;
+          return Object.freeze({ ok: true });
+        }
+      }
+    });
+    const result = await runScenario({
+      plan: executionPlan,
+      adapter: createFakeSurface(defineScript({ surface: "fake" })),
+      ctx
+    });
+
+    assert.equal(result.result, "infra_error");
+    assert.equal(result.error.code, "E_DB_UNREACHABLE");
+    assert.equal(result.steps.some((step) => step.status === "fail"), false);
+    assert.equal(result.steps[0].status, "skipped");
+    assert.equal(teardownCalls, 1);
   });
 });
 

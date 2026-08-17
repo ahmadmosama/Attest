@@ -289,3 +289,162 @@ test("scenarios execute serially in phase 1", async () => {
     assert.deepEqual(overlaps, [1, 1, 1]);
   });
 });
+
+test("non delta scenarios run with bounded concurrency and keep plan order", async () => {
+  await withRuntimeTemp("suite-parallel", async (root) => {
+    const bundle = await createBundle({ root, runId: "20260815T044612Z-88888888" });
+    const active = new Set();
+    const overlaps = [];
+    const plans = [
+      plan("slow", [{ i: 0, kind: "click" }]),
+      plan("fast", [{ i: 0, kind: "click" }]),
+      plan("later", [{ i: 0, kind: "click" }])
+    ];
+
+    const { record } = await runSuite({
+      plans,
+      adapterFor(planEntry) {
+        return {
+          describeCapabilities: () => Object.freeze({ has: () => true }),
+          preflight: () => Object.freeze({ ok: true }),
+          open: () => Object.freeze({ id: planEntry.scenarioId }),
+          async execute(session, _op, { signal }) {
+            active.add(session.id);
+            overlaps.push(active.size);
+            await delay(session.id === "slow" ? 20 : 5, undefined, { signal });
+            active.delete(session.id);
+            return Object.freeze({ ok: true });
+          },
+          collectEvidence: (_session, kind, { bundle: evidenceBundle }) =>
+            evidenceBundle.writeTextArtifact(kind, "evidence"),
+          close: () => Object.freeze({ ok: true })
+        };
+      },
+      bundle,
+      config: { concurrency: 2 },
+      now: pinnedClock
+    });
+
+    assert.equal(Math.max(...overlaps), 2);
+    assert.deepEqual(record.scenarios.map((scenario) => scenario.id), ["slow", "fast", "later"]);
+  });
+});
+
+test("delta scenarios are serial by default even when suite concurrency is higher", async () => {
+  await withRuntimeTemp("suite-delta-serial", async (root) => {
+    const bundle = await createBundle({ root, runId: "20260815T044612Z-99999999" });
+    const active = new Set();
+    const overlaps = [];
+    const plans = [
+      plan("delta_one", [{ i: 0, kind: "click" }], { demanded: ["db.delta_assertion"] }),
+      plan("delta_two", [{ i: 0, kind: "click" }], { demanded: ["db.delta_assertion"] })
+    ];
+
+    const { record } = await runSuite({
+      plans,
+      adapterFor(planEntry) {
+        return {
+          describeCapabilities: () => Object.freeze({ has: () => true }),
+          preflight: () => Object.freeze({ ok: true }),
+          open: () => Object.freeze({ id: planEntry.scenarioId }),
+          async execute(session, _op, { signal }) {
+            active.add(session.id);
+            overlaps.push(active.size);
+            await delay(10, undefined, { signal });
+            active.delete(session.id);
+            return Object.freeze({ ok: true });
+          },
+          collectEvidence: (_session, kind, { bundle: evidenceBundle }) =>
+            evidenceBundle.writeTextArtifact(kind, "evidence"),
+          close: () => Object.freeze({ ok: true })
+        };
+      },
+      bundle,
+      config: { concurrency: 4 },
+      now: pinnedClock
+    });
+
+    assert.deepEqual(overlaps, [1, 1]);
+    assert.equal(record.telemetry.deltaScheduling.forcedSerial, 2);
+    assert.match(record.telemetry.deltaScheduling.reason, /transaction attribution/u);
+  });
+});
+
+test("delta scenarios may parallelise only with explicit provable attribution", async () => {
+  await withRuntimeTemp("suite-delta-parallel", async (root) => {
+    const bundle = await createBundle({ root, runId: "20260815T044612Z-aaaaaaaa" });
+    const active = new Set();
+    const overlaps = [];
+    const plans = [
+      plan("delta_one", [{ i: 0, kind: "click" }], { demanded: ["db.delta_assertion"] }),
+      plan("delta_two", [{ i: 0, kind: "click" }], { demanded: ["db.delta_assertion"] })
+    ];
+
+    await runSuite({
+      plans,
+      adapterFor(planEntry) {
+        return {
+          describeCapabilities: () => Object.freeze({ has: () => true }),
+          preflight: () => Object.freeze({ ok: true }),
+          open: () => Object.freeze({ id: planEntry.scenarioId }),
+          async execute(session, _op, { signal }) {
+            active.add(session.id);
+            overlaps.push(active.size);
+            await delay(10, undefined, { signal });
+            active.delete(session.id);
+            return Object.freeze({ ok: true });
+          },
+          collectEvidence: (_session, kind, { bundle: evidenceBundle }) =>
+            evidenceBundle.writeTextArtifact(kind, "evidence"),
+          close: () => Object.freeze({ ok: true })
+        };
+      },
+      bundle,
+      config: {
+        concurrency: 2,
+        parallelDelta: true,
+        dbCapabilities: {
+          txAttribution: true,
+          watermarkFencing: "inline",
+          transactionalTeardown: true
+        }
+      },
+      now: pinnedClock
+    });
+
+    assert.equal(Math.max(...overlaps), 2);
+  });
+});
+
+test("a rejected plan in the parallel group does not prevent remaining plans from completing", async () => {
+  await withRuntimeTemp("suite-parallel-reject", async (root) => {
+    const bundle = await createBundle({ root, runId: "20260815T044612Z-bbbbbbbb" });
+    const plans = [
+      plan("first", [{ i: 0, kind: "click" }]),
+      plan("reject", [{ i: 0, kind: "click" }]),
+      plan("last", [{ i: 0, kind: "click" }])
+    ];
+
+    const { record } = await runSuite({
+      plans,
+      adapterFor(planEntry) {
+        if (planEntry.scenarioId === "reject") {
+          throw new TypeError("adapter factory rejected");
+        }
+        return createFakeSurface(defineScript({ surface: "fake" }));
+      },
+      bundle,
+      config: { concurrency: 3 },
+      now: pinnedClock
+    });
+
+    assert.deepEqual(
+      record.scenarios.map((scenario) => [scenario.id, scenario.result]),
+      [
+        ["first", "pass"],
+        ["reject", "infra_error"],
+        ["last", "pass"]
+      ]
+    );
+  });
+});

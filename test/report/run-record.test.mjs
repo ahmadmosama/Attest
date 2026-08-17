@@ -56,6 +56,56 @@ function scenario(overrides = {}) {
   };
 }
 
+function delta(overrides = {}) {
+  return {
+    capturedEventCount: 2,
+    counts: {
+      expected: 1,
+      explained: 0,
+      suppressed_external: 0,
+      unexplained: 1
+    },
+    unexplained: [
+      {
+        entity: "public.customers",
+        op: "update",
+        count: 1,
+        rows: [
+          {
+            entity: "public.customers",
+            op: "update",
+            key: "{\"id\":1}",
+            columns: ["email"],
+            columnText: "email",
+            notes: []
+          }
+        ],
+        omitted: 0
+      }
+    ],
+    shortfalls: [{ index: 0, entity: "public.orders", op: "insert", expected: 2, matched: 1, missing: 1 }],
+    convergeMs: [14],
+    quiet: { quiet: true, elapsedMs: 3, events: 0, extensions: 0 },
+    quietPeriods: [{ quiet: true, elapsedMs: 3, events: 0, extensions: 0 }],
+    rulesetHash: "d".repeat(64),
+    rules: [
+      {
+        id: "ignore_jobs",
+        kind: "ignore",
+        entity: "public.jobs",
+        suppressed: 1,
+        overBudget: 0,
+        cap: 50,
+        dead: false,
+        expired: false
+      }
+    ],
+    capViolations: [],
+    health: { dead: [], expired: [], expiringSoon: [] },
+    ...overrides
+  };
+}
+
 function input(overrides = {}) {
   return {
     runId: "20260815T044612Z-9f3a1c07",
@@ -77,6 +127,7 @@ test("createRunRecord validates and freezes a well formed record", () => {
   const record = createRunRecord(input());
 
   assert.equal(record.runRecordVersion, RUN_RECORD_VERSION);
+  assert.equal(record.runRecordVersion, 2);
   assert.equal(Object.isFrozen(record), true);
   assert.equal(Object.isFrozen(record.scenarios[0]), true);
   assert.throws(() => {
@@ -181,6 +232,46 @@ test("run record is pure JSON data and schema round trips unchanged", () => {
 
   assert.deepEqual(JSON.parse(JSON.stringify(record)), record);
   assert.deepEqual(RunRecordSchema.parse(record), record);
+});
+
+test("version 2 derives scenario delta, suite totals, ruleset hash, and converge telemetry", () => {
+  const record = createRunRecord(
+    input({
+      hashes: { bindings: { web: HASH }, ruleset: null },
+      scenarios: [scenario({ delta: delta(), steps: [step(0, "pass")] })]
+    })
+  );
+
+  assert.equal(record.runRecordVersion, 2);
+  assert.deepEqual(record.delta.counts, {
+    expected: 1,
+    explained: 0,
+    suppressed_external: 0,
+    unexplained: 1
+  });
+  assert.equal(record.delta.rules[0].id, "ignore_jobs");
+  assert.equal(record.hashes.ruleset, "d".repeat(64));
+  assert.deepEqual(record.telemetry.convergeMs, [14]);
+  assert.equal(record.scenarios[0].delta.unexplained[0].entity, "public.customers");
+});
+
+test("schema refuses delta counts that do not sum to captured events", () => {
+  assert.throws(
+    () =>
+      createRunRecord(
+        input({
+          scenarios: [
+            scenario({
+              delta: delta({
+                capturedEventCount: 3
+              }),
+              steps: [step(0, "pass")]
+            })
+          ]
+        })
+      ),
+    (err) => err instanceof AttestError && err.code === "E_RUN_RECORD_INVALID"
+  );
 });
 
 test("infra error details do not introduce connection strings into the record", () => {

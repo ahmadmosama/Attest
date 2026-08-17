@@ -28,14 +28,15 @@ function errorEntry(classification) {
   });
 }
 
-function passedStep(op, durationMs, evidence = []) {
+function passedStep(op, durationMs, evidence = [], delta = null) {
   return Object.freeze({
     index: op.i,
     kind: op.kind,
     status: "pass",
     durationMs,
     error: null,
-    evidence
+    evidence,
+    delta
   });
 }
 
@@ -46,7 +47,8 @@ function skippedStep(op) {
     status: "skipped",
     durationMs: 0,
     error: null,
-    evidence: []
+    evidence: [],
+    delta: null
   });
 }
 
@@ -61,7 +63,8 @@ function failedStep(op, durationMs, classification, evidence) {
     status,
     durationMs,
     error: errorEntry(classification),
-    evidence
+    evidence,
+    delta: classification.details?.delta ?? null
   });
 }
 
@@ -90,7 +93,55 @@ function scenarioEntry({ plan, result, durationMs, planPath, error, steps }) {
     rawOpUses: rawUses(plan).length,
     skipped: null,
     error,
+    delta: scenarioDelta(steps),
     steps: Object.freeze(steps)
+  });
+}
+
+function emptyDeltaCounts() {
+  return { expected: 0, explained: 0, suppressed_external: 0, unexplained: 0 };
+}
+
+function combineCounts(target, source = {}) {
+  for (const bucket of Object.keys(target)) {
+    target[bucket] += Number.isSafeInteger(source[bucket]) ? source[bucket] : 0;
+  }
+}
+
+function scenarioDelta(steps) {
+  const deltas = steps.map((step) => step.delta).filter(Boolean);
+  if (deltas.length === 0) {
+    return null;
+  }
+
+  if (deltas.length === 1) {
+    return deltas[0];
+  }
+
+  const counts = emptyDeltaCounts();
+  for (const delta of deltas) {
+    combineCounts(counts, delta.counts);
+  }
+
+  return Object.freeze({
+    capturedEventCount: deltas.reduce(
+      (sum, delta) => sum + (Number.isSafeInteger(delta.capturedEventCount) ? delta.capturedEventCount : 0),
+      0
+    ),
+    counts: Object.freeze(counts),
+    unexplained: Object.freeze(deltas.flatMap((delta) => delta.unexplained ?? [])),
+    shortfalls: Object.freeze(deltas.flatMap((delta) => delta.shortfalls ?? [])),
+    convergeMs: Object.freeze(deltas.flatMap((delta) => delta.convergeMs ?? [])),
+    quiet: deltas.at(-1)?.quiet ?? null,
+    quietPeriods: Object.freeze(deltas.flatMap((delta) => delta.quietPeriods ?? (delta.quiet === null ? [] : [delta.quiet]))),
+    rulesetHash: deltas.at(-1)?.rulesetHash ?? null,
+    rules: Object.freeze(deltas.flatMap((delta) => delta.rules ?? [])),
+    capViolations: Object.freeze(deltas.flatMap((delta) => delta.capViolations ?? [])),
+    health: Object.freeze({
+      dead: Object.freeze(deltas.flatMap((delta) => delta.health?.dead ?? [])),
+      expired: Object.freeze(deltas.flatMap((delta) => delta.health?.expired ?? [])),
+      expiringSoon: Object.freeze(deltas.flatMap((delta) => delta.health?.expiringSoon ?? []))
+    })
   });
 }
 
@@ -119,6 +170,23 @@ async function closeSession({ adapter, session, ctx }) {
   } catch {
     // Close failures are telemetry for later phases. They must not overwrite
     // the scenario result produced by the execution loop.
+  }
+}
+
+async function teardownDb(ctx, scenarioSignal) {
+  if (typeof ctx.db?.teardown !== "function") {
+    return null;
+  }
+
+  try {
+    await withTimeout(({ signal }) => ctx.db.teardown({ signal, ctx }), {
+      ms: ctx.timeouts.closeMs,
+      kind: "close",
+      parentSignal: scenarioSignal
+    });
+    return null;
+  } catch (error) {
+    return error;
   }
 }
 
@@ -183,7 +251,8 @@ async function executeLoop({ plan, adapter, ctx, scenarioSignal, startedAt, plan
         }
 
         const evidence = Array.isArray(executeResult?.evidence) ? executeResult.evidence : [];
-        steps.push(passedStep(op, durationFrom(stepStartedAt, ctx.now), evidence));
+        const delta = executeResult?.delta ?? null;
+        steps.push(passedStep(op, durationFrom(stepStartedAt, ctx.now), evidence, delta));
       } catch (error) {
         const classification = classifyError(error);
         const evidence = await collectFailureEvidence({ adapter, session, ctx });
@@ -202,6 +271,12 @@ async function executeLoop({ plan, adapter, ctx, scenarioSignal, startedAt, plan
   } finally {
     for (const op of plan.ops.slice(steps.length)) {
       steps.push(skippedStep(op));
+    }
+    const dbTeardownError = await teardownDb(ctx, scenarioSignal);
+    if (result === "pass" && dbTeardownError !== null) {
+      const classification = classifyError(dbTeardownError);
+      result = classification.result;
+      scenarioError = classification.result === "infra_error" ? errorEntry(classification) : null;
     }
     await closeSession({ adapter, session, ctx });
   }

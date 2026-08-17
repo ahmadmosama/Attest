@@ -81,8 +81,21 @@ function skippedScenario(skip) {
     rawOpUses: 0,
     skipped: Object.freeze({ capabilities: [...skip.capabilities] }),
     error: null,
+    delta: null,
     steps: []
   });
+}
+
+function dbForPlan(config, plan) {
+  if (typeof config.dbForPlan === "function") {
+    return config.dbForPlan(plan);
+  }
+
+  if (typeof config.db === "function") {
+    return config.db(plan);
+  }
+
+  return config.db ?? null;
 }
 
 async function planFailureScenario({ plan, bundle, config, now, error }) {
@@ -96,7 +109,7 @@ async function planFailureScenario({ plan, bundle, config, now, error }) {
     tenantPrefix: config.tenantPrefix ?? "",
     timeouts: config.timeouts ?? {},
     now,
-    db: config.db ?? null
+    db: dbForPlan(config, plan)
   });
   const planRef = await ctx.bundle.writeJson("plan.json", plan);
   const classification = classifyError(error);
@@ -112,6 +125,7 @@ async function planFailureScenario({ plan, bundle, config, now, error }) {
     rawOpUses: rawUses(plan).length,
     skipped: null,
     error: errorEntry(classification),
+    delta: null,
     steps: plan.ops.map((op) =>
       Object.freeze({
         index: op.i,
@@ -119,7 +133,8 @@ async function planFailureScenario({ plan, bundle, config, now, error }) {
         status: "skipped",
         durationMs: 0,
         error: null,
-        evidence: []
+        evidence: [],
+        delta: null
       })
     )
   });
@@ -137,13 +152,116 @@ async function runOnePlan({ plan, adapterFor, bundle, config, now }) {
       tenantPrefix: config.tenantPrefix ?? "",
       timeouts: config.timeouts ?? {},
       now,
-      db: config.db ?? null
+      db: dbForPlan(config, plan)
     });
 
     return await runScenario({ plan, adapter, ctx });
   } catch (error) {
     return planFailureScenario({ plan, bundle, config, now, error });
   }
+}
+
+function planHasDeltaAssertion(plan) {
+  return plan.capabilities?.demanded?.includes("db.delta_assertion") === true;
+}
+
+function positiveConcurrency(value) {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new TypeError("concurrency must be a positive safe integer");
+  }
+
+  return value;
+}
+
+function dbCapabilities(config) {
+  if (config.dbCapabilities !== undefined) {
+    return config.dbCapabilities;
+  }
+
+  const db = typeof config.db === "function" ? null : config.db;
+  if (typeof db?.describeCapabilities === "function") {
+    try {
+      return db.describeCapabilities();
+    } catch {
+      return null;
+    }
+  }
+
+  return db?.capabilities ?? null;
+}
+
+function supportsParallelDelta(config) {
+  const capabilities = dbCapabilities(config);
+
+  return (
+    (config.parallelDelta === true || config.deltaConcurrency === true || config.db?.parallelDelta === true) &&
+    capabilities?.txAttribution === true &&
+    capabilities?.watermarkFencing === "inline" &&
+    (capabilities?.perScenarioTenancy === true ||
+      capabilities?.scenarioTenancy === true ||
+      capabilities?.transactionalTeardown === true)
+  );
+}
+
+function deltaScheduling(config, deltaPlans, concurrency) {
+  if (deltaPlans.length === 0 || concurrency === 1 || supportsParallelDelta(config)) {
+    return Object.freeze({ forcedSerial: 0, reason: null });
+  }
+
+  return Object.freeze({
+    forcedSerial: deltaPlans.length,
+    reason: "delta scenarios require transaction attribution, inline watermark fencing, and per scenario tenancy for parallel attribution"
+  });
+}
+
+function partitionPlans(plans) {
+  const nonDelta = [];
+  const delta = [];
+
+  plans.forEach((plan, index) => {
+    const item = Object.freeze({ plan, index });
+    if (planHasDeltaAssertion(plan)) {
+      delta.push(item);
+    } else {
+      nonDelta.push(item);
+    }
+  });
+
+  return Object.freeze({ nonDelta, delta });
+}
+
+async function runBounded(items, limit, fn) {
+  const results = Array.from({ length: items.length });
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await fn(items[index]);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+async function runPartitionedPlans({ plans, adapterFor, bundle, config, now, concurrency }) {
+  const partitioned = partitionPlans(plans);
+  const resultsByPlanIndex = Array.from({ length: plans.length });
+  const scheduling = deltaScheduling(config, partitioned.delta, concurrency);
+  const deltaLimit = scheduling.reason === null && supportsParallelDelta(config) ? concurrency : 1;
+  const runItem = async ({ plan, index }) => {
+    resultsByPlanIndex[index] = await runOnePlan({ plan, adapterFor, bundle, config, now });
+  };
+
+  await runBounded(partitioned.nonDelta, concurrency, runItem);
+  await runBounded(partitioned.delta, deltaLimit, runItem);
+
+  return Object.freeze({
+    scenarios: Object.freeze(resultsByPlanIndex.filter(Boolean)),
+    scheduling
+  });
 }
 
 export async function runSuite({
@@ -167,15 +285,9 @@ export async function runSuite({
   }
 
   const started = now();
-  const scenarios = [];
-  const concurrency = config.concurrency ?? 1;
-  if (concurrency !== 1) {
-    throw new TypeError("Phase 1 suite concurrency must be 1");
-  }
-
-  for (const plan of plans) {
-    scenarios.push(await runOnePlan({ plan, adapterFor, bundle, config, now }));
-  }
+  const concurrency = positiveConcurrency(config.concurrency ?? 1);
+  const run = await runPartitionedPlans({ plans, adapterFor, bundle, config, now, concurrency });
+  const scenarios = [...run.scenarios];
 
   for (const skip of skips) {
     scenarios.push(skippedScenario(skip));
@@ -197,7 +309,8 @@ export async function runSuite({
     telemetry: {
       timeouts: scenarios.flatMap((scenario) => scenario.steps).filter((step) => step.status === "timed_out").length,
       retries: 0,
-      convergeMs: []
+      convergeMs: [],
+      deltaScheduling: run.scheduling
     },
     scenarios,
     escapeHatch: {
