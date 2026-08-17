@@ -184,14 +184,25 @@ export function createSqliteDriver({ target, config = {}, runId, scenarioId, dep
       throwIfAborted(signal, "E_DB_PREFLIGHT_ABORTED", "SQLite driver preflight was aborted.");
 
       const handle = deps.openSqliteDatabase(target, { cwd: ctx.cwd ?? config.cwd });
+
+      try {
+        state.capabilities = sqliteCapabilities({ journalMode: handle.observed.journal_mode });
+
+        // Every configured entity is read once here, so a misspelled table is an
+        // infrastructure error before the scenario runs rather than a confusing
+        // empty delta after it.
+        snapshotAll(handle, entitiesFor(config, ctx), ctx.tenantKey ?? config.tenantKey ?? null);
+      } catch (error) {
+        // A preflight that fails after opening must not leave the connection
+        // behind. On Windows an open handle holds a lock on the file, so the
+        // leak is not merely untidy: nothing else can remove or replace that
+        // database for the life of the process.
+        handle.close();
+        state.capabilities = null;
+        throw error;
+      }
+
       state.handle = handle;
-      state.capabilities = sqliteCapabilities({ journalMode: handle.observed.journal_mode });
-
-      // Every configured entity is read once here, so a misspelled table is an
-      // infrastructure error before the scenario runs rather than a confusing
-      // empty delta after it.
-      snapshotAll(handle, entitiesFor(config, ctx), ctx.tenantKey ?? config.tenantKey ?? null);
-
       return Object.freeze({ ok: true, capabilities: state.capabilities });
     },
 

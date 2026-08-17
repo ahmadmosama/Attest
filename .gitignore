@@ -10,6 +10,16 @@ node_modules/
 service-account*.json
 gha-creds-*.json
 
+# test scratch directories. Tests create these with mkdtemp and remove them in
+# an after hook, but a run that is interrupted, or an automated commit that
+# fires mid run, would otherwise sweep them into the repo. That happened on
+# 2026-08-17 and put ten SQLite files in a commit.
+**/.tmp-*/
+test/.tmp-*/
+test/acceptance/run-*/
+test/acceptance/raw-*/
+test/acceptance/phase0*-*/
+
 # run artifacts and evidence bundles
 .attest/
 artifacts/

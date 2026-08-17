@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -66,6 +67,14 @@ function driverFor(fixture, overrides = {}) {
       ...overrides
     }
   });
+}
+
+// On Windows a file with an open handle cannot be removed, so an attempted
+// delete is a direct probe for a leaked connection.
+async function assertNoOpenHandle(fixture) {
+  fixture.app.close();
+  await rm(fixture.file, { force: true });
+  assert.equal(existsSync(fixture.file), false, "a leaked SQLite handle would keep this file locked");
 }
 
 const FAST_WINDOW = Object.freeze({
@@ -306,7 +315,11 @@ describe("sqlite driver", () => {
     // Caught at preflight, so a misspelled table is an infrastructure error
     // before the scenario runs rather than a confusing empty delta after it.
     await assert.rejects(() => wrongEntity.preflight(), { code: "E_SQLITE_SNAPSHOT_FAILED" });
-    fixture.app.close();
+
+    // And the failed preflight left no connection behind. On Windows an open
+    // handle locks the file, so a leak here would make the database
+    // undeletable for the life of the process.
+    await assertNoOpenHandle(fixture);
   });
 
   test("an entity name that is not a plain identifier never reaches SQL", async () => {
@@ -319,7 +332,7 @@ describe("sqlite driver", () => {
 
     // And the table is still there.
     assert.equal(fixture.app.prepare("SELECT count(*) AS n FROM orders").get().n, 2);
-    fixture.app.close();
+    await assertNoOpenHandle(fixture);
   });
 
   test("closing with no open window is an infrastructure error, not an empty pass", async () => {
