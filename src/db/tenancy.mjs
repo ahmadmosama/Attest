@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { InfraError } from "../errors.mjs";
+import { cleanup } from "../runtime/cleanup.mjs";
 
 export const RESERVED_EMAIL_DOMAIN = "attest.invalid";
 
@@ -13,13 +14,7 @@ const DEFAULT_REGISTRY_TABLE = Object.freeze({
   schema: "public",
   table: "attest_tenants"
 });
-const SIGNAL_EXIT_CODES = Object.freeze({
-  SIGINT: 130,
-  SIGTERM: 143
-});
-
 const openTenants = new Map();
-const processHandlers = new Map();
 
 function isPlainObject(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -295,66 +290,24 @@ function syntheticTenant({ tenantKey, tenantPrefix, now, metadata }) {
 }
 
 function registerTenant(client, tenantKey, options) {
-  openTenants.set(tenantKey, { client, tenantKey, options });
-  installProcessHandlers();
+  // The ONE process-wide registry. This module used to install its own
+  // SIGINT/SIGTERM handlers ending in process.exit, and so did the replication
+  // slot layer. Two independent handlers each calling process.exit means
+  // whichever finishes first kills the other's in-flight cleanup, so a Ctrl-C
+  // during a run holding both a tenant and a slot reliably leaked one of them.
+  const handle = cleanup.register(`pg-tenant:${tenantKey}`, async (reason) => {
+    await teardownTenant(client, { ...options, tenantKey, reason });
+  });
+
+  openTenants.set(tenantKey, { client, tenantKey, options, handle });
 }
 
 function unregisterTenant(tenantKey) {
+  // Released, not disposed: the caller is tearing the tenant down right now on
+  // the normal path, so the registry should stop tracking it rather than tear
+  // it down a second time.
+  openTenants.get(tenantKey)?.handle?.release();
   openTenants.delete(tenantKey);
-  if (openTenants.size === 0) {
-    removeProcessHandlers();
-  }
-}
-
-async function teardownRegisteredTenants(reason) {
-  const failures = [];
-  for (const entry of Array.from(openTenants.values())) {
-    try {
-      await teardownTenant(entry.client, {
-        ...entry.options,
-        tenantKey: entry.tenantKey,
-        reason
-      });
-    } catch (error) {
-      failures.push(error);
-    }
-  }
-  return failures;
-}
-
-function processSignalHandler(signalName) {
-  return () => {
-    const exitCode = SIGNAL_EXIT_CODES[signalName] ?? 1;
-    void teardownRegisteredTenants(signalName).finally(() => {
-      process.exit(exitCode);
-    });
-  };
-}
-
-function beforeExitHandler() {
-  void teardownRegisteredTenants("beforeExit");
-}
-
-function installProcessHandlers() {
-  if (processHandlers.size > 0) {
-    return;
-  }
-
-  for (const signalName of Object.keys(SIGNAL_EXIT_CODES)) {
-    const handler = processSignalHandler(signalName);
-    processHandlers.set(signalName, handler);
-    process.on(signalName, handler);
-  }
-
-  processHandlers.set("beforeExit", beforeExitHandler);
-  process.on("beforeExit", beforeExitHandler);
-}
-
-function removeProcessHandlers() {
-  for (const [eventName, handler] of processHandlers) {
-    process.off(eventName, handler);
-  }
-  processHandlers.clear();
 }
 
 async function foreignKeyEdges(client, entities) {
@@ -615,6 +568,17 @@ export async function teardownTenant(client, options = {}) {
     tenantKey,
     ok: true
   });
+}
+
+/**
+ * Every tenant this process currently holds.
+ *
+ * Exists so the stale sweep can be told what NOT to reclaim: "left behind by a
+ * killed run" and "held right now by the scenario next door" look identical
+ * from SQL once the age cutoff is met.
+ */
+export function openTenantKeys() {
+  return Object.freeze(Array.from(openTenants.keys()));
 }
 
 export async function sweepStaleTenants(client, options = {}) {

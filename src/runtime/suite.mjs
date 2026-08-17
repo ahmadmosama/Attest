@@ -2,6 +2,7 @@ import { createRunRecord } from "../report/run-record.mjs";
 import { toJUnitXml } from "../report/junit.mjs";
 import { classifyError } from "./classify.mjs";
 import { createRunContext } from "./run-context.mjs";
+import { markRunInProgress } from "./interrupted.mjs";
 import { runScenario } from "./orchestrator.mjs";
 
 const DEFAULT_FILTERS = Object.freeze({
@@ -301,8 +302,31 @@ export async function runSuite({
 
   const started = now();
   const concurrency = positiveConcurrency(config.concurrency ?? 1);
-  const run = await runPartitionedPlans({ plans, adapterFor, bundle, config, now, concurrency });
+
+  // Claimed BEFORE the first scenario runs. Without this, a Ctrl-C at step four
+  // of sixty leaves a run directory with evidence in it and no run.json at all,
+  // and the pipeline stage that reads run.json has to guess: calling it a pass
+  // ships unverified code, calling it a failure blames the app for the
+  // operator's keystroke. The marker makes "interrupted" a thing the gate can
+  // say out loud.
+  const progress = markRunInProgress({
+    runId: bundle.runId,
+    artifactDir: bundle.dir,
+    startedAt: isoTime(started)
+  });
+
+  let run;
+  try {
+    run = await runPartitionedPlans({ plans, adapterFor, bundle, config, now, concurrency });
+  } catch (error) {
+    // A thrown suite is also a run with no verdict. Left as interrupted rather
+    // than released, so the directory does not claim to be in progress forever.
+    await progress.ready();
+    throw error;
+  }
+
   const scenarios = [...run.scenarios];
+  progress.count(scenarios.length);
 
   for (const skip of skips) {
     scenarios.push(skippedScenario(skip, now));
@@ -338,7 +362,13 @@ export async function runSuite({
     failOnSkip: config.failOnSkip ?? true
   });
 
+  // Awaited before the real record is written, so a slow marker write cannot
+  // land after the verdict and overwrite it with "in progress".
+  await progress.ready();
   await bundle.writeJson("run.json", record);
+  // There is a verdict on disk now. Released rather than disposed: running the
+  // disposer at this point would replace the answer with "interrupted".
+  progress.complete();
   await bundle.write("junit.xml", toJUnitXml(record));
   const artifacts = await bundle.finalize();
 

@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import stableStringify from "json-stable-stringify";
 
@@ -7,6 +7,34 @@ import { UsageError } from "../errors.mjs";
 import { BUNDLE_LAYOUT, runDirFor, sanitizeSegment } from "./paths.mjs";
 
 const RUN_ID_RE = /^\d{8}T\d{6}Z-[a-f0-9]{8}$/;
+
+/**
+ * Write through a temp file and rename.
+ *
+ * Every artifact goes through here, `run.json` included. A kill during a plain
+ * `writeFile` leaves truncated JSON on disk with nothing to distinguish it from
+ * a complete file, and the whole contract with the pipeline is that the gate's
+ * verdict comes from one field in `run.json`. Half a verdict is worse than
+ * none, because none is visibly none.
+ *
+ * `rename` within a directory is atomic on both NTFS and POSIX, so a reader
+ * sees either the old file or the whole new one, never a partial.
+ */
+async function writeAtomic(resolvedPath, bytes) {
+  // Same directory, so the rename never crosses a filesystem boundary, which is
+  // where atomicity would be lost and the call would degrade to copy+unlink.
+  const tempPath = `${resolvedPath}.${crypto.randomBytes(6).toString("hex")}.tmp`;
+
+  try {
+    await writeFile(tempPath, bytes);
+    await rename(tempPath, resolvedPath);
+  } catch (error) {
+    // A failed write must not leave its own scratch file behind. Best effort:
+    // the original error is what the caller needs to see.
+    await rm(tempPath, { force: true }).catch(() => {});
+    throw error;
+  }
+}
 
 function toBuffer(data) {
   if (typeof data === "string" || data instanceof Uint8Array) {
@@ -128,7 +156,7 @@ export async function createBundle({ root, runId, now } = {}) {
 
     const bytes = toBuffer(data);
     await mkdir(path.dirname(resolvedPath), { recursive: true });
-    await writeFile(resolvedPath, bytes);
+    await writeAtomic(resolvedPath, bytes);
 
     const ref = Object.freeze({
       kind: artifactKind(relPath),

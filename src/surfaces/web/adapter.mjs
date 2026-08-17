@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises";
+import { rm, rmdir } from "node:fs/promises";
 import path from "node:path";
 
 import { chromium } from "playwright";
@@ -6,6 +6,7 @@ import { chromium } from "playwright";
 import { AttestError, InfraError, UnsupportedOpError, UsageError } from "../../errors.mjs";
 import { assertKnownCapability } from "../../capabilities/registry.mjs";
 import { capabilitiesFor, OP_CAPABILITIES } from "../../ir/ops.mjs";
+import { cleanup } from "../../runtime/cleanup.mjs";
 import { assertImplementsSurfacePort } from "../port.mjs";
 import { executeAct, ACT_KINDS } from "./act.mjs";
 import { executeAssert, ASSERT_KINDS } from "./assert.mjs";
@@ -124,6 +125,49 @@ async function removeTempDirs(session) {
       await rm(dir, { recursive: true, force: true });
     } catch {
       // close is best effort and must never mask the scenario result.
+    }
+  }
+
+  await pruneFallbackRoot(cleanupDirs);
+}
+
+/**
+ * Remove the `attest-web/<runId>/<scenarioId>` skeleton the fallback root
+ * leaves behind.
+ *
+ * Only reached when a session had no bundle dir, which is a session writing
+ * scratch into the CURRENT WORKING DIRECTORY. Removing the `tmp` subtree still
+ * left the empty parents, so the repo grew a directory per test run: found by
+ * checking the tree after a green gate rather than by reading the code.
+ *
+ * `rmdir` without `recursive`, walking up only while a path segment named
+ * `attest-web` is still above us. That is self limiting by construction: it
+ * cannot climb past the fallback root and it cannot remove a directory that
+ * still has anything in it.
+ */
+async function pruneFallbackRoot(dirs) {
+  const candidates = new Set();
+
+  for (const dir of dirs) {
+    let current = path.dirname(dir);
+
+    while (current.split(path.sep).includes(DEFAULT_TEMP_ROOT)) {
+      candidates.add(current);
+      const parent = path.dirname(current);
+      if (parent === current) {
+        break;
+      }
+      current = parent;
+    }
+  }
+
+  // Deepest first, so a parent is only attempted once its children are gone.
+  for (const dir of [...candidates].toSorted((left, right) => right.length - left.length)) {
+    try {
+      await rmdir(dir);
+    } catch {
+      // Non empty, or already gone. Either way there is nothing to do and
+      // nothing worth reporting.
     }
   }
 }
@@ -275,6 +319,9 @@ export function createWebSurface(options = {}) {
   const baseUrl = options.baseUrl;
   const descriptor = webSurfaceCapabilities();
   const closedSessions = new WeakSet();
+  // Weak, so a session that is garbage collected without close being called
+  // does not pin its own cleanup handle forever.
+  const sessionCleanup = new WeakMap();
   const failedSessions = new WeakSet();
   const networkWrittenSessions = new WeakSet();
 
@@ -306,6 +353,20 @@ export function createWebSurface(options = {}) {
         tracesDir,
         signal
       });
+
+      // The browser and the scratch dirs, registered with the process-wide
+      // registry. `close` below is reached only through the orchestrator's
+      // finally, so before this a Ctrl-C left a Chromium process running and a
+      // tmp/ directory full of half written .webm and .zip files inside the run
+      // directory that is meant to be the evidence.
+      sessionCleanup.set(
+        session,
+        cleanup.register(`web-session:${session.id}`, async () => {
+          await closeWebSession(session).catch(() => {});
+          await removeTempDirs(session);
+        })
+      );
+
       return withStepTimeouts(session, ctx);
     },
 
@@ -411,6 +472,11 @@ export function createWebSurface(options = {}) {
       } catch {
         // The surface port requires close to be idempotent and non throwing.
       }
+
+      // Released, not disposed: everything the disposer would do has just been
+      // done, on the path that also handles video retention correctly.
+      sessionCleanup.get(session)?.release();
+      sessionCleanup.delete(session);
 
       return freezeOk();
     }

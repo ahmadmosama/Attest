@@ -7,6 +7,7 @@ import { runPreflight } from "./preflight.mjs";
 import {
   createSlot,
   dropSlot,
+  openSlotNames,
   slotNameFor,
   sweepOrphanSlots
 } from "./slots.mjs";
@@ -111,6 +112,7 @@ function defaultDependencies() {
     runPreflight,
     openPostgresWindow,
     selectCaptureStrategy,
+    openSlotNames,
     slotNameFor,
     sweepOrphanSlots
   });
@@ -260,7 +262,16 @@ export function createPostgresDriver({
         });
         state.client = await deps.createPgClient(target, { signal });
         await deps.sweepOrphanSlots(state.client, {
-          keep: [],
+          // Every slot this PROCESS still holds, not an empty list.
+          //
+          // The sweep drops inactive `attest_*` slots, and preflight runs once
+          // per scenario. With `keep: []` a scenario's preflight would drop a
+          // sibling scenario's slot the moment it was momentarily inactive.
+          // That was masked by concurrency defaulting to 1 and delta plans
+          // being forced serial, so it was a live hazard waiting for the day
+          // someone raised concurrency: a green run whose deltas silently came
+          // from a slot that had been dropped and recreated underneath it.
+          keep: [slotName, ...deps.openSlotNames()],
           signal,
           logger: ctx.logger ?? config.logger
         });

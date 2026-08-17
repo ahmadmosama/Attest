@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { InfraError } from "../../../errors.mjs";
+import { cleanup } from "../../../runtime/cleanup.mjs";
 import { createPgClient } from "./connect.mjs";
 
 const SLOT_PREFIX = "attest_";
@@ -9,13 +10,7 @@ const RUN_SEGMENT_LIMIT = 24;
 const HASH_SEGMENT_LENGTH = 24;
 const DUPLICATE_OBJECT = "42710";
 const UNDEFINED_OBJECT = "42704";
-const SIGNAL_EXIT_CODES = Object.freeze({
-  SIGINT: 130,
-  SIGTERM: 143
-});
-
 const openSlots = new Map();
-const processHandlers = new Map();
 
 function isPlainObject(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -127,65 +122,23 @@ async function queryRows(client, text, values, signal, abortCode, abortMessage, 
 }
 
 function registerOpenSlot(client, slotName) {
-  openSlots.set(slotName, { client, slotName });
-  installProcessHandlers();
+  // Registered with the ONE process-wide registry, not with a second set of
+  // signal handlers of this module's own. This module used to install its own
+  // SIGINT/SIGTERM handlers ending in process.exit, and so did the tenancy
+  // layer; whichever settled first killed the other's in-flight cleanup, so a
+  // Ctrl-C during a run holding both a slot and a tenant reliably leaked one.
+  const handle = cleanup.register(`pg-slot:${slotName}`, async (reason) => {
+    await dropSlot(client, slotName, { reason });
+  });
+
+  openSlots.set(slotName, { client, slotName, handle });
 }
 
 function unregisterOpenSlot(slotName) {
+  // Released rather than disposed: the caller is dropping the slot right now on
+  // the normal path, so the registry should stop tracking it, not drop it twice.
+  openSlots.get(slotName)?.handle?.release();
   openSlots.delete(slotName);
-  if (openSlots.size === 0) {
-    removeProcessHandlers();
-  }
-}
-
-async function dropRegisteredSlots(reason) {
-  const entries = Array.from(openSlots.values());
-  const failures = [];
-
-  for (const entry of entries) {
-    try {
-      await dropSlot(entry.client, entry.slotName, { reason });
-    } catch (error) {
-      failures.push(error);
-    }
-  }
-
-  return failures;
-}
-
-function processSignalHandler(signalName) {
-  return () => {
-    const exitCode = SIGNAL_EXIT_CODES[signalName] ?? 1;
-    void dropRegisteredSlots(signalName).finally(() => {
-      process.exit(exitCode);
-    });
-  };
-}
-
-function beforeExitHandler() {
-  void dropRegisteredSlots("beforeExit");
-}
-
-function installProcessHandlers() {
-  if (processHandlers.size > 0) {
-    return;
-  }
-
-  for (const signalName of Object.keys(SIGNAL_EXIT_CODES)) {
-    const handler = processSignalHandler(signalName);
-    processHandlers.set(signalName, handler);
-    process.on(signalName, handler);
-  }
-
-  processHandlers.set("beforeExit", beforeExitHandler);
-  process.on("beforeExit", beforeExitHandler);
-}
-
-function removeProcessHandlers() {
-  for (const [eventName, handler] of processHandlers) {
-    process.off(eventName, handler);
-  }
-  processHandlers.clear();
 }
 
 function normalizeKeep(keep) {
@@ -244,6 +197,18 @@ async function closeClient(client) {
  * identifiers are limited to 63 bytes, and slot creation is the wrong place to
  * discover an unchecked scenario id.
  */
+/**
+ * Every slot this process currently holds.
+ *
+ * Exists so the orphan sweep can be told what NOT to drop. The sweep's job is
+ * to reclaim slots left behind by a killed run, and "left behind by a killed
+ * run" and "held right now by the scenario next door" look identical from SQL
+ * when the sibling is momentarily inactive.
+ */
+export function openSlotNames() {
+  return Object.freeze(Array.from(openSlots.keys()));
+}
+
 export function slotNameFor({ runId, scenarioId, surface = "db" } = {}) {
   const runSegment = sanitizeSegment(runId).slice(0, RUN_SEGMENT_LIMIT);
   const hash = hashSegment(`${String(runId ?? "")}\0${String(scenarioId ?? "")}\0${String(surface ?? "")}`);

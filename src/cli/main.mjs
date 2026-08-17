@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { Command, CommanderError } from "commander";
 
 import { classifyError } from "../runtime/classify.mjs";
+import { cleanup } from "../runtime/cleanup.mjs";
 import { EXIT } from "./exit-codes.mjs";
 import { runCommand } from "./commands/run.mjs";
 import { selfcheckCommand } from "./commands/selfcheck.mjs";
@@ -155,5 +156,17 @@ export async function main(argv, io = {}) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.exit(await main(process.argv));
+  // Installed here and only here: this is the one place that owns process.exit,
+  // and the registry's whole value is that there is exactly one of it. Importing
+  // this module as a library (which the tests do) installs nothing, so a test
+  // run never has its own Ctrl-C intercepted.
+  cleanup.install();
+
+  const code = await main(process.argv);
+
+  // The ordinary exit path still runs the disposers. A run that ends normally
+  // should not depend on every layer's finally having fired correctly; this is
+  // the backstop that makes "did we leak" a question with one answer.
+  await cleanup.runAll("exit");
+  process.exit(code);
 }

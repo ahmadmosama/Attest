@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { z } from "zod";
 
 import { EXIT } from "../cli/exit-codes.mjs";
+import { isVerdict } from "../runtime/interrupted.mjs";
 
 /**
  * Attest as an AtoZ pipeline stage.
@@ -127,6 +128,21 @@ export function createAttestStage({ runAttest, inputs = ["build"], applicable = 
 
       // run.json, never the HTML. One field decides.
       const record = result.record ?? (await readRunRecord(result.artifactRoot, result.runId));
+
+      if (!isVerdict(record)) {
+        // An interrupted run is not a pass and not a failure of the app. Both
+        // readings are actively wrong: passing ships unverified code, failing
+        // blames the app for whatever killed the process. So it blocks under
+        // its own kind, and whoever is paged goes to look at the runner rather
+        // than at the diff.
+        throw blocker("verify_interrupted", "Attest was interrupted before it produced a verdict", {
+          runId: record?.runId ?? result.runId ?? null,
+          status: record?.status ?? null,
+          reason: record?.reason ?? null,
+          scenariosCompleted: record?.scenariosCompleted ?? 0
+        });
+      }
+
       const status = statusFrom(record);
       const failures = failuresFrom(record);
 

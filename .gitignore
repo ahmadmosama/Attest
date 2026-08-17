@@ -61,3 +61,7 @@ credentials.json
 
 # Claude Code local overrides (may contain local DB URLs)
 .claude/settings.local.json
+
+# The web adapter fallback scratch root, used when a run has no bundle dir.
+# It was already leaking into the repo before the cleanup registry existed.
+attest-web/

@@ -1,6 +1,6 @@
 import { assertImplementsDbPort } from "./port.mjs";
 import { applySeed, assertPreState } from "./seed.mjs";
-import { provisionTenant, teardownTenant, tenantPrefixFor } from "./tenancy.mjs";
+import { openTenantKeys, provisionTenant, sweepStaleTenants, teardownTenant, tenantPrefixFor } from "./tenancy.mjs";
 import { assertDelta } from "../delta/assert.mjs";
 import { classifyChanges, createDeltaResult } from "../delta/classify.mjs";
 import { groupUnexplained } from "../delta/failure.mjs";
@@ -311,6 +311,27 @@ export function createDbHooks({ driver, ruleset = null, config = {}, runId } = {
       ...identity,
       configuredPrefix: config.tenantPrefix ?? ctx?.tenantPrefix ?? "attest"
     });
+    // Reclaim tenants a hard-killed run left behind, before provisioning this
+    // one. The registry handles a Ctrl-C; nothing catches SIGKILL, so without
+    // this the `attest_tenants` table grows a row per killed run forever and
+    // the fixture data those rows point at is never deleted.
+    //
+    // Aged out at 24h and never touching this run's own key, so it can only
+    // ever remove a tenant whose run is long gone.
+    await sweepStaleTenants(client, {
+      keep: [tenantKey, ...openTenantKeys()],
+      registryTable: registryTable(config),
+      tenantColumn: tenantColumn(config),
+      entities: tenantEntities(config),
+      now: ctx?.now ?? Date.now,
+      signal,
+      logger: ctx?.logger ?? config.logger
+    }).catch(() => {
+      // Best effort. A sweep that cannot run must not stop the run that is
+      // trying to start: this reclaims yesterday's mess, it is not this run's
+      // correctness.
+    });
+
     state.tenant = await provisionTenant(client, {
       ...identity,
       tenantKey,

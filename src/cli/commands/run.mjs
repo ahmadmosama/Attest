@@ -16,6 +16,7 @@ import { seedDigest } from "../../db/seed.mjs";
 import { loadRuleset } from "../../delta/rules/load.mjs";
 import { lower } from "../../lower/lower.mjs";
 import { createExecutionPlan } from "../../lower/plan.mjs";
+import { cleanup } from "../../runtime/cleanup.mjs";
 import { runSuite } from "../../runtime/suite.mjs";
 import { createSurfaceRegistry } from "../../surfaces/registry.mjs";
 import { renderConsoleSummary } from "../../report/console.mjs";
@@ -642,6 +643,7 @@ export async function runCommand(flags = {}, io = {}) {
   // emulator this run started is stopped even when the run throws. A leaked
   // emulator is the one failure that breaks the NEXT run rather than this one.
   let shutdownRegistry = null;
+  let registryCleanup = null;
 
   try {
     const configFlags = {
@@ -677,6 +679,17 @@ export async function runCommand(flags = {}, io = {}) {
       deps: io.surfaceDeps ?? {}
     });
     shutdownRegistry = registry.shutdown ?? null;
+
+    if (typeof shutdownRegistry === "function") {
+      // Also registered with the process-wide cleanup registry, so a Ctrl-C
+      // stops the emulator too. The `finally` below covers a normal exit and a
+      // thrown error; it does not run when a signal arrives, and an orphaned
+      // emulator is the one leak that breaks the NEXT run rather than this one
+      // (it holds the AVD lock and the console port, so the next run waits for
+      // a serial that can never appear).
+      registryCleanup = cleanup.register("surface-registry", shutdownRegistry, { critical: true });
+    }
+
     write(stdout, adapterBanner({ registry, config: resolvedConfig, appArtifact }));
     const dbCaps = await probeDbCapabilities({ config: resolvedConfig, flags, deps });
     write(stdout, dbBanner({ config: resolvedConfig, dbCaps }));
@@ -817,7 +830,12 @@ export async function runCommand(flags = {}, io = {}) {
     write(stderr, formatError(error));
     return error instanceof UsageError ? EXIT.USAGE_ERROR : EXIT.HARNESS_ERROR;
   } finally {
-    if (typeof shutdownRegistry === "function") {
+    if (registryCleanup !== null) {
+      // Through the handle, which is idempotent and bounded. Calling
+      // shutdownRegistry directly here would race the signal path, and both
+      // would run it: dispose() is the one call that cannot happen twice.
+      await registryCleanup.dispose();
+    } else if (typeof shutdownRegistry === "function") {
       try {
         await shutdownRegistry();
       } catch {
