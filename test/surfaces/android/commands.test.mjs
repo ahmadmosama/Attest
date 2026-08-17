@@ -17,6 +17,8 @@ const ADB = "/opt/android/platform-tools/adb";
 const SNAPSHOT_PATH = path.join(process.cwd(), "test/surfaces/android/__snapshots__/adb-commands.json");
 const COMMANDS_SOURCE = path.join(process.cwd(), "src/surfaces/android/commands.mjs");
 
+const existsFromSdkRoot = (candidate) => candidate.includes("from-sdk-root");
+
 // One full lifecycle, in the order a real Android run performs it. This is the
 // transcript the committed snapshot pins.
 function lifecycle() {
@@ -98,9 +100,8 @@ describe("android adb command construction", () => {
   });
 
   test("resolveAdbPath prefers ANDROID_HOME then ANDROID_SDK_ROOT and names the fix when absent", () => {
-    const exists = (candidate) => candidate.includes("from-sdk-root");
     assert.match(
-      resolveAdbPath({ env: { ANDROID_SDK_ROOT: "/from-sdk-root" }, platform: "linux", exists }),
+      resolveAdbPath({ env: { ANDROID_SDK_ROOT: "/from-sdk-root" }, platform: "linux", exists: existsFromSdkRoot }),
       /from-sdk-root/u
     );
     assert.throws(() => resolveAdbPath({ env: {}, platform: "linux", exists: () => false }), {

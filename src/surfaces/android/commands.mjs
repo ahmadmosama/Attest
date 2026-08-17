@@ -99,7 +99,7 @@ function assertArgv(args) {
 function adbEnv(serial, env) {
   // ANDROID_SERIAL alongside -s is belt and braces. Any adb sub invocation that
   // loses the flag still cannot wander onto another device.
-  return Object.freeze({ ...(env ?? {}), ANDROID_SERIAL: serial });
+  return Object.freeze({ ...env, ANDROID_SERIAL: serial });
 }
 
 const DEFAULT_SDK_SUBPATHS = Object.freeze(["platform-tools"]);
@@ -166,7 +166,7 @@ export function adbCommand({ serial = null, args, adbPath = "adb", env = null } 
   return deepFreeze({
     command: adbPath,
     args: [...prefix, ...args],
-    env: serial === null ? Object.freeze({ ...(env ?? {}) }) : adbEnv(serial, env)
+    env: serial === null ? Object.freeze({ ...env }) : adbEnv(serial, env)
   });
 }
 

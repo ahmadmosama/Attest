@@ -56,7 +56,7 @@ export async function runAdb(command, { signal, encoding = "utf8" } = {}) {
     const child = spawn(binary, args, {
       shell: false,
       windowsHide: true,
-      env: { ...process.env, ...(env ?? {}) },
+      env: { ...process.env, ...env },
       stdio: ["ignore", "pipe", "pipe"]
     });
 
