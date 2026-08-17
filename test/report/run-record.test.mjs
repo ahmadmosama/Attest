@@ -44,6 +44,8 @@ function scenario(overrides = {}) {
     id: "checkout.guest_purchase",
     surface: "web",
     result: "pass",
+    startedAt: "2026-08-15T04:46:12.100Z",
+    finishedAt: "2026-08-15T04:46:12.112Z",
     durationMs: 12,
     requirements: ["RUN-04"],
     planHash: HASH,
@@ -128,11 +130,24 @@ test("createRunRecord validates and freezes a well formed record", () => {
 
   assert.equal(record.runRecordVersion, RUN_RECORD_VERSION);
   assert.equal(record.runRecordVersion, 2);
+  assert.equal(record.scenarios[0].startedAt, "2026-08-15T04:46:12.100Z");
+  assert.equal(record.scenarios[0].finishedAt, "2026-08-15T04:46:12.112Z");
   assert.equal(Object.isFrozen(record), true);
   assert.equal(Object.isFrozen(record.scenarios[0]), true);
   assert.throws(() => {
     record.counts.total = 100;
   });
+});
+
+test("createRunRecord backfills missing scenario timing from the run timing", () => {
+  const legacyScenario = scenario();
+  delete legacyScenario.startedAt;
+  delete legacyScenario.finishedAt;
+
+  const record = createRunRecord(input({ scenarios: [legacyScenario] }));
+
+  assert.equal(record.scenarios[0].startedAt, "2026-08-15T04:46:12.000Z");
+  assert.equal(record.scenarios[0].finishedAt, "2026-08-15T04:46:13.000Z");
 });
 
 test("createRunRecord rejects caller counts missing skipped", () => {

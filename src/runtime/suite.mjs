@@ -38,6 +38,14 @@ function duration(start, finish) {
   return Math.max(0, Math.round(timeValue(finish) - timeValue(start)));
 }
 
+function timedScenario(scenario, started, finished) {
+  return Object.freeze({
+    ...scenario,
+    startedAt: isoTime(started),
+    finishedAt: isoTime(finished)
+  });
+}
+
 function normalizeFilters(config = {}) {
   return Object.freeze({
     ids: [...(config.filters?.ids ?? DEFAULT_FILTERS.ids)],
@@ -69,11 +77,14 @@ function rawUses(plan) {
     );
 }
 
-function skippedScenario(skip) {
+function skippedScenario(skip, now) {
+  const instant = now();
   return Object.freeze({
     id: skip.scenarioId,
     surface: skip.surface,
     result: "skipped",
+    startedAt: isoTime(instant),
+    finishedAt: isoTime(instant),
     durationMs: 0,
     requirements: [],
     planHash: ZERO_HASH,
@@ -98,8 +109,7 @@ function dbForPlan(config, plan) {
   return config.db ?? null;
 }
 
-async function planFailureScenario({ plan, bundle, config, now, error }) {
-  const started = now();
+async function planFailureScenario({ plan, bundle, config, now, error, started = now() }) {
   const ctx = createRunContext({
     runId: bundle.runId,
     scenarioId: plan.scenarioId,
@@ -113,12 +123,15 @@ async function planFailureScenario({ plan, bundle, config, now, error }) {
   });
   const planRef = await ctx.bundle.writeJson("plan.json", plan);
   const classification = classifyError(error);
+  const finished = now();
 
   return Object.freeze({
     id: plan.scenarioId,
     surface: plan.surface,
     result: classification.result,
-    durationMs: duration(started, now()),
+    startedAt: isoTime(started),
+    finishedAt: isoTime(finished),
+    durationMs: duration(started, finished),
     requirements: [...plan.requirements],
     planHash: plan.planHash,
     planPath: planRef.path,
@@ -141,6 +154,7 @@ async function planFailureScenario({ plan, bundle, config, now, error }) {
 }
 
 async function runOnePlan({ plan, adapterFor, bundle, config, now }) {
+  const started = now();
   try {
     const adapter = await adapterFor(plan);
     const ctx = createRunContext({
@@ -155,9 +169,10 @@ async function runOnePlan({ plan, adapterFor, bundle, config, now }) {
       db: dbForPlan(config, plan)
     });
 
-    return await runScenario({ plan, adapter, ctx });
+    const scenario = await runScenario({ plan, adapter, ctx });
+    return timedScenario(scenario, started, now());
   } catch (error) {
-    return planFailureScenario({ plan, bundle, config, now, error });
+    return planFailureScenario({ plan, bundle, config, now, error, started });
   }
 }
 
@@ -290,7 +305,7 @@ export async function runSuite({
   const scenarios = [...run.scenarios];
 
   for (const skip of skips) {
-    scenarios.push(skippedScenario(skip));
+    scenarios.push(skippedScenario(skip, now));
   }
 
   const finished = now();

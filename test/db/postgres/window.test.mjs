@@ -14,7 +14,7 @@ import {
   slotNameFor
 } from "../../../src/db/drivers/postgres/slots.mjs";
 import { WATERMARK_ENTITY } from "../../../src/db/watermark.mjs";
-import { skipUnlessPostgres } from "../../helpers/postgres.mjs";
+import { skipUnlessPostgres, withPostgresSlotLock } from "../../helpers/postgres.mjs";
 
 function appEvent({ seq, txId = `app-${seq}`, after = { id: seq } } = {}) {
   return Object.freeze({
@@ -235,76 +235,78 @@ test("live Postgres window excludes outside writes and includes inside writes", 
     return;
   }
 
-  const tableName = uniqueName("window");
-  const slotName = slotNameFor({
-    runId: `window_${process.pid}_${Date.now()}`,
-    scenarioId: tableName
-  });
+  await withPostgresSlotLock(live, async () => {
+    const tableName = uniqueName("window");
+    const slotName = slotNameFor({
+      runId: `window_${process.pid}_${Date.now()}`,
+      scenarioId: tableName
+    });
 
-  await withClient(live.target, async (client) => {
-    try {
-      await client.query(`CREATE TABLE ${tableName} (id integer PRIMARY KEY, status text NOT NULL)`);
-      await client.query(`ALTER TABLE ${tableName} REPLICA IDENTITY FULL`);
-      await createSlot(client, slotName);
+    await withClient(live.target, async (client) => {
+      try {
+        await client.query(`CREATE TABLE ${tableName} (id integer PRIMARY KEY, status text NOT NULL)`);
+        await client.query(`ALTER TABLE ${tableName} REPLICA IDENTITY FULL`);
+        await createSlot(client, slotName);
 
-      const capture = createLogicalSlotCapture({
-        client,
-        slotName,
-        keyColumns: {
-          [`public.${tableName}`]: ["id"],
-          [WATERMARK_ENTITY]: ["run_id", "scenario_id", "surface", "seq", "nonce", "boundary"]
-        },
-        batchSize: 100
-      });
+        const capture = createLogicalSlotCapture({
+          client,
+          slotName,
+          keyColumns: {
+            [`public.${tableName}`]: ["id"],
+            [WATERMARK_ENTITY]: ["run_id", "scenario_id", "surface", "seq", "nonce", "boundary"]
+          },
+          batchSize: 100
+        });
 
-      await client.query(`INSERT INTO ${tableName} (id, status) VALUES (1, 'outside_before')`);
-      const window = await openPostgresWindow({
-        client,
-        capture,
-        runId: "run",
-        scenarioId: "scenario.one",
-        surface: "web",
-        seq: 1,
-        nonce: "live-nonce"
-      });
-      await client.query(`INSERT INTO ${tableName} (id, status) VALUES (2, 'inside')`);
+        await client.query(`INSERT INTO ${tableName} (id, status) VALUES (1, 'outside_before')`);
+        const window = await openPostgresWindow({
+          client,
+          capture,
+          runId: "run",
+          scenarioId: "scenario.one",
+          surface: "web",
+          seq: 1,
+          nonce: "live-nonce"
+        });
+        await client.query(`INSERT INTO ${tableName} (id, status) VALUES (2, 'inside')`);
 
-      await withClient(live.target, async (writer) => {
-        await delay(300);
-        await writer.query(`INSERT INTO ${tableName} (id, status) VALUES (3, 'late_inside')`);
-      });
+        await withClient(live.target, async (writer) => {
+          await delay(300);
+          await writer.query(`INSERT INTO ${tableName} (id, status) VALUES (3, 'late_inside')`);
+        });
 
-      const result = await closePostgresWindow({
-        client,
-        createPollClient: ({ signal }) => createPgClient(live.target, { signal }),
-        capture,
-        runId: "run",
-        scenarioId: "scenario.one",
-        surface: "web",
-        seq: 1,
-        nonce: window.nonce,
-        expect: [{ entity: tableName, op: "insert", count: 1, where: { status: "inside" } }],
-        convergeTimeoutMs: 1000,
-        quietPeriodMs: 25,
-        quietPeriodCapMs: 250
-      });
+        const result = await closePostgresWindow({
+          client,
+          createPollClient: ({ signal }) => createPgClient(live.target, { signal }),
+          capture,
+          runId: "run",
+          scenarioId: "scenario.one",
+          surface: "web",
+          seq: 1,
+          nonce: window.nonce,
+          expect: [{ entity: tableName, op: "insert", count: 1, where: { status: "inside" } }],
+          convergeTimeoutMs: 1000,
+          quietPeriodMs: 25,
+          quietPeriodCapMs: 250
+        });
 
-      const statuses = result.events
-        .filter((change) => change.entity === `public.${tableName}`)
-        .map((change) => change.after.status)
-        .toSorted();
+        const statuses = result.events
+          .filter((change) => change.entity === `public.${tableName}`)
+          .map((change) => change.after.status)
+          .toSorted();
 
-      assert.deepEqual(statuses, ["inside", "late_inside"]);
-      assert.equal(result.events.some((change) => change.after?.status === "outside_before"), false);
-      assert.equal(result.events.some((change) => change.entity === WATERMARK_ENTITY), false);
-    } finally {
-      await dropSlot(client, slotName);
-      await client.query(`DROP TABLE IF EXISTS ${tableName}`);
-      await client.query(
-        "DELETE FROM attest.watermark WHERE run_id = $1 AND scenario_id = $2",
-        ["run", "scenario.one"]
-      );
-      assert.equal((await liveSlotNames(client)).includes(slotName), false);
-    }
+        assert.deepEqual(statuses, ["inside", "late_inside"]);
+        assert.equal(result.events.some((change) => change.after?.status === "outside_before"), false);
+        assert.equal(result.events.some((change) => change.entity === WATERMARK_ENTITY), false);
+      } finally {
+        await dropSlot(client, slotName);
+        await client.query(`DROP TABLE IF EXISTS ${tableName}`);
+        await client.query(
+          "DELETE FROM attest.watermark WHERE run_id = $1 AND scenario_id = $2",
+          ["run", "scenario.one"]
+        );
+        assert.equal((await liveSlotNames(client)).includes(slotName), false);
+      }
+    });
   });
 });

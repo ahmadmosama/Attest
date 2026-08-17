@@ -134,6 +134,8 @@ const ScenarioSchema = z
     id: Text,
     surface: Text,
     result: z.enum(["pass", "fail", "infra_error", "skipped", "quarantined"]),
+    startedAt: z.iso.datetime().optional(),
+    finishedAt: z.iso.datetime().optional(),
     durationMs: Duration,
     requirements: TextArray,
     planHash: HexSha,
@@ -309,7 +311,7 @@ function normalizeDelta(value) {
   return value ?? null;
 }
 
-function normalizeScenario(scenario) {
+function normalizeScenario(scenario, fallback = {}) {
   if (scenario === null || typeof scenario !== "object" || Array.isArray(scenario)) {
     return scenario;
   }
@@ -320,7 +322,14 @@ function normalizeScenario(scenario) {
         delta: normalizeDelta(step.delta)
       }))
     : scenario.steps;
-  return { ...scenario, error: normalizeError(scenario.error), delta: normalizeDelta(scenario.delta), steps };
+  return {
+    ...scenario,
+    startedAt: scenario.startedAt ?? fallback.startedAt,
+    finishedAt: scenario.finishedAt ?? fallback.finishedAt,
+    error: normalizeError(scenario.error),
+    delta: normalizeDelta(scenario.delta),
+    steps
+  };
 }
 
 function scenarioKey(scenario) {
@@ -483,7 +492,13 @@ function telemetryFor(input, scenarios) {
 }
 
 export function createRunRecord(input) {
-  const scenarios = Array.isArray(input?.scenarios) ? input.scenarios.map(normalizeScenario) : [];
+  const fallbackTiming = Object.freeze({
+    startedAt: input?.startedAt,
+    finishedAt: input?.finishedAt
+  });
+  const scenarios = Array.isArray(input?.scenarios)
+    ? input.scenarios.map((scenario) => normalizeScenario(scenario, fallbackTiming))
+    : [];
   const escapeUses = sortedEscapeUses(input?.escapeHatch?.uses ?? []);
   assertEscapeUseCoverage(scenarios, escapeUses);
 

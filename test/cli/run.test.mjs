@@ -6,6 +6,10 @@ import test from "node:test";
 
 import { main } from "../../src/cli/main.mjs";
 import { runCommand } from "../../src/cli/commands/run.mjs";
+import { defineDbCapabilities } from "../../src/capabilities/db-caps.mjs";
+import { loadRuleset } from "../../src/delta/rules/load.mjs";
+import { InfraError } from "../../src/errors.mjs";
+import { createDbDriver, DB_DRIVER_MODES } from "../../src/db/registry.mjs";
 
 const CLI = path.join(process.cwd(), "src/cli/main.mjs");
 
@@ -36,6 +40,98 @@ elements:
 screens:
   screen:catalog: { path: "/", ready: { role: heading, name: "Catalog" } }
 `;
+
+const DB_SCENARIO = `id: db.expected
+requirement: [REQ-DB-001]
+steps:
+  - delta_window: open
+  - delta_window: close
+    expect_mutations:
+      - entity: orders
+        op: insert
+        count: 1
+        where: { id: one }
+`;
+
+const DB_ASSERT_SCENARIO = `id: db.assertion
+requirement: [REQ-DB-002]
+steps:
+  - delta_window: open
+  - delta_window: close
+    require_no_unexplained: true
+`;
+
+const RULESET = `version: 1
+rules: []
+`;
+
+const BROKEN_RULESET = `version: nope
+rules: []
+`;
+
+const DB_URL = "postgres://user:secret@db.example.test:5432/app_test";
+
+function dbConfig(overrides = {}) {
+  return {
+    app: "https://example.test",
+    scenariosGlob: ["scenarios/db.attest.yaml"],
+    bindingsDir: "bindings",
+    surfaces: ["web"],
+    db: {
+      allowlist: [
+        {
+          host: "db.example.test",
+          database: "app_test",
+          nonProd: true,
+          note: "unit test database"
+        }
+      ],
+      rulesFile: null,
+      ...overrides
+    }
+  };
+}
+
+function fullDbCaps(overrides = {}) {
+  return defineDbCapabilities({
+    driver: "postgres",
+    capture: "logical_slot",
+    deltaAssertion: true,
+    boundedPolling: true,
+    beforeImages: "full",
+    ordering: true,
+    txAttribution: true,
+    watermarkFencing: "inline",
+    transactionalTeardown: true,
+    ...overrides
+  });
+}
+
+function dbIo({ preflightCalls = [], caps = fullDbCaps(), load = loadRuleset, extra = {} } = {}) {
+  const out = extra.out ?? [];
+  const err = extra.err ?? [];
+  return {
+    env: { ATTEST_SURFACE_ADAPTER: "fake", ATTEST_DB_URL: DB_URL },
+    stdout: { write: (text) => out.push(text) },
+    stderr: { write: (text) => err.push(text) },
+    dbRunPreflight(args) {
+      preflightCalls.push(args);
+      return Object.freeze({
+        ok: true,
+        findings: Object.freeze({
+          walLevel: "logical",
+          replicationPrivilege: Object.freeze({ allowed: true }),
+          degraded: Object.freeze([])
+        })
+      });
+    },
+    describePostgresCapabilities() {
+      return caps;
+    },
+    dbLoadRuleset: load,
+    now: () => new Date("2026-08-15T04:46:12.000Z")
+  };
+}
 
 async function withCliFixture(fn) {
   const dir = await mkdtemp(path.join(process.cwd(), "test/cli/run-"));
@@ -290,5 +386,263 @@ test("runCommand passes all resolved timeout budgets into the run context", asyn
       evidenceMs: 30005,
       closeMs: 30006
     });
+  });
+});
+
+test("runCommand without a db block does not probe or print a database banner", async () => {
+  await withCliFixture(async (cwd) => {
+    const out = [];
+    const err = [];
+    let probes = 0;
+    const code = await runCommand(
+      {
+        dryRun: true,
+        scenariosGlob: ["scenarios/smoke.attest.yaml"],
+        bindingsDir: "bindings",
+        app: "https://example.test",
+        surfaces: ["web"],
+        artifactRoot: path.join(cwd, "artifacts")
+      },
+      {
+        cwd,
+        env: { ATTEST_SURFACE_ADAPTER: "fake" },
+        stdout: { write: (text) => out.push(text) },
+        stderr: { write: (text) => err.push(text) },
+        dbRunPreflight() {
+          probes += 1;
+          throw new Error("unexpected probe");
+        }
+      }
+    );
+
+    assert.equal(code, 0, err.join(""));
+    assert.equal(probes, 0);
+    assert.doesNotMatch(out.join(""), /database:/);
+  });
+});
+
+test("runCommand probes configured database capabilities once and lowers with them", async () => {
+  await withCliFixture(async (cwd) => {
+    await writeFile(path.join(cwd, "scenarios", "db.attest.yaml"), DB_SCENARIO);
+    await writeFile(path.join(cwd, "scenarios", "db-assert.attest.yaml"), DB_ASSERT_SCENARIO);
+    const out = [];
+    const err = [];
+    const preflightCalls = [];
+    const code = await runCommand(
+      {
+        dryRun: true,
+        configFile: dbConfig(),
+        scenariosGlob: ["scenarios/db.attest.yaml", "scenarios/db-assert.attest.yaml"],
+        artifactRoot: path.join(cwd, "artifacts")
+      },
+      {
+        cwd,
+        ...dbIo({ preflightCalls, extra: { out, err } })
+      }
+    );
+
+    assert.equal(code, 0, err.join(""));
+    assert.equal(preflightCalls.length, 1);
+    assert.match(out.join(""), /db\.expected \[web\] clean compile/);
+    assert.match(out.join(""), /db\.assertion \[web\] clean compile/);
+    assert.match(out.join(""), /database: postgres logical_slot db\.example\.test\/app_test/);
+  });
+});
+
+test("runCommand refuses missing delta assertion capability at compile time", async () => {
+  await withCliFixture(async (cwd) => {
+    await writeFile(path.join(cwd, "scenarios", "db.attest.yaml"), DB_ASSERT_SCENARIO);
+    const out = [];
+    const err = [];
+    const code = await runCommand(
+      {
+        dryRun: true,
+        configFile: dbConfig(),
+        artifactRoot: path.join(cwd, "artifacts")
+      },
+      {
+        cwd,
+        ...dbIo({
+          caps: fullDbCaps({ deltaAssertion: false }),
+          extra: { out, err }
+        })
+      }
+    );
+
+    assert.equal(code, 3);
+    assert.match(err.join(""), /E_DELTA_UNSUPPORTED/);
+    assert.match(err.join(""), /driver 'postgres'/);
+    assert.doesNotMatch(out.join(""), /scenarios:/);
+  });
+});
+
+test("runCommand reports unreachable database preflight as harness error", async () => {
+  await withCliFixture(async (cwd) => {
+    await writeFile(path.join(cwd, "scenarios", "db.attest.yaml"), DB_SCENARIO);
+    const out = [];
+    const err = [];
+    const code = await runCommand(
+      {
+        dryRun: true,
+        configFile: dbConfig(),
+        artifactRoot: path.join(cwd, "artifacts")
+      },
+      {
+        cwd,
+        env: { ATTEST_SURFACE_ADAPTER: "fake", ATTEST_DB_URL: DB_URL },
+        stdout: { write: (text) => out.push(text) },
+        stderr: { write: (text) => err.push(text) },
+        dbRunPreflight() {
+          throw new InfraError("E_DB_UNREACHABLE", "Database target db.example.test/app_test is unreachable.");
+        }
+      }
+    );
+
+    assert.equal(code, 2);
+    assert.match(err.join(""), /Remediation:/);
+    assert.doesNotMatch(out.join(""), /\d+ scenarios:/);
+  });
+});
+
+test("runCommand refuses unlisted and unmarked targets before preflight", async () => {
+  await withCliFixture(async (cwd) => {
+    await writeFile(path.join(cwd, "scenarios", "db.attest.yaml"), DB_SCENARIO);
+    let probes = 0;
+    const io = {
+      cwd,
+      env: { ATTEST_SURFACE_ADAPTER: "fake", ATTEST_DB_URL: DB_URL },
+      stdout: { write() {} },
+      stderr: { write() {} },
+      dbRunPreflight() {
+        probes += 1;
+      }
+    };
+
+    const unlisted = await runCommand({
+      dryRun: true,
+      configFile: dbConfig({ allowlist: [] })
+    }, io);
+    const unmarked = await runCommand({
+      dryRun: true,
+      configFile: {
+        ...dbConfig(),
+        db: {
+          ...dbConfig().db,
+          allowlist: [{ host: "db.example.test", database: "app_test", note: "missing marker" }]
+        }
+      }
+    }, io);
+
+    assert.equal(unlisted, 3);
+    assert.equal(unmarked, 3);
+    assert.equal(probes, 0);
+  });
+});
+
+test("runCommand loads a ruleset once, records its hash, and prints broken ruleset diagnostics", async () => {
+  await withCliFixture(async (cwd) => {
+    await mkdir(path.join(cwd, "rules"), { recursive: true });
+    await writeFile(path.join(cwd, "scenarios", "db.attest.yaml"), DB_SCENARIO);
+    await writeFile(path.join(cwd, "rules", "ok.yaml"), RULESET);
+    await writeFile(path.join(cwd, "rules", "bad.yaml"), BROKEN_RULESET);
+    const out = [];
+    const err = [];
+    let loads = 0;
+    const artifacts = path.join(cwd, "artifacts");
+    const code = await runCommand(
+      {
+        dryRun: true,
+        configFile: dbConfig({ rulesFile: "rules/ok.yaml" }),
+        artifactRoot: artifacts
+      },
+      {
+        cwd,
+        ...dbIo({
+          extra: { out, err },
+          load(args) {
+            loads += 1;
+            return loadRuleset(args);
+          }
+        })
+      }
+    );
+
+    assert.equal(code, 0, err.join(""));
+    assert.equal(loads, 1);
+    const [runDir] = await readdir(artifacts);
+    const record = JSON.parse(await readFile(path.join(artifacts, runDir, "run.json"), "utf8"));
+    assert.match(record.hashes.ruleset, /^[0-9a-f]{64}$/);
+
+    const brokenErr = [];
+    const broken = await runCommand(
+      {
+        dryRun: true,
+        configFile: dbConfig({ rulesFile: "rules/bad.yaml" }),
+        artifactRoot: path.join(cwd, "bad-artifacts")
+      },
+      {
+        cwd,
+        ...dbIo({ extra: { out: [], err: brokenErr } })
+      }
+    );
+    assert.equal(broken, 3);
+    assert.match(brokenErr.join(""), /bad\.yaml:\d+:\d+  E_RULESET_SCHEMA/);
+  });
+});
+
+test("createDbDriver declares planned drivers and returns the Postgres driver", () => {
+  assert.deepEqual(DB_DRIVER_MODES, {
+    postgres: "implemented",
+    sqlite: "planned",
+    mysql: "planned",
+    mongo: "planned",
+    bigquery: "planned"
+  });
+
+  const target = Object.freeze({
+    driver: "postgres",
+    host: "db.example.test",
+    port: 5432,
+    database: "app_test",
+    user: "user"
+  });
+  const driver = createDbDriver({ target, runId: "run", scenarioId: "scenario.one" });
+  assert.equal(typeof driver.preflight, "function");
+
+  for (const name of ["sqlite", "mysql", "mongo", "bigquery"]) {
+    assert.throws(
+      () => createDbDriver({ target: { ...target, driver: name }, runId: "run", scenarioId: "scenario.one" }),
+      (error) => {
+        assert.equal(error.code, "E_DB_DRIVER_NOT_IMPLEMENTED");
+        assert.match(error.message, /Phase 6/);
+        assert.equal(error.details.roadmapPhase, "Phase 6");
+        return true;
+      }
+    );
+  }
+});
+
+test("runCommand database banner never prints credentials or connection strings", async () => {
+  await withCliFixture(async (cwd) => {
+    await writeFile(path.join(cwd, "scenarios", "db.attest.yaml"), DB_SCENARIO);
+    const out = [];
+    const err = [];
+    const code = await runCommand(
+      {
+        dryRun: true,
+        configFile: dbConfig(),
+        artifactRoot: path.join(cwd, "artifacts")
+      },
+      {
+        cwd,
+        ...dbIo({ extra: { out, err } })
+      }
+    );
+    const stdout = out.join("");
+
+    assert.equal(code, 0, err.join(""));
+    assert.match(stdout, /db\.example\.test\/app_test/);
+    assert.doesNotMatch(stdout, /secret/);
+    assert.doesNotMatch(stdout, /postgres:\/\/user/);
   });
 });

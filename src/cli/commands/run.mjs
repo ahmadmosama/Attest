@@ -2,13 +2,20 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 import { createBundle } from "../../evidence/bundle.mjs";
-import { UsageError } from "../../errors.mjs";
+import { InfraError, UsageError } from "../../errors.mjs";
 import { compileScenarioFile } from "../../ir/compile.mjs";
 import { formatDiagnostic } from "../../ir/diagnostics.mjs";
 import { loadBindings } from "../../bindings/load.mjs";
 import { lintBindings } from "../../bindings/lint.mjs";
 import { NOT_IMPLEMENTED_DB_CAPS } from "../../capabilities/db-caps.mjs";
+import { describePostgresCapabilities } from "../../db/drivers/postgres/capabilities.mjs";
+import { runPreflight } from "../../db/drivers/postgres/preflight.mjs";
+import { createDbHooks } from "../../db/hooks.mjs";
+import { createDbDriver } from "../../db/registry.mjs";
+import { seedDigest } from "../../db/seed.mjs";
+import { loadRuleset } from "../../delta/rules/load.mjs";
 import { lower } from "../../lower/lower.mjs";
+import { createExecutionPlan } from "../../lower/plan.mjs";
 import { runSuite } from "../../runtime/suite.mjs";
 import { createSurfaceRegistry } from "../../surfaces/registry.mjs";
 import { renderConsoleSummary } from "../../report/console.mjs";
@@ -19,6 +26,7 @@ import { EXIT } from "../exit-codes.mjs";
 import { discoverScenarios, applyFilters } from "../discover.mjs";
 import { classifyAppArtifact } from "../../config/app-artifact.mjs";
 import { resolveConfig } from "../../config/resolve.mjs";
+import { describeTarget } from "../../config/targets.mjs";
 
 function write(stream, text) {
   stream?.write?.(text);
@@ -28,12 +36,26 @@ function nowFn(io) {
   return typeof io?.now === "function" ? io.now : () => new Date();
 }
 
+function dependencySet(io) {
+  return Object.freeze({
+    runPreflight: io.dbRunPreflight ?? runPreflight,
+    describePostgresCapabilities: io.describePostgresCapabilities ?? describePostgresCapabilities,
+    loadRuleset: io.dbLoadRuleset ?? loadRuleset,
+    createDbDriver: io.createDbDriver ?? createDbDriver,
+    createDbHooks: io.createDbHooks ?? createDbHooks
+  });
+}
+
 function refsUsed(irs) {
   return [...new Set(irs.flatMap((ir) => ir.refs))].toSorted();
 }
 
 function formatError(error) {
-  return `${error.code ?? "E_HARNESS"}  ${error.message}\n`;
+  const remediation =
+    typeof error?.details?.remediation === "string"
+      ? `\nRemediation: ${error.details.remediation}`
+      : "";
+  return `${error.code ?? "E_HARNESS"}  ${error.message}${remediation}\n`;
 }
 
 function scenarioRecordFromIr(ir, surfaces) {
@@ -151,7 +173,7 @@ function printDiagnostics(stderr, diagnostics) {
   }
 }
 
-function lowerSelected({ selected, bindingsBySurface, appArtifact, registry }) {
+function lowerSelected({ selected, bindingsBySurface, appArtifact, registry, dbCaps = NOT_IMPLEMENTED_DB_CAPS }) {
   const plans = [];
   const skips = [];
   const errors = [];
@@ -162,7 +184,7 @@ function lowerSelected({ selected, bindingsBySurface, appArtifact, registry }) {
         surface,
         bindings: bindingsBySurface[surface],
         surfaceCaps: registry.descriptorFor(surface),
-        dbCaps: NOT_IMPLEMENTED_DB_CAPS,
+        dbCaps,
         app: appArtifact.url ?? appArtifact.path
       });
 
@@ -194,6 +216,10 @@ function runConfig(config, flags) {
     timeouts: config.timeouts,
     concurrency: config.concurrency,
     failOnSkip: config.failOnSkip,
+    tenantPrefix: config.db?.tenantPrefix ?? config.tenantPrefix ?? "",
+    db: config.db,
+    dbCapabilities: config.dbCapabilities,
+    hashes: config.hashes,
     filters: {
       ids: flags.ids ?? [],
       tags: flags.tags ?? [],
@@ -361,7 +387,7 @@ async function writeDryRunRecord({ bundle, config, flags, plans, skips, planRefs
       artifactDir: bundle.dir,
       requirements: coverage,
       escapeHatch: { rawOpUses: escapeUses.length, uses: escapeUses },
-      hashes: { bindings: {}, ruleset: null },
+      hashes: { bindings: {}, ruleset: config.hashes?.ruleset ?? null },
       telemetry: { timeouts: 0, retries: 0, convergeMs: [] },
       scenarios
     },
@@ -379,12 +405,202 @@ function requirementsSummaryLine(coverage, declaredRequirements) {
   return `requirements: ${coverage.covered.length} covered, ${coverage.uncovered.length} uncovered, ${coverage.unknown.length} unknown\n`;
 }
 
+function dbRuntimeConfig(config, flags) {
+  return Object.freeze({
+    ...config.db,
+    ...flags.dbRuntime
+  });
+}
+
+function preflightError(error, target) {
+  if (error instanceof UsageError) {
+    return error;
+  }
+
+  const details = {
+    ...error?.details,
+    host: target?.host ?? error?.details?.host ?? null,
+    database: target?.database ?? error?.details?.database ?? null,
+    port: target?.port ?? error?.details?.port ?? null,
+    remediation: "Verify the target is reachable on the direct database port and that ATTEST_DB_URL credentials are valid."
+  };
+
+  return new InfraError(
+    error?.code ?? "E_DB_PREFLIGHT_FAILED",
+    error instanceof Error ? error.message : "Database preflight failed.",
+    details
+  );
+}
+
+async function probeDbCapabilities({ config, flags, deps }) {
+  const target = config.db?.target ?? null;
+  if (target === null) {
+    return NOT_IMPLEMENTED_DB_CAPS;
+  }
+
+  const runtime = dbRuntimeConfig(config, flags);
+  try {
+    const result = await deps.runPreflight({
+      target,
+      entities: runtime.entities ?? [],
+      signal: flags.signal
+    });
+    return deps.describePostgresCapabilities(result.findings ?? result);
+  } catch (error) {
+    throw preflightError(error, target);
+  }
+}
+
+function normalizeLoadedRuleset(result) {
+  if (result?.value !== undefined || result?.diagnostics !== undefined) {
+    return result;
+  }
+
+  return Object.freeze({ value: result, diagnostics: null });
+}
+
+async function loadDbRuleset({ config, cwd, stderr, deps }) {
+  if (config.db?.target === null || config.db === null) {
+    return Object.freeze({ ok: true, ruleset: null, hash: null });
+  }
+
+  const file = resolveFromCwd(cwd, config.db.rulesFile);
+  const result = normalizeLoadedRuleset(await deps.loadRuleset({ file }));
+  if (result.value !== null) {
+    return Object.freeze({ ok: true, ruleset: result.value, hash: result.value.hash });
+  }
+
+  printDiagnostics(stderr, result.diagnostics.errors);
+  return Object.freeze({ ok: false, ruleset: null, hash: null });
+}
+
 function adapterBanner({ registry, config, appArtifact }) {
   if (registry.mode === "real") {
     return `web: real (${config.web.channel}) ${appArtifact.url ?? appArtifact.path}\n`;
   }
 
   return `surface adapter: fake\n`;
+}
+
+function dbBanner({ config, dbCaps }) {
+  const target = config.db?.target ?? null;
+  if (target === null) {
+    return "";
+  }
+
+  return `database: ${dbCaps.driver} ${dbCaps.capture} ${describeTarget(target)}\n`;
+}
+
+function seedMap(selected, runtime) {
+  const configured = runtime.seeds ?? {};
+  return new Map(
+    selected
+      .map((scenario) => {
+        const name = scenario.ir.seed;
+        const seed = typeof name === "string" ? configured[name] : null;
+        return seed === undefined || seed === null ? null : [scenario.ir.id, seed];
+      })
+      .filter(Boolean)
+  );
+}
+
+function planWithMetadata(plan, { rulesetHash, seed }) {
+  if (seed === undefined && rulesetHash === plan.rulesetHash) {
+    return plan;
+  }
+
+  return createExecutionPlan({
+    scenarioId: plan.scenarioId,
+    surface: plan.surface,
+    app: plan.app,
+    bindingsHash: plan.bindingsHash,
+    rulesetHash,
+    seedDigest: seed === undefined ? plan.seedDigest : seedDigest(seed),
+    requirements: plan.requirements,
+    capabilities: plan.capabilities,
+    rawOpCount: plan.rawOpCount,
+    ops: plan.ops
+  });
+}
+
+function addPlanMetadata({ plans, selected, runtime, rulesetHash }) {
+  const seeds = seedMap(selected, runtime);
+  if (seeds.size === 0 && rulesetHash === null) {
+    return plans;
+  }
+
+  return plans.map((plan) =>
+    planWithMetadata(plan, { rulesetHash, seed: seeds.get(plan.scenarioId) })
+  );
+}
+
+function dbFactory({ config, flags, deps, ruleset, runId, selected }) {
+  if (config.db?.target === null || config.db === null) {
+    return null;
+  }
+
+  const runtime = dbRuntimeConfig(config, flags);
+  const seeds = seedMap(selected, runtime);
+  return (plan) => {
+    const hookConfig = Object.freeze({
+      ...runtime,
+      seed: seeds.get(plan.scenarioId) ?? runtime.seed ?? null
+    });
+    const driver = deps.createDbDriver({
+      target: config.db.target,
+      config: hookConfig,
+      runId,
+      scenarioId: plan.scenarioId,
+      surface: plan.surface
+    });
+    return deps.createDbHooks({ driver, ruleset, config: hookConfig, runId });
+  };
+}
+
+function shortfallLine(scenario, step, shortfall) {
+  const columns = Array.isArray(shortfall.changed) && shortfall.changed.length > 0
+    ? shortfall.changed.join(", ")
+    : "any";
+  const rowKey = JSON.stringify(shortfall.where ?? {});
+  const code = step.error?.code ?? "E_DELTA";
+  return `Delta failure: ${code} scenario ${scenario.id} step ${step.index} table ${shortfall.entity} row key ${rowKey} column ${columns}\n`;
+}
+
+function unexplainedLine(scenario, step, group, row) {
+  const code = step.error?.code ?? "E_DELTA";
+  return `Delta failure: ${code} scenario ${scenario.id} step ${step.index} table ${group.entity} row key ${row.key} column ${row.columnText}\n`;
+}
+
+function stepFailureLine(scenario, step) {
+  if (step.error === null) {
+    return null;
+  }
+
+  const ruleId = typeof step.error.details?.ruleId === "string"
+    ? ` rule ${step.error.details.ruleId}`
+    : "";
+  return `Scenario failure: ${step.error.code} scenario ${scenario.id} step ${step.index}${ruleId} ${step.error.message}\n`;
+}
+
+function deltaFailureLines(record) {
+  const lines = [];
+  for (const scenario of record.scenarios) {
+    for (const step of scenario.steps) {
+      const failure = stepFailureLine(scenario, step);
+      if (failure !== null) {
+        lines.push(failure);
+      }
+      for (const shortfall of step.delta?.shortfalls ?? []) {
+        lines.push(shortfallLine(scenario, step, shortfall));
+      }
+      for (const group of step.delta?.unexplained ?? []) {
+        for (const row of group.rows ?? []) {
+          lines.push(unexplainedLine(scenario, step, group, row));
+        }
+      }
+    }
+  }
+  return lines;
 }
 
 async function runSuiteWithRefedEventLoop(options) {
@@ -401,6 +617,7 @@ export async function runCommand(flags = {}, io = {}) {
   const stderr = io.stderr;
   const env = io.env ?? {};
   const cwd = io.cwd ?? process.cwd();
+  const deps = dependencySet(io);
 
   try {
     const configFlags = {
@@ -429,6 +646,12 @@ export async function runCommand(flags = {}, io = {}) {
     const surfaces = config.surfaces;
     const registry = createSurfaceRegistry({ surfaces, appArtifact, config: resolvedConfig, env });
     write(stdout, adapterBanner({ registry, config: resolvedConfig, appArtifact }));
+    const dbCaps = await probeDbCapabilities({ config: resolvedConfig, flags, deps });
+    write(stdout, dbBanner({ config: resolvedConfig, dbCaps }));
+    const loadedRuleset = await loadDbRuleset({ config: resolvedConfig, cwd, stderr, deps });
+    if (!loadedRuleset.ok) {
+      return EXIT.USAGE_ERROR;
+    }
 
     const declaredRequirements = await declaredRequirementsFromFile(flags.requirementsFile, cwd);
     const files = await discoverScenarios({ globs: config.scenariosGlob, cwd });
@@ -469,7 +692,7 @@ export async function runCommand(flags = {}, io = {}) {
       return EXIT.USAGE_ERROR;
     }
 
-    const lowered = lowerSelected({ selected, bindingsBySurface, appArtifact, registry });
+    const lowered = lowerSelected({ selected, bindingsBySurface, appArtifact, registry, dbCaps });
     if (lowered.errors.length > 0) {
       for (const error of lowered.errors) {
         write(stderr, formatError(error));
@@ -478,21 +701,42 @@ export async function runCommand(flags = {}, io = {}) {
     }
 
     const bundle = await createBundle({ root: resolvedConfig.artifactRoot, now: nowFn(io) });
+    const runtimeDb = dbRuntimeConfig(resolvedConfig, flags);
+    const plans = addPlanMetadata({
+      plans: lowered.plans,
+      selected,
+      runtime: runtimeDb,
+      rulesetHash: loadedRuleset.hash
+    });
+    const finalConfig = Object.freeze({
+      ...resolvedConfig,
+      tenantPrefix: resolvedConfig.db?.tenantPrefix ?? "",
+      db: dbFactory({
+        config: resolvedConfig,
+        flags,
+        deps,
+        ruleset: loadedRuleset.ruleset,
+        runId: bundle.runId,
+        selected
+      }),
+      dbCapabilities: dbCaps,
+      hashes: Object.freeze({ ruleset: loadedRuleset.hash })
+    });
 
     if (flags.dryRun) {
-      const planRefs = await writePlans(bundle, lowered.plans);
+      const planRefs = await writePlans(bundle, plans);
       const record = await writeDryRunRecord({
         bundle,
-        config,
+        config: finalConfig,
         flags,
-        plans: lowered.plans,
+        plans,
         skips: lowered.skips,
         planRefs,
         coverage,
         selected,
         now: nowFn(io)
       });
-      for (const plan of lowered.plans) {
+      for (const plan of plans) {
         write(stdout, `${plan.scenarioId} [${plan.surface}] clean compile\n`);
       }
       for (const skip of lowered.skips) {
@@ -508,15 +752,18 @@ export async function runCommand(flags = {}, io = {}) {
 
     const suiteBundle = reportableBundle(bundle, coverage);
     const { record } = await runSuiteWithRefedEventLoop({
-      plans: lowered.plans,
+      plans,
       skips: lowered.skips,
       adapterFor: io.adapterFor ?? registry.adapterFor,
       bundle: suiteBundle,
-      config: runConfig(config, flags),
+      config: runConfig(finalConfig, flags),
       now: nowFn(io)
     });
 
     write(stdout, renderConsoleSummary(record, { color: config.color }));
+    for (const line of deltaFailureLines(record)) {
+      write(stdout, line);
+    }
     write(stdout, requirementsSummaryLine(coverage, declaredRequirements));
     writeReportPath(stdout, suiteBundle.reportPath);
     return record.exitCode;

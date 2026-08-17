@@ -4,6 +4,7 @@ import { resolveTarget } from "../../src/config/targets.mjs";
 
 const { Client } = pg;
 const CONNECTION_TIMEOUT_MS = 1500;
+const POSTGRES_SLOT_LOCK_KEY = "4155564122367263";
 
 function nonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
@@ -97,4 +98,31 @@ export async function skipUnlessPostgres(t, env = process.env) {
     allowlist,
     hostPort: defaultPort(parsed)
   });
+}
+
+export async function withPostgresSlotLock(live, fn) {
+  if (!nonEmptyString(live?.url)) {
+    return fn();
+  }
+
+  const client = new Client({
+    connectionString: live.url,
+    connectionTimeoutMillis: CONNECTION_TIMEOUT_MS
+  });
+  let locked = false;
+
+  try {
+    await client.connect();
+    await client.query("SELECT pg_advisory_lock($1::bigint)", [POSTGRES_SLOT_LOCK_KEY]);
+    locked = true;
+    return await fn();
+  } finally {
+    try {
+      if (locked) {
+        await client.query("SELECT pg_advisory_unlock($1::bigint)", [POSTGRES_SLOT_LOCK_KEY]);
+      }
+    } finally {
+      await client.end().catch(() => {});
+    }
+  }
 }

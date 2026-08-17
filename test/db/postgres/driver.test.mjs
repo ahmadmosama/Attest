@@ -13,7 +13,7 @@ import {
 } from "../../../src/db/drivers/postgres/slots.mjs";
 import { InfraError, UnsupportedOpError } from "../../../src/errors.mjs";
 import { classifyError } from "../../../src/runtime/classify.mjs";
-import { skipUnlessPostgres } from "../../helpers/postgres.mjs";
+import { skipUnlessPostgres, withPostgresSlotLock } from "../../helpers/postgres.mjs";
 
 function target() {
   return Object.freeze({
@@ -395,38 +395,40 @@ test("live logical slot capture consumes changes and an empty second drain retur
     return;
   }
 
-  const tableName = uniqueName("capture");
-  const slotName = slotNameFor({
-    runId: `live_${process.pid}_${Date.now()}`,
-    scenarioId: tableName
-  });
+  await withPostgresSlotLock(live, async () => {
+    const tableName = uniqueName("capture");
+    const slotName = slotNameFor({
+      runId: `live_${process.pid}_${Date.now()}`,
+      scenarioId: tableName
+    });
 
-  await withClient(live.target, async (client) => {
-    try {
-      await client.query(`CREATE TABLE ${tableName} (id integer PRIMARY KEY, name text)`);
-      await client.query(`ALTER TABLE ${tableName} REPLICA IDENTITY FULL`);
-      await createSlot(client, slotName);
+    await withClient(live.target, async (client) => {
+      try {
+        await client.query(`CREATE TABLE ${tableName} (id integer PRIMARY KEY, name text)`);
+        await client.query(`ALTER TABLE ${tableName} REPLICA IDENTITY FULL`);
+        await createSlot(client, slotName);
 
-      const capture = createLogicalSlotCapture({
-        client,
-        slotName,
-        keyColumns: { [`public.${tableName}`]: ["id"] },
-        batchSize: 100
-      });
+        const capture = createLogicalSlotCapture({
+          client,
+          slotName,
+          keyColumns: { [`public.${tableName}`]: ["id"] },
+          batchSize: 100
+        });
 
-      await client.query(`INSERT INTO ${tableName} (id, name) VALUES (1, 'first')`);
-      const first = await capture.drain();
-      const second = await capture.drain();
+        await client.query(`INSERT INTO ${tableName} (id, name) VALUES (1, 'first')`);
+        const first = await capture.drain();
+        const second = await capture.drain();
 
-      assert.deepEqual(first.events.map((event) => event.entity), [`public.${tableName}`]);
-      assert.deepEqual(first.events.map((event) => event.seq), [0]);
-      assert.equal(first.events[0].txId !== null, true);
-      assert.deepEqual(second.events, []);
-      assert.equal(second.more, false);
-    } finally {
-      await dropSlot(client, slotName);
-      await client.query(`DROP TABLE IF EXISTS ${tableName}`);
-      assert.equal((await liveSlotNames(client)).includes(slotName), false);
-    }
+        assert.deepEqual(first.events.map((event) => event.entity), [`public.${tableName}`]);
+        assert.deepEqual(first.events.map((event) => event.seq), [0]);
+        assert.equal(first.events[0].txId !== null, true);
+        assert.deepEqual(second.events, []);
+        assert.equal(second.more, false);
+      } finally {
+        await dropSlot(client, slotName);
+        await client.query(`DROP TABLE IF EXISTS ${tableName}`);
+        assert.equal((await liveSlotNames(client)).includes(slotName), false);
+      }
+    });
   });
 });

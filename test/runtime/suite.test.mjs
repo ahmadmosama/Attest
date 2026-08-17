@@ -67,6 +67,8 @@ function stripTiming(record) {
     durationMs: 0,
     scenarios: record.scenarios.map((scenario) => ({
       ...scenario,
+      startedAt: "<startedAt>",
+      finishedAt: "<finishedAt>",
       durationMs: 0,
       steps: scenario.steps.map((step) => ({ ...step, durationMs: 0 }))
     }))
@@ -103,6 +105,14 @@ test("runSuite records pass, fail, and hang counts and writes reports", async ()
       quarantined: 0
     });
     assert.equal(record.exitCode, exitCodeFor({ counts: record.counts }));
+    assert.deepEqual(
+      record.scenarios.map((scenario) => [scenario.startedAt, scenario.finishedAt]),
+      [
+        [START.toISOString(), START.toISOString()],
+        [START.toISOString(), START.toISOString()],
+        [START.toISOString(), START.toISOString()]
+      ]
+    );
     assert.equal(await accessOk(path.join(bundle.dir, "run.json")), true);
     assert.equal(await accessOk(path.join(bundle.dir, "junit.xml")), true);
 
@@ -134,6 +144,8 @@ test("skip decisions become visible skipped scenario entries", async () => {
     });
 
     assert.equal(record.scenarios[0].result, "skipped");
+    assert.equal(record.scenarios[0].startedAt, START.toISOString());
+    assert.equal(record.scenarios[0].finishedAt, START.toISOString());
     assert.deepEqual(record.scenarios[0].skipped.capabilities, ["file_upload"]);
   });
 });
@@ -245,6 +257,8 @@ test("one unexpected runner bug becomes infra_error and later scenarios still ru
         ["after", "pass", null]
       ]
     );
+    assert.equal(record.scenarios.find((scenario) => scenario.id === "crash").startedAt, START.toISOString());
+    assert.equal(record.scenarios.find((scenario) => scenario.id === "crash").finishedAt, START.toISOString());
   });
 });
 

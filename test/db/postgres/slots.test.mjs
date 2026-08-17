@@ -12,7 +12,7 @@ import {
   sweepOrphanSlots,
   withSlot
 } from "../../../src/db/drivers/postgres/slots.mjs";
-import { skipUnlessPostgres } from "../../helpers/postgres.mjs";
+import { skipUnlessPostgres, withPostgresSlotLock } from "../../helpers/postgres.mjs";
 
 function uniquePart(label) {
   return `${label}_${process.pid}_${Date.now()}_${Math.floor(Math.random() * 100000)}`.toLowerCase();
@@ -351,19 +351,21 @@ test("live Postgres lifecycle creates, consumes, drops, and leaves no attest slo
     return;
   }
 
-  const slotName = slotNameFor({ runId: uniquePart("live"), scenarioId: "lifecycle" });
-  await withClient(live.target, async (client) => {
-    try {
-      await withSlot(live.target, slotName, async ({ client: slotClient }) => {
-        const created = await slotNames(slotClient);
-        assert(created.includes(slotName));
-        const drained = await drainSlot(slotClient, slotName);
-        assert.equal(Array.isArray(drained.rows), true);
-      }, { client });
-    } finally {
-      await dropSlot(client, slotName);
-      assert.equal((await slotNames(client)).includes(slotName), false);
-    }
+  await withPostgresSlotLock(live, async () => {
+    const slotName = slotNameFor({ runId: uniquePart("live"), scenarioId: "lifecycle" });
+    await withClient(live.target, async (client) => {
+      try {
+        await withSlot(live.target, slotName, async ({ client: slotClient }) => {
+          const created = await slotNames(slotClient);
+          assert(created.includes(slotName));
+          const drained = await drainSlot(slotClient, slotName);
+          assert.equal(Array.isArray(drained.rows), true);
+        }, { client });
+      } finally {
+        await dropSlot(client, slotName);
+        assert.equal((await slotNames(client)).includes(slotName), false);
+      }
+    });
   });
 });
 
@@ -373,41 +375,43 @@ test("live Postgres SIGINT cleanup drops an open slot before child exit", async 
     return;
   }
 
-  const slotName = slotNameFor({ runId: uniquePart("sigint"), scenarioId: "cleanup" });
-  const child = spawn(process.execPath, ["--input-type=module", "--eval", childScript({ useWithSlot: false })], {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      ATTEST_PG_URL: live.url,
-      ATTEST_CHILD_SLOT: slotName
-    },
-    stdio: ["pipe", "pipe", "pipe"]
-  });
+  await withPostgresSlotLock(live, async () => {
+    const slotName = slotNameFor({ runId: uniquePart("sigint"), scenarioId: "cleanup" });
+    const child = spawn(process.execPath, ["--input-type=module", "--eval", childScript({ useWithSlot: false })], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        ATTEST_PG_URL: live.url,
+        ATTEST_CHILD_SLOT: slotName
+      },
+      stdio: ["pipe", "pipe", "pipe"]
+    });
 
-  try {
-    await waitForStdout(child, /ready/u);
-    await withClient(live.target, async (client) => {
-      for (let attempt = 0; attempt < 20; attempt += 1) {
-        if ((await slotNames(client)).includes(slotName)) {
-          return;
+    try {
+      await waitForStdout(child, /ready/u);
+      await withClient(live.target, async (client) => {
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          if ((await slotNames(client)).includes(slotName)) {
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      assert.fail("slot was not created before SIGINT");
-    });
+        assert.fail("slot was not created before SIGINT");
+      });
 
-    child.stdin.write("sigint\n");
-    await waitForExit(child);
+      child.stdin.write("sigint\n");
+      await waitForExit(child);
 
-    await withClient(live.target, async (client) => {
-      assert.equal((await slotNames(client)).includes(slotName), false);
-    });
-  } finally {
-    child.kill("SIGKILL");
-    await withClient(live.target, async (client) => {
-      await dropSlot(client, slotName);
-    });
-  }
+      await withClient(live.target, async (client) => {
+        assert.equal((await slotNames(client)).includes(slotName), false);
+      });
+    } finally {
+      child.kill("SIGKILL");
+      await withClient(live.target, async (client) => {
+        await dropSlot(client, slotName);
+      });
+    }
+  });
 });
 
 test("live Postgres hard kill orphan is removed by the next sweep", async (t) => {
@@ -416,42 +420,44 @@ test("live Postgres hard kill orphan is removed by the next sweep", async (t) =>
     return;
   }
 
-  const slotName = slotNameFor({ runId: uniquePart("kill"), scenarioId: "orphan" });
-  const child = spawn(process.execPath, ["--input-type=module", "--eval", childScript({ useWithSlot: false })], {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      ATTEST_PG_URL: live.url,
-      ATTEST_CHILD_SLOT: slotName
-    },
-    stdio: ["ignore", "pipe", "pipe"]
-  });
+  await withPostgresSlotLock(live, async () => {
+    const slotName = slotNameFor({ runId: uniquePart("kill"), scenarioId: "orphan" });
+    const child = spawn(process.execPath, ["--input-type=module", "--eval", childScript({ useWithSlot: false })], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        ATTEST_PG_URL: live.url,
+        ATTEST_CHILD_SLOT: slotName
+      },
+      stdio: ["ignore", "pipe", "pipe"]
+    });
 
-  try {
-    await waitForStdout(child, /ready/u);
-    await withClient(live.target, async (client) => {
-      for (let attempt = 0; attempt < 20; attempt += 1) {
-        if ((await slotNames(client)).includes(slotName)) {
-          return;
+    try {
+      await waitForStdout(child, /ready/u);
+      await withClient(live.target, async (client) => {
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          if ((await slotNames(client)).includes(slotName)) {
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      assert.fail("slot was not created before SIGKILL");
-    });
+        assert.fail("slot was not created before SIGKILL");
+      });
 
-    child.kill("SIGKILL");
-    await waitForExit(child);
+      child.kill("SIGKILL");
+      await waitForExit(child);
 
-    await withClient(live.target, async (client) => {
-      assert((await slotNames(client)).includes(slotName));
-      const dropped = await sweepOrphanSlots(client, { logger: null });
-      assert(dropped.includes(slotName));
-      assert.equal((await slotNames(client)).includes(slotName), false);
-    });
-  } finally {
-    child.kill("SIGKILL");
-    await withClient(live.target, async (client) => {
-      await dropSlot(client, slotName);
-    });
-  }
+      await withClient(live.target, async (client) => {
+        assert((await slotNames(client)).includes(slotName));
+        const dropped = await sweepOrphanSlots(client, { logger: null });
+        assert(dropped.includes(slotName));
+        assert.equal((await slotNames(client)).includes(slotName), false);
+      });
+    } finally {
+      child.kill("SIGKILL");
+      await withClient(live.target, async (client) => {
+        await dropSlot(client, slotName);
+      });
+    }
+  });
 });

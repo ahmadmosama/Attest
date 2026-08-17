@@ -13,7 +13,7 @@ import {
   probeReplicaIdentity,
   runPreflight
 } from "../../../src/db/drivers/postgres/preflight.mjs";
-import { skipUnlessPostgres } from "../../helpers/postgres.mjs";
+import { skipUnlessPostgres, withPostgresSlotLock } from "../../helpers/postgres.mjs";
 
 const TARGET_URL = "postgres://postgres:secret@127.0.0.1:5432/postgres";
 const TARGET = resolveTarget({
@@ -358,21 +358,23 @@ test("live Postgres connection pins session settings and transaction isolation",
     return;
   }
 
-  await withClient(live.target, async (client) => {
-    const settings = await client.query(`
-      SELECT
-        current_setting('application_name') AS application_name,
-        current_setting('statement_timeout') AS statement_timeout,
-        current_setting('idle_in_transaction_session_timeout') AS idle_in_transaction_session_timeout
-    `);
+  await withPostgresSlotLock(live, async () => {
+    await withClient(live.target, async (client) => {
+      const settings = await client.query(`
+        SELECT
+          current_setting('application_name') AS application_name,
+          current_setting('statement_timeout') AS statement_timeout,
+          current_setting('idle_in_transaction_session_timeout') AS idle_in_transaction_session_timeout
+      `);
 
-    assert.equal(settings.rows[0].application_name, "attest");
-    assert.match(settings.rows[0].statement_timeout, /5s|5000ms/);
-    assert.match(settings.rows[0].idle_in_transaction_session_timeout, /5s|5000ms/);
+      assert.equal(settings.rows[0].application_name, "attest");
+      assert.match(settings.rows[0].statement_timeout, /5s|5000ms/);
+      assert.match(settings.rows[0].idle_in_transaction_session_timeout, /5s|5000ms/);
 
-    await withFreshTransaction(client, async (txClient) => {
-      const isolation = await txClient.query("SHOW transaction_isolation");
-      assert.equal(isolation.rows[0].transaction_isolation, "read committed");
+      await withFreshTransaction(client, async (txClient) => {
+        const isolation = await txClient.query("SHOW transaction_isolation");
+        assert.equal(isolation.rows[0].transaction_isolation, "read committed");
+      });
     });
   });
 });
@@ -383,29 +385,31 @@ test("live Postgres preflight reflects the actual server", async (t) => {
     return;
   }
 
-  const tableName = `attest_preflight_identity_${process.pid}_${Date.now()}`;
+  await withPostgresSlotLock(live, async () => {
+    const tableName = `attest_preflight_identity_${process.pid}_${Date.now()}`;
 
-  await withClient(live.target, async (client) => {
-    try {
-      await client.query(`CREATE TABLE ${tableName} (id integer PRIMARY KEY, name text)`);
-      await client.query(`ALTER TABLE ${tableName} REPLICA IDENTITY FULL`);
+    await withClient(live.target, async (client) => {
+      try {
+        await client.query(`CREATE TABLE ${tableName} (id integer PRIMARY KEY, name text)`);
+        await client.query(`ALTER TABLE ${tableName} REPLICA IDENTITY FULL`);
 
-      const result = await runPreflight({
-        target: live.target,
-        entities: [`public.${tableName}`]
-      });
+        const result = await runPreflight({
+          target: live.target,
+          entities: [`public.${tableName}`]
+        });
 
-      assert.equal(result.findings.inRecovery, false);
-      assert.equal(result.findings.walLevel, "logical");
-      assert.equal(result.capabilities.capture, "logical_slot");
-      assert.equal(result.capabilities.deltaAssertion, true);
-      assert.equal(result.capabilities.beforeImages, "full");
-      assert.equal(result.capabilities.ordering, true);
-      assert.equal(result.capabilities.txAttribution, true);
-      assert.equal(result.capabilities.watermarkFencing, "inline");
-      assert.equal(result.capabilities.transactionalTeardown, true);
-    } finally {
-      await client.query(`DROP TABLE IF EXISTS ${tableName}`);
-    }
+        assert.equal(result.findings.inRecovery, false);
+        assert.equal(result.findings.walLevel, "logical");
+        assert.equal(result.capabilities.capture, "logical_slot");
+        assert.equal(result.capabilities.deltaAssertion, true);
+        assert.equal(result.capabilities.beforeImages, "full");
+        assert.equal(result.capabilities.ordering, true);
+        assert.equal(result.capabilities.txAttribution, true);
+        assert.equal(result.capabilities.watermarkFencing, "inline");
+        assert.equal(result.capabilities.transactionalTeardown, true);
+      } finally {
+        await client.query(`DROP TABLE IF EXISTS ${tableName}`);
+      }
+    });
   });
 });
