@@ -593,7 +593,7 @@ test("runCommand loads a ruleset once, records its hash, and prints broken rules
 test("createDbDriver declares planned drivers and returns the Postgres driver", () => {
   assert.deepEqual(DB_DRIVER_MODES, {
     postgres: "implemented",
-    sqlite: "planned",
+    sqlite: "implemented",
     mysql: "planned",
     mongo: "planned",
     bigquery: "planned"
@@ -609,7 +609,7 @@ test("createDbDriver declares planned drivers and returns the Postgres driver", 
   const driver = createDbDriver({ target, runId: "run", scenarioId: "scenario.one" });
   assert.equal(typeof driver.preflight, "function");
 
-  for (const name of ["sqlite", "mysql", "mongo", "bigquery"]) {
+  for (const name of ["mysql", "mongo", "bigquery"]) {
     assert.throws(
       () => createDbDriver({ target: { ...target, driver: name }, runId: "run", scenarioId: "scenario.one" }),
       (error) => {

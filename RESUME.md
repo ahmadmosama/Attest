@@ -89,18 +89,29 @@ Done:
   `mongo`, `sqlite` and `bigquery` all resolve to typed targets under the same DB-09 allowlist
   and non production rule, and the four unimplemented ones are refused by name, each naming the
   plan that lands it. Summary in `06-01-SUMMARY.md`.
-- **06-02, first half**: `src/db/capture/snapshot-diff.mjs`, the engine neutral snapshot diff,
-  with 11 tests. A changed column is one update rather than a delete plus an insert, a duplicate
-  declared key is refused, output is deterministic in key order, and the blind spot is a named
-  export rather than a comment.
+- **06-02**, the SQLite driver, DB-03. Snapshot diff capture behind the same port, driver
+  defaults pinned explicitly, an observer connection that physically cannot write, and the three
+  things a diff cannot see proven by committed tests rather than described. The degradation
+  reaches the operator through the CLI banner, every close result, and a new `database` block in
+  run.json. 30 tests, no server needed. Summary in `06-02-SUMMARY.md`.
 
 Next, in order:
-1. `src/db/drivers/sqlite/`, the driver itself: openWindow snapshots, closeWindow snapshots and
-   diffs, the capability descriptor declaring `capture: "snapshot"` with no ordering and no
-   attribution, and the degraded mode printed on every run. Flip `DB_DRIVER_MODES.sqlite` to
-   implemented, which the registry test already requires a mode for.
-2. 06-03 MySQL, 06-04 Mongo, 06-05 BigQuery. Each is independent of the others.
-3. 06-06 and 06-07, generation. 06-08, acceptance and docs.
+1. 06-03 MySQL, 06-04 Mongo, 06-05 BigQuery. Each is independent of the others.
+   - **06-03 has a correction already written into its plan and not yet acted on.** `mysql2`
+     speaks the client protocol but does not read the binlog, so the dependency is
+     `@vlasky/zongji` (0.9.0, maintained fork of the abandoned `zongji`), which brings `mysql2`
+     transitively. That has to go through the package legitimacy checkpoint from 03-04 before it
+     is added. Writing a binlog parser by hand was considered and rejected: the format is
+     versioned per MySQL release and its correctness cannot be asserted without a real server.
+   - 06-04 Mongo is the most tractable of the three: change streams come from the official
+     driver, with no protocol parsing.
+   - 06-05 BigQuery's compile time refusal needs no credentials and no network at all, so it can
+     land whole regardless of what infrastructure is available.
+2. 06-06 and 06-07, generation. 06-08, acceptance and docs.
+
+Two shapes 06-08 will have to reconcile: SQLite's `poll` returns events, BigQuery's will want
+rows, and SQLite is not yet exercised through a full `attest run` because the fixture app is
+Postgres shaped.
 
 ### Phase 6, what it needs
 

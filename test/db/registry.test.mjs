@@ -50,13 +50,17 @@ describe("database driver registry", () => {
     assert.doesNotThrow(() => assertImplementsDbPort(driver));
   });
 
+  test("sqlite is implemented and builds a driver behind the same port", () => {
+    const driver = driverFor("sqlite:./fixtures/local.db");
+    assert.doesNotThrow(() => assertImplementsDbPort(driver));
+  });
+
   test("a declared but unimplemented driver is refused by name, never substituted", () => {
     // Substituting Postgres for a MySQL target would produce a green run that
     // verified a database nobody asked about.
     for (const [url, driver] of [
       ["mysql://user:secret@db.example.test/app_test", "mysql"],
       ["mongodb://user:secret@db.example.test/app_test", "mongo"],
-      ["sqlite:./fixtures/local.db", "sqlite"],
       ["bigquery://analytics-project/staging_dataset", "bigquery"]
     ]) {
       assert.throws(

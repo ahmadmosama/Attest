@@ -321,6 +321,9 @@ export async function runSuite({
       bindings: config.hashes?.bindings ?? {},
       ruleset: config.hashes?.ruleset ?? null
     },
+    // Carried into run.json so a reader comparing two green runs on two engines
+    // can tell what each one was actually able to observe.
+    dbCapabilities: dbCapabilities(config),
     telemetry: {
       timeouts: scenarios.flatMap((scenario) => scenario.steps).filter((step) => step.status === "timed_out").length,
       retries: 0,

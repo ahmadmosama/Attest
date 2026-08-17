@@ -254,6 +254,20 @@ export const RunRecordSchema = z.preprocess(
       })
       .strict(),
     hashes: z.object({ bindings: z.record(z.string(), Text), ruleset: HexSha.nullable() }).strict(),
+    // What the database driver could honestly observe. A reader comparing two
+    // green runs on two engines has to be able to tell that one of them could
+    // not see a round trip at all.
+    database: z
+      .object({
+        driver: Text,
+        capture: Text,
+        ordering: z.boolean(),
+        txAttribution: z.boolean(),
+        degraded: TextArray
+      })
+      .strict()
+      .nullable()
+      .default(null),
     telemetry: z
       .object({
         timeouts: z.number().int().nonnegative(),
@@ -480,6 +494,25 @@ function deriveConvergeMs(scenarios) {
   return scenarioDeltas(scenarios).flatMap((delta) => delta.convergeMs ?? []);
 }
 
+function databaseFor(input) {
+  const capabilities = input?.dbCapabilities ?? null;
+
+  // Only a real driver descriptor is recorded. The suite also accepts a partial
+  // capability object for scheduling decisions, and writing that into the run
+  // record would claim a driver observed something when no driver ran.
+  if (typeof capabilities?.driver !== "string" || typeof capabilities?.capture !== "string") {
+    return null;
+  }
+
+  return {
+    driver: capabilities.driver,
+    capture: capabilities.capture,
+    ordering: capabilities.ordering === true,
+    txAttribution: capabilities.txAttribution === true,
+    degraded: [...(capabilities.degraded ?? [])]
+  };
+}
+
 function telemetryFor(input, scenarios) {
   const convergeMs = deriveConvergeMs(scenarios);
 
@@ -544,6 +577,7 @@ export function createRunRecord(input) {
     requirements,
     escapeHatch,
     hashes,
+    database: databaseFor(input),
     telemetry,
     delta,
     scenarios
