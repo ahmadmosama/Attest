@@ -10,7 +10,7 @@ Updated 2026-08-17. Working tree is clean, everything below is committed.
 | Phase 3 | Complete and SIGNED OFF, with a 90.91 percent kill rate |
 | Phase 5 | Complete. Four criteria proven against a live emulator, real APK, real Postgres |
 | Milestone | Landed. One command runs one real app on the Android emulator and leaves an evidence bundle |
-| Tests | 810 passing, 0 failing, 0 skipped with a device attached, plus 11 added since that run |
+| Tests | 843 total, 840 passing, 0 failing. The 3 skips are the live Android criteria with no device attached |
 | Verified against | real PostgreSQL 17.6, real Chrome, and a real Android emulator |
 
 ## Run the gate
@@ -77,7 +77,7 @@ node src/cli/main.mjs run \
 
 | Phase | Scope | State |
 |---|---|---|
-| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | Planned, 8 plans, 06-01 done |
+| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | 2 of 8 plans done |
 | 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | Not planned |
 
 ### Phase 6, where it actually is
