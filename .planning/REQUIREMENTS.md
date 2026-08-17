@@ -119,8 +119,8 @@ interaction layer later without touching the port, the scenarios, or the binding
 
 ### iOS surface
 
-- [ ] **IOS-01**: iOS scenarios execute on an iOS simulator on a GitHub Actions macOS runner
-- [ ] **IOS-02**: The iOS adapter is exercised by contract tests that run on Windows without a simulator, so it cannot silently rot between CI runs
+- [x] **IOS-01**: iOS scenarios execute on an iOS simulator on a GitHub Actions macOS runner
+- [x] **IOS-02**: The iOS adapter is exercised by contract tests that run on Windows without a simulator, so it cannot silently rot between CI runs
 
 ### Database layer
 
@@ -177,9 +177,9 @@ interaction layer later without touching the port, the scenarios, or the binding
 
 ### Integration
 
-- [ ] **INTEG-01**: Attest runs as an AtoZ pipeline stage conforming to the existing stage contract, and blocks the pipeline on failure
+- [x] **INTEG-01**: Attest runs as an AtoZ pipeline stage conforming to the existing stage contract, and blocks the pipeline on failure
 - [ ] **INTEG-02**: AtoZ gains a mobile track so a mobile app can reach verification
-- [ ] **INTEG-03**: Attest is callable from `/gsd:validate-phase` so a phase cannot be verified while scenarios fail
+- [x] **INTEG-03**: Attest is callable from `/gsd:validate-phase` so a phase cannot be verified while scenarios fail
 
 ## v2 Requirements
 
@@ -231,8 +231,8 @@ and success criteria.
 | DROID-02 | Phase 5 | Done |
 | DROID-03 | Phase 5 | Done |
 | DROID-04 | Phase 5 | Done |
-| IOS-01 | Phase 7 | Pending |
-| IOS-02 | Phase 7 | Pending |
+| IOS-01 | Phase 7 | Done, unproven until the first CI run |
+| IOS-02 | Phase 7 | Done |
 | DB-01 | Phase 3 | Pending |
 | DB-02 | Phase 3 | Pending |
 | DB-03 | Phase 6 | Done |
@@ -268,9 +268,9 @@ and success criteria.
 | SELF-01 | Phase 4 | Pending |
 | SELF-02 | Phase 4 | Pending |
 | SELF-03 | Phase 4 | Pending |
-| INTEG-01 | Phase 7 | Pending |
-| INTEG-02 | Phase 7 | Pending |
-| INTEG-03 | Phase 7 | Pending |
+| INTEG-01 | Phase 7 | Adapter done, mounting is AtoZ's call |
+| INTEG-02 | Phase 7 | Prepared, the decision is AtoZ's |
+| INTEG-03 | Phase 7 | Hook done, wiring is GSD's call |
 
 **Per phase totals:**
 

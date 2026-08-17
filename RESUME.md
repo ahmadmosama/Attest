@@ -6,7 +6,7 @@ Updated 2026-08-17. Working tree is clean, everything below is committed.
 
 | Thing | State |
 |---|---|
-| Phases done | 6 of 7 complete, Phase 7 at 2 of 3 |
+| Phases done | 7 of 7. All plans executed |
 | Phase 3 | Complete and SIGNED OFF, with a 90.91 percent kill rate |
 | Phase 5 | Complete. Four criteria proven against a live emulator, real APK, real Postgres |
 | Milestone | Landed. One command runs one real app on the Android emulator and leaves an evidence bundle |
@@ -78,7 +78,7 @@ node src/cli/main.mjs run \
 | Phase | Scope | State |
 |---|---|---|
 | 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | Complete, GEN-03 crawler deferred |
-| 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | 2 of 3, integration remains |
+| 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | Adapters complete, mounting is AtoZ's and GSD's call |
 
 ### Phase 6, complete with two stated gaps
 
@@ -185,15 +185,26 @@ Done:
   `check.yml` runs the gate on ubuntu and windows with a real Postgres, which is DROID-03's
   second half.
 
-Next:
-1. **07-03, the integration**, INTEG-01 to INTEG-03. The plan is written and deliberately careful,
-   because two of the three requirements modify `Desktop/Claude/A to Z Deployment`, a separate
-   mature project with a frozen schema and a one-array stage order. Attest owns the adapter; AtoZ
-   owns whether and where to mount it. What Attest can land alone: the stage module matching the
-   AtoZ contract, the GSD validate hook, and the mounting instructions.
+- **07-03**, the integration, INTEG-01 and INTEG-03. The AtoZ stage is built to the contract's
+  SHAPE and imports nothing from AtoZ, with a test that reads the source to prove it; even the
+  BlockerError is duck typed. The GSD hook treats a requirement with no covering scenario as
+  unverified, because a hook that only reported on scenarios that exist would let an untested
+  phase sail through with borrowed authority. 11 tests. Summary in `07-03-SUMMARY.md`.
 
-Two rules from that plan worth carrying: the stage reads `run.json` and never the HTML report,
-and a missing verification is a failure rather than a pass. Silence must never read as success.
+## What is genuinely left
+
+Every plan across all seven phases has been executed. What remains is work that needs something
+this machine does not have, or a decision that belongs to another project:
+
+1. **Mount the AtoZ stage.** `docs/integration.md` carries the exact three change diff. It goes
+   after `review` and before `deploy`, which is the hole it fills. AtoZ's call.
+2. **Wire the GSD hook** into `/gsd:validate-phase`. GSD's call.
+3. **INTEG-02, the AtoZ mobile track.** Prepared, and the decision is AtoZ's: it means deciding
+   what `build` and `deploy` mean for a mobile app.
+4. **The first iOS CI run.** There is no macOS here, so `ios.yml` is unproven until it runs once.
+5. **Live proof for MySQL, Mongo and BigQuery**, which needs the 03-04 dependency checkpoint plus
+   a MySQL, a replica set and a GCP project.
+6. **GEN-03, the crawler.** Its safety net is built and tested.
 
 ## Things that will bite you if forgotten
 
