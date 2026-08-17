@@ -474,12 +474,32 @@ async function loadDbRuleset({ config, cwd, stderr, deps }) {
   return Object.freeze({ ok: false, ruleset: null, hash: null });
 }
 
-function adapterBanner({ registry, config, appArtifact }) {
-  if (registry.mode === "real") {
-    return `web: real (${config.web.channel}) ${appArtifact.url ?? appArtifact.path}\n`;
+// The banner exists so an acceptance test can prove the run did not quietly
+// use the fake adapter, so it has to name the surface that actually ran. It
+// used to say "web" for every real run, which on an Android run was simply
+// untrue.
+function surfaceDetail(surface, config) {
+  if (surface === "web") {
+    return `(${config.web.channel})`;
   }
 
-  return `surface adapter: fake\n`;
+  if (surface === "android") {
+    const device = config.android?.serial ?? config.android?.avd ?? "auto";
+    return `(${device})`;
+  }
+
+  return "";
+}
+
+function adapterBanner({ registry, config, appArtifact }) {
+  if (registry.mode !== "real") {
+    return `surface adapter: fake\n`;
+  }
+
+  const target = appArtifact.url ?? appArtifact.path;
+  return `${config.surfaces
+    .map((surface) => `${surface}: real ${surfaceDetail(surface, config)} ${target}`.replace(/\s+/gu, " "))
+    .join("\n")}\n`;
 }
 
 function dbBanner({ config, dbCaps }) {
@@ -631,6 +651,7 @@ export async function runCommand(flags = {}, io = {}) {
       ...(flags.app === undefined ? {} : { app: flags.app }),
       ...(flags.surfaces === undefined ? {} : { surfaces: flags.surfaces }),
       ...(flags.timeouts === undefined ? {} : { timeouts: flags.timeouts }),
+      ...(flags.android === undefined ? {} : { android: flags.android }),
       ...(flags.failOnSkip === undefined ? {} : { failOnSkip: flags.failOnSkip }),
       ...(flags.concurrency === undefined ? {} : { concurrency: flags.concurrency }),
       ...(flags.color === undefined ? {} : { color: flags.color })

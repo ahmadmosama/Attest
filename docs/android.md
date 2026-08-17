@@ -156,6 +156,28 @@ follows for a HAR.
 interrupt, and a killed recording leaves an unplayable file, which is evidence that looks
 present and is not.
 
+## A tap is fire and forget, so assert before closing a delta window
+
+This is the single thing most likely to waste an afternoon, and it was found the hard way.
+
+`input tap` returns as soon as the touch is dispatched. The app's own work, an HTTP call and a
+database write, is still in flight. A change window is fenced by watermark rows and the close
+marker is written **before** the close converges, so a write that lands after the marker falls
+outside the fence and is invisible to the delta. The run then reports the mutation as missing
+while the row plainly exists in the database.
+
+The fix is a step, not a setting:
+
+```yaml
+- tap: button:create_order
+- expect_text: { target: state:status, equals: "order created" }   # <- this
+- delta_window: close
+```
+
+The assertion converges on a real signal from the app, which is exactly why `sleep` is banned.
+On web this is mostly free, because Playwright's `click` already waits for actionability and the
+navigation that follows. On Android nothing waits for you.
+
 ## Known limits, stated rather than hidden
 
 1. **Taps are coordinates.** The tap point is the integer centre of the node's dumped bounds.
@@ -173,6 +195,16 @@ present and is not.
    booting will make the next `startEmulator` wait for a serial that never appears, because the
    second launch is refused. Check `adb devices` and for stray `qemu-system-x86_64` processes
    before blaming the code.
+7. **Attest does not model z order.** A node underneath an overlay, an ActionBar, a snackbar, a
+   bottom sheet scrim, still reports its own bounds in the dump, so the tap lands on the overlay
+   instead. This was hit for real while building the fixture: with the default theme the
+   ActionBar is drawn over the content and the first button's centre fell underneath it. The tap
+   succeeded, the app did nothing, and the next assertion failed. The diagnosis is in the bundle:
+   the failure screenshot shows the untouched screen and the hierarchy dump shows the overlay's
+   bounds covering the button's centre.
+8. **Material buttons uppercase their label.** `setText("Create order")` dumps as
+   `CREATE ORDER`, so a `role` plus `name` binding has to match what the theme renders, not what
+   the source says. Binding by id sidesteps it, which is the recommended path anyway.
 
 ## The fixture APK
 
@@ -209,3 +241,75 @@ node --test test/acceptance/phase-05-android.test.mjs
 
 With no device attached the live criteria skip and print what was not proven. A gate that
 quietly passes on a missing emulator is the exact failure mode this project exists to refuse.
+
+## The milestone demo
+
+One command runs one real app on the Android emulator, drives it, and leaves an evidence
+bundle. Reproduced 2026-08-17 against `attest_pixel7_a35` (API 35) and PostgreSQL 17.6.
+
+```bash
+# 1. build the APK, offline
+node tools/build-fixture-apk.mjs
+
+# 2. start the fixture HTTP app on a fresh schema, note its port
+#    (the emulator reaches the host loopback as 10.0.2.2)
+
+# 3. one command
+node src/cli/main.mjs run \
+  --scenarios "examples/mobile-demo/scenarios/*.attest.yaml" \
+  --bindings examples/mobile-demo/bindings \
+  --surface android \
+  --app .attest/fixture/attest-selfverify.apk \
+  --android-package attest.selfverify \
+  --android-activity .MainActivity \
+  --android-serial emulator-5554 \
+  --android-extra "attest_api_base=http://10.0.2.2:55134"
+```
+
+```text
+android: real (emulator-5554) .attest/fixture/attest-selfverify.apk
+1 scenarios: 1 passed, 0 failed, 0 skipped, 0 infra
++-------------------------+--------------+--------------+----------+
+| Scenario                | Surface      | Result       | ms       |
++-------------------------+--------------+--------------+----------+
+| mobile_demo.create_ord… | android      | pass         | 13658    |
++-------------------------+--------------+--------------+----------+
+HTML report: .attest/runs/20260817T171956Z-6fad1c3d/report.html
+```
+
+Verified independently rather than from the runner's own output:
+
+```text
+$ psql -tAc "SELECT id, customer_id, status, total_cents FROM p5_demo.orders WHERE id='order_300'"
+order_300|cust_a|created|9900
+
+$ psql -tAc "SELECT sku, quantity, unit_cents FROM p5_demo.order_items WHERE order_id='order_300'"
+new_lamp|2|3000
+new_shade|1|3900
+
+$ ls .attest/runs/20260817T171956Z-6fad1c3d/scenarios/*/evidence/
+step-2-checkpoint-customers_loaded.png
+step-5-checkpoint-order_created.png
+```
+
+No recording on a pass, which is the contract.
+
+Running it a second time against the same schema fails, and the failure is worth showing
+because it is what the tool is for. The fixture's create is not idempotent, so the second run
+gets a primary key conflict:
+
+```text
+Scenario failure: E_TIMEOUT scenario mobile_demo.create_order step 4 step timed out after 30000ms
+```
+
+and the bundle names the cause without anyone attaching a debugger:
+
+```text
+evidence/failure.png
+evidence/failure-hierarchy.xml   <- status_text text="create failed 500"
+evidence/recording.mp4
+```
+
+The Postgres delta half of the milestone is proven by criterion 2 of
+`test/acceptance/phase-05-android.test.mjs`, which runs the same steps with a delta window
+around the tap and asserts four expected mutations and zero unexplained ones.

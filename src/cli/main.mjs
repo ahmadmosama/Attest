@@ -18,6 +18,21 @@ function collect(value, previous) {
   return [...(previous ?? []), value];
 }
 
+// `--android-extra key=value`, repeatable. Intent extras are how an app under
+// test is told something that only exists at run time, such as the ephemeral
+// port a local fixture server bound to.
+function parseExtras(values) {
+  return Object.fromEntries(
+    values.map((entry) => {
+      const index = entry.indexOf("=");
+      if (index <= 0) {
+        throw new CommanderError(EXIT.USAGE_ERROR, "commander.invalidArgument", "Expected key=value");
+      }
+      return [entry.slice(0, index), entry.slice(index + 1)];
+    })
+  );
+}
+
 function parseInteger(value) {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) {
@@ -51,6 +66,15 @@ function programFor(io) {
     .option(flag("requirements <file>"))
     .option(flag("timeout-step <ms>"), undefined, parseInteger)
     .option(flag("timeout-scenario <ms>"), undefined, parseInteger)
+    // Android needs a package and a launch activity, and neither is inferred
+    // from the APK. Without these flags the surface would only be reachable
+    // through a programmatic config, which would make "one command runs it"
+    // false.
+    .option(flag("android-package <name>"))
+    .option(flag("android-activity <name>"))
+    .option(flag("android-avd <name>"))
+    .option(flag("android-serial <serial>"))
+    .option(flag("android-extra <key=value...>"))
     .option(flag("fail-on-skip"))
     .option(flag("no-fail-on-skip"))
     .option(flag("json"))
@@ -61,6 +85,13 @@ function programFor(io) {
         ...(options.timeoutStep === undefined ? {} : { stepMs: options.timeoutStep }),
         ...(options.timeoutScenario === undefined ? {} : { scenarioMs: options.timeoutScenario })
       };
+      const android = {
+        ...(options.androidPackage === undefined ? {} : { package: options.androidPackage }),
+        ...(options.androidActivity === undefined ? {} : { activity: options.androidActivity }),
+        ...(options.androidAvd === undefined ? {} : { avd: options.androidAvd }),
+        ...(options.androidSerial === undefined ? {} : { serial: options.androidSerial }),
+        ...(options.androidExtra === undefined ? {} : { extras: parseExtras(options.androidExtra) })
+      };
       const flags = {
         ...(options.scenarios === undefined ? {} : { scenariosGlob: options.scenarios }),
         ...(options.bindings === undefined ? {} : { bindingsDir: options.bindings }),
@@ -69,6 +100,7 @@ function programFor(io) {
         ...(options.artifacts === undefined ? {} : { artifactRoot: options.artifacts }),
         ...(options.requirements === undefined ? {} : { requirementsFile: options.requirements }),
         ...(Object.keys(timeouts).length === 0 ? {} : { timeouts }),
+        ...(Object.keys(android).length === 0 ? {} : { android }),
         ...(options.failOnSkip === undefined ? {} : { failOnSkip: options.failOnSkip }),
         ...(options.color === undefined ? {} : { color: options.color }),
         ids: options.id,

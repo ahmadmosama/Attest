@@ -1,0 +1,8 @@
+surface: android
+elements:
+  button:create_order: { testId: create_order_action }
+  button:delete_customer: { testId: delete_customer_action }
+screens:
+  screen:customers: { deeplink: "attest-selfverify://customers", ready: { testId: customer_list } }
+states:
+  state:status: { testId: status_text }

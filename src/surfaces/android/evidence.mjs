@@ -68,8 +68,13 @@ export async function captureScreenshot(session, { name, signal } = {}) {
 export async function captureHierarchy(session, { name = "hierarchy", signal } = {}) {
   try {
     await run(session, ADB_COMMANDS.uiDump, { devicePath: session.dumpPath }, { signal });
-    const result = await run(session, ADB_COMMANDS.readFile, { devicePath: session.dumpPath }, { signal });
-    const xml = redactText(session, String(result.stdout ?? ""));
+    // Bytes, not text, for the same reason dumpHierarchy reads bytes: captured
+    // text is capped and a truncated dump is misleading evidence.
+    const result = await run(session, ADB_COMMANDS.readFile, { devicePath: session.dumpPath }, {
+      signal,
+      encoding: "buffer"
+    });
+    const xml = redactText(session, result.stdout.toString("utf8"));
     return await writeBundle(session, `${EVIDENCE_DIR}/${safeName(session, name)}.xml`, xml);
   } catch {
     return null;

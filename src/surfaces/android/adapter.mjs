@@ -13,7 +13,7 @@ import {
   retainRecording,
   startRecording
 } from "./evidence.mjs";
-import { ANDROID_SESSION_DEFAULTS, openAndroidSession, withStepTimeout } from "./session.mjs";
+import { ANDROID_SESSION_DEFAULTS, openAndroidSession } from "./session.mjs";
 
 // The plan op vocabulary is surface neutral, so the capability lookup has to
 // map back to the IR op name the capability table is keyed by. Same table the
@@ -235,18 +235,16 @@ export function createAndroidSurface(options = {}) {
       const kind = opKind(planOp);
       assertCapabilitiesSupported(descriptor, planOp);
 
-      const scoped = withStepTimeout(session, session.stepTimeoutMs);
-
       if (ACT_KINDS.has(kind)) {
-        return executeAct(scoped, planOp, { signal });
+        return executeAct(session, planOp, { signal });
       }
 
       if (ASSERT_KINDS.has(kind)) {
-        return executeAssert(scoped, planOp, { signal });
+        return executeAssert(session, planOp, { signal });
       }
 
       if (kind === "checkpoint") {
-        return executeCheckpoint(scoped, planOp);
+        return executeCheckpoint(session, planOp);
       }
 
       if (kind === "db_window_open" || kind === "db_window_close") {

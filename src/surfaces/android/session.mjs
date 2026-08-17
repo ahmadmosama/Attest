@@ -56,10 +56,6 @@ export function openAndroidSession({
   });
 }
 
-export function withStepTimeout(session, stepTimeoutMs) {
-  return Object.freeze({ ...session, stepTimeoutMs });
-}
-
 /**
  * Run one adb command for this session's device.
  */
@@ -80,8 +76,16 @@ export function run(session, kind, input = {}, { signal, encoding = "utf8" } = {
  */
 export async function dumpHierarchy(session, { signal } = {}) {
   await run(session, ADB_COMMANDS.uiDump, { devicePath: session.dumpPath }, { signal });
-  const result = await run(session, ADB_COMMANDS.readFile, { devicePath: session.dumpPath }, { signal });
-  return parseHierarchy(result.stdout);
+  // Read as bytes, not text. Captured text is capped at a megabyte, and a dump
+  // of a dense screen can reach that. A truncated dump parses into a partial
+  // tree, so a locator would report not found for an element that is on the
+  // screen: a wrong answer with no error, which is the one outcome this
+  // project exists to prevent.
+  const result = await run(session, ADB_COMMANDS.readFile, { devicePath: session.dumpPath }, {
+    signal,
+    encoding: "buffer"
+  });
+  return parseHierarchy(result.stdout.toString("utf8"));
 }
 
 function convergeFailure(lastError) {

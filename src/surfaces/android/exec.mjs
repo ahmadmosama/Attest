@@ -29,6 +29,10 @@ function aborted(argv) {
   return new InfraError("E_ADB_ABORTED", "adb invocation was aborted.", { argv });
 }
 
+// Text output is capped so a runaway command cannot exhaust memory. Buffer
+// output is NOT capped, because it is evidence: a screenshot or a screen
+// recording truncated at a megabyte is a corrupt artifact that still looks
+// present. Anything that must not be truncated has to ask for "buffer".
 function truncate(buffers) {
   const joined = Buffer.concat(buffers);
   const slice = joined.length > MAX_CAPTURED_BYTES ? joined.subarray(0, MAX_CAPTURED_BYTES) : joined;

@@ -1,0 +1,18 @@
+id: mobile_demo.create_order
+requirement: [DROID-01, DROID-02, DROID-04]
+tags: [mobile_demo, milestone]
+
+# The milestone demo scenario. It names no selector, no URL and no platform:
+# every one of those lives in the bindings file, which is what lets the same
+# steps run on web and on the Android emulator with no edit here.
+steps:
+  - open: screen:customers
+  - expect_visible: screen:customers
+  - checkpoint: customers_loaded
+  - tap: button:create_order
+  # This step is load bearing on mobile. A tap is dispatched and returns, so
+  # the app's write is still in flight. Asserting the app's own outcome is what
+  # proves the write happened, and it is why `sleep` is banned: convergence on a
+  # real signal, never a guessed duration.
+  - expect_text: { target: state:status, equals: "order created" }
+  - checkpoint: order_created

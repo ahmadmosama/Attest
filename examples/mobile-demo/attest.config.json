@@ -1,0 +1,10 @@
+{
+  "artifactRoot": ".attest/runs",
+  "scenariosGlob": ["examples/mobile-demo/scenarios/*.attest.yaml"],
+  "bindingsDir": "examples/mobile-demo/bindings",
+  "surfaces": ["android"],
+  "android": {
+    "package": "attest.selfverify",
+    "activity": ".MainActivity"
+  }
+}

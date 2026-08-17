@@ -112,10 +112,10 @@ interaction layer later without touching the port, the scenarios, or the binding
 
 ### Android surface
 
-- [ ] **DROID-01**: Runner starts, boot gates, and shuts down an AVD automatically, with no manual emulator step
-- [ ] **DROID-02**: Android scenarios execute against an installed APK on the emulator
-- [ ] **DROID-03**: adb is invoked as a direct process with an argument array, never through a POSIX shell, so Git Bash path mangling cannot occur
-- [ ] **DROID-04**: Android adapter captures screenshots, screen recording, and the UI hierarchy on failure
+- [x] **DROID-01**: Runner starts, boot gates, and shuts down an AVD automatically, with no manual emulator step
+- [x] **DROID-02**: Android scenarios execute against an installed APK on the emulator
+- [x] **DROID-03**: adb is invoked as a direct process with an argument array, never through a POSIX shell, so Git Bash path mangling cannot occur
+- [x] **DROID-04**: Android adapter captures screenshots, screen recording, and the UI hierarchy on failure
 
 ### iOS surface
 
@@ -227,10 +227,10 @@ and success criteria.
 | RUN-07 | Phase 1 | Pending |
 | WEB-01 | Phase 2 | Pending |
 | WEB-02 | Phase 2 | Pending |
-| DROID-01 | Phase 5 | Pending |
-| DROID-02 | Phase 5 | Pending |
-| DROID-03 | Phase 5 | Pending |
-| DROID-04 | Phase 5 | Pending |
+| DROID-01 | Phase 5 | Done |
+| DROID-02 | Phase 5 | Done |
+| DROID-03 | Phase 5 | Done |
+| DROID-04 | Phase 5 | Done |
 | IOS-01 | Phase 7 | Pending |
 | IOS-02 | Phase 7 | Pending |
 | DB-01 | Phase 3 | Pending |
