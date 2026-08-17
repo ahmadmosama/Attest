@@ -1,0 +1,159 @@
+[
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "devices",
+      "-l"
+    ],
+    "env": {}
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "wait-for-device"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "getprop",
+      "sys.boot_completed"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "install",
+      "-r",
+      "-g",
+      "C:\\builds\\fixture.apk"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "am",
+      "start",
+      "-W",
+      "-n",
+      "com.attest.fixture/.MainActivity"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "uiautomator",
+      "dump",
+      "/sdcard/ui.xml"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "pull",
+      "/sdcard/ui.xml",
+      "C:\\runs\\ui.xml"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "input",
+      "tap",
+      "120",
+      "340"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "input",
+      "text",
+      "hello"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "exec-out",
+      "screencap",
+      "-p"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "shell",
+      "am",
+      "force-stop",
+      "com.attest.fixture"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  },
+  {
+    "command": "/opt/android/platform-tools/adb",
+    "args": [
+      "-s",
+      "emulator-5554",
+      "emu",
+      "kill"
+    ],
+    "env": {
+      "ANDROID_SERIAL": "emulator-5554"
+    }
+  }
+]
