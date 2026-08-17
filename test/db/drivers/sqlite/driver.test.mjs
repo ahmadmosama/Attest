@@ -335,6 +335,35 @@ describe("sqlite driver", () => {
     await assertNoOpenHandle(fixture);
   });
 
+  test("a snapshot that fails mid window surfaces, instead of timing out into an empty delta", async () => {
+    const fixture = await fixtureDatabase();
+    const driver = driverFor(fixture);
+    await driver.preflight();
+    await driver.openWindow({ op: { seq: 0 } });
+
+    // The table goes away underneath the window. Convergence treats a throwing
+    // probe as "not yet", so without the guard this would retry for the whole
+    // timeout and then report no events at all, which reads as a clean pass.
+    fixture.app.exec("DROP TABLE order_items");
+
+    const started = Date.now();
+    await assert.rejects(
+      () => driver.closeWindow({ kind: "db_window_close", seq: 0, expect: [], ...FAST_WINDOW }),
+      (error) => {
+        assert.equal(error.code, "E_SQLITE_SNAPSHOT_FAILED");
+        assert.equal(error.details.entity, "main.order_items");
+        return true;
+      }
+    );
+
+    // And it gave up immediately rather than spending the convergence budget on
+    // a condition that could never become true.
+    assert(Date.now() - started < FAST_WINDOW.convergeTimeoutMs, "a fatal snapshot error must not wait out the timeout");
+
+    await driver.teardown();
+    fixture.app.close();
+  });
+
   test("closing with no open window is an infrastructure error, not an empty pass", async () => {
     const fixture = await fixtureDatabase();
     const driver = driverFor(fixture);

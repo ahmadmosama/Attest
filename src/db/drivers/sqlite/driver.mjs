@@ -247,10 +247,29 @@ export function createSqliteDriver({ target, config = {}, runId, scenarioId, dep
       const keyColumns = keyColumnsFor(config, ctx);
       const now = ctx.now ?? config.now ?? Date.now;
       let events = Object.freeze([]);
+      // converge and quietPeriod both treat a throwing probe as "not yet". A
+      // snapshot that fails because the table went away, or because an entity
+      // name is not an identifier, will never succeed by waiting, so retrying
+      // it would spend the whole window and then report an empty delta: a
+      // failure about the wrong thing, and the kind that reads as a pass.
+      let fatal = null;
 
       function resnapshot() {
         events = diffAll(window.entities, keyColumns, window.before, snapshotAll(handle, window.entities, window.tenantKey));
         return events;
+      }
+
+      function guarded(work, satisfied) {
+        if (fatal !== null) {
+          return satisfied;
+        }
+
+        try {
+          return work();
+        } catch (error) {
+          fatal = error;
+          return satisfied;
+        }
       }
 
       // Bounded convergence on the expected mutations becoming visible. This is
@@ -261,8 +280,12 @@ export function createSqliteDriver({ target, config = {}, runId, scenarioId, dep
         intervalMs: positiveMs(op.convergeIntervalMs, DEFAULT_CONVERGE_INTERVAL_MS),
         signal,
         now,
-        probe: () => Object.freeze({ ok: expectationsMet(resnapshot(), expect) })
+        probe: () => guarded(() => Object.freeze({ ok: expectationsMet(resnapshot(), expect) }), Object.freeze({ ok: true }))
       });
+
+      if (fatal !== null) {
+        throw fatal;
+      }
 
       // Then wait for the picture to stop moving, so a write that lands just
       // after the expectations are met is still inside this window rather than
@@ -274,15 +297,20 @@ export function createSqliteDriver({ target, config = {}, runId, scenarioId, dep
         capMs: positiveMs(op.quietPeriodCapMs, quietMs * QUIET_CAP_MULTIPLIER),
         signal,
         now,
-        drain: () => {
-          const count = resnapshot().length;
-          const fresh = Math.max(0, count - lastCount);
-          lastCount = count;
-          return fresh;
-        }
+        drain: () =>
+          guarded(() => {
+            const count = resnapshot().length;
+            const fresh = Math.max(0, count - lastCount);
+            lastCount = count;
+            return fresh;
+          }, 0)
       });
 
       state.window = null;
+
+      if (fatal !== null) {
+        throw fatal;
+      }
 
       return Object.freeze({
         ok: true,

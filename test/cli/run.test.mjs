@@ -596,7 +596,7 @@ test("createDbDriver declares planned drivers and returns the Postgres driver", 
     sqlite: "implemented",
     mysql: "planned",
     mongo: "planned",
-    bigquery: "planned"
+    bigquery: "implemented"
   });
 
   const target = Object.freeze({
@@ -609,7 +609,7 @@ test("createDbDriver declares planned drivers and returns the Postgres driver", 
   const driver = createDbDriver({ target, runId: "run", scenarioId: "scenario.one" });
   assert.equal(typeof driver.preflight, "function");
 
-  for (const name of ["mysql", "mongo", "bigquery"]) {
+  for (const name of ["mysql", "mongo"]) {
     assert.throws(
       () => createDbDriver({ target: { ...target, driver: name }, runId: "run", scenarioId: "scenario.one" }),
       (error) => {

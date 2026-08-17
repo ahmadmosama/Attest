@@ -77,7 +77,7 @@ node src/cli/main.mjs run \
 
 | Phase | Scope | State |
 |---|---|---|
-| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | 2 of 8 plans done |
+| 6 | SQLite, MySQL, Mongo, BigQuery drivers, plus scenario generation | 3 of 8 plans done |
 | 7 | iOS on macOS CI, AtoZ pipeline stage, GSD hook | Not planned |
 
 ### Phase 6, where it actually is
@@ -95,23 +95,32 @@ Done:
   reaches the operator through the CLI banner, every close result, and a new `database` block in
   run.json. 30 tests, no server needed. Summary in `06-02-SUMMARY.md`.
 
+- **06-05**, BigQuery, DB-06 and conflict C3. Taken out of order because its load bearing
+  requirement needs no infrastructure. `deltaAssertion: false` in the descriptor makes the
+  compile time refusal structural rather than a runtime check, proven by lowering a real scenario
+  against the real descriptor. Bounded polling, an opt in and a hard byte budget are all asserted
+  behind an injected client seam. 17 tests. Summary in `06-05-SUMMARY.md`.
+
 Next, in order:
-1. 06-03 MySQL, 06-04 Mongo, 06-05 BigQuery. Each is independent of the others.
-   - **06-03 has a correction already written into its plan and not yet acted on.** `mysql2`
-     speaks the client protocol but does not read the binlog, so the dependency is
-     `@vlasky/zongji` (0.9.0, maintained fork of the abandoned `zongji`), which brings `mysql2`
-     transitively. That has to go through the package legitimacy checkpoint from 03-04 before it
-     is added. Writing a binlog parser by hand was considered and rejected: the format is
-     versioned per MySQL release and its correctness cannot be asserted without a real server.
-   - 06-04 Mongo is the most tractable of the three: change streams come from the official
-     driver, with no protocol parsing.
-   - 06-05 BigQuery's compile time refusal needs no credentials and no network at all, so it can
-     land whole regardless of what infrastructure is available.
+1. **06-04 Mongo.** The most tractable driver left: change streams come from the official driver
+   with no protocol parsing. Parser and the standalone refusal are fixture provable; the live
+   half needs a replica set.
+2. **06-03 MySQL.** Blocked on a decision, not on code. Its plan carries a correction that has
+   not been acted on: `mysql2` speaks the client protocol but does not read the binlog, so the
+   dependency is `@vlasky/zongji` (0.9.0, maintained fork of the abandoned `zongji`), which
+   brings `mysql2` transitively. It has to clear the 03-04 package legitimacy checkpoint first.
+   Hand writing a binlog parser was considered and rejected: the format is versioned per MySQL
+   release and its correctness cannot be asserted without a real server.
 2. 06-06 and 06-07, generation. 06-08, acceptance and docs.
 
-Two shapes 06-08 will have to reconcile: SQLite's `poll` returns events, BigQuery's will want
-rows, and SQLite is not yet exercised through a full `attest run` because the fixture app is
-Postgres shaped.
+Two things 06-08 has to reconcile, both now concrete rather than predicted:
+
+- **`poll` returns different shapes per driver.** SQLite returns `{ok, events, converge}`,
+  BigQuery returns `{ok, rows, converge}`. One of those has to win, or the port has to say both
+  are legal and why.
+- **Neither new driver is exercised through a full `attest run`**, because the fixture app is
+  Postgres shaped. BigQuery additionally has no live proof at all: its client sits behind an
+  injected seam and running one real bounded poll needs a GCP project.
 
 ### Phase 6, what it needs
 

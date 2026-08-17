@@ -1,6 +1,7 @@
 import { UsageError } from "../errors.mjs";
 import { createPgClient } from "./drivers/postgres/connect.mjs";
 import { createPostgresDriver } from "./drivers/postgres/driver.mjs";
+import { createBigQueryDriver } from "./drivers/bigquery/driver.mjs";
 import { createSqliteDriver } from "./drivers/sqlite/driver.mjs";
 
 const DRIVER_NAMES = Object.freeze(["postgres", "sqlite", "mysql", "mongo", "bigquery"]);
@@ -12,7 +13,7 @@ export const DB_DRIVER_MODES = Object.freeze({
   sqlite: IMPLEMENTED,
   mysql: PLANNED,
   mongo: PLANNED,
-  bigquery: PLANNED
+  bigquery: IMPLEMENTED
 });
 
 const DRIVER_SET = new Set(DRIVER_NAMES);
@@ -40,8 +41,7 @@ function unknownDriverError(driver) {
 // whether it is coming soon or not coming at all.
 const PLANNED_BY = Object.freeze({
   mysql: "06-03",
-  mongo: "06-04",
-  bigquery: "06-05"
+  mongo: "06-04"
 });
 
 function plannedDriverError(driver) {
@@ -144,6 +144,16 @@ export function createDbDriver({
 
   if (driver === "sqlite") {
     return createSqliteDriver({
+      target,
+      config: postgresConfig(config, surface),
+      runId,
+      scenarioId,
+      dependencies: config?.dependencies
+    });
+  }
+
+  if (driver === "bigquery") {
+    return createBigQueryDriver({
       target,
       config: postgresConfig(config, surface),
       runId,

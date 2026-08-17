@@ -50,9 +50,10 @@ describe("database driver registry", () => {
     assert.doesNotThrow(() => assertImplementsDbPort(driver));
   });
 
-  test("sqlite is implemented and builds a driver behind the same port", () => {
-    const driver = driverFor("sqlite:./fixtures/local.db");
-    assert.doesNotThrow(() => assertImplementsDbPort(driver));
+  test("sqlite and bigquery are implemented and build drivers behind the same port", () => {
+    for (const url of ["sqlite:./fixtures/local.db", "bigquery://analytics-project/staging_dataset"]) {
+      assert.doesNotThrow(() => assertImplementsDbPort(driverFor(url)), url);
+    }
   });
 
   test("a declared but unimplemented driver is refused by name, never substituted", () => {
@@ -60,8 +61,7 @@ describe("database driver registry", () => {
     // verified a database nobody asked about.
     for (const [url, driver] of [
       ["mysql://user:secret@db.example.test/app_test", "mysql"],
-      ["mongodb://user:secret@db.example.test/app_test", "mongo"],
-      ["bigquery://analytics-project/staging_dataset", "bigquery"]
+      ["mongodb://user:secret@db.example.test/app_test", "mongo"]
     ]) {
       assert.throws(
         () => driverFor(url),
