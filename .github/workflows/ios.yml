@@ -13,11 +13,22 @@ on:
   pull_request:
 
 env:
-  # Pinned, both of them. Runner image issue 13853 had Xcode shipping ahead of
-  # its matching simulator runtime, so the image default was unusable. Trusting
-  # the default is how a green job stops meaning anything.
-  XCODE_VERSION: "26.1"
-  IOS_RUNTIME_VERSION: "26.1"
+  # A FLOOR, not an exact pin, and the difference was learned from the first real
+  # run on 2026-08-18 rather than guessed.
+  #
+  # The original pin was an exact `26.1` for both. On the real macos-26 image
+  # Xcode 26.1.1 is installed and pins fine, but the iOS 26.1 *runtime* is not
+  # there at all: the image ships 26.2, 26.4 and 26.5. That is runner image issue
+  # 13853's pattern inverted, and it is exactly why the assertion exists.
+  #
+  # An exact pin would now break on every image rotation, and the maintenance
+  # treadmill ends one way: someone deletes the pin and goes back to trusting the
+  # default. The thing actually worth preventing is SILENT drift, not drift. So:
+  # take the newest runtime at or above a floor, and PRINT which one was chosen
+  # into the job summary. A green job still means something, because you can
+  # always read what it ran on.
+  IOS_RUNTIME_MIN: "26.2"
+  XCODE_MIN: "26.1"
   SIMULATOR_NAME: "iPhone 17"
 
 jobs:
@@ -35,22 +46,50 @@ jobs:
 
       - run: npm ci
 
-      - name: Pin Xcode
+      - name: Select Xcode and the simulator runtime
+        id: toolchain
+        # Runs BEFORE the suite, not during it. A toolchain that cannot satisfy
+        # the floor fails here with a sentence naming what is missing and what is
+        # present, rather than with a confusing simctl error thirty steps later.
         run: |
-          sudo xcode-select -switch "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
-          xcodebuild -version
+          set -euo pipefail
 
-      - name: Assert the simulator runtime exists
-        # Before the suite, not during it. A missing runtime should fail with a
-        # sentence naming what is missing, rather than with a confusing simctl
-        # error thirty steps later.
-        run: |
-          if ! xcrun simctl list runtimes | grep -q "iOS ${IOS_RUNTIME_VERSION}"; then
-            echo "::error::iOS ${IOS_RUNTIME_VERSION} runtime is not installed on this image."
-            echo "Installed runtimes:"
+          # Newest installed Xcode at or above the floor.
+          XCODE_APP=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "${XCODE_APP}" ]; then
+            echo "::error::No Xcode found on this image."
+            exit 1
+          fi
+          sudo xcode-select -switch "${XCODE_APP}/Contents/Developer"
+          XCODE_VERSION=$(xcodebuild -version | head -1 | awk '{print $2}')
+
+          if [ "$(printf '%s\n%s\n' "${XCODE_MIN}" "${XCODE_VERSION}" | sort -V | head -1)" != "${XCODE_MIN}" ]; then
+            echo "::error::Xcode ${XCODE_VERSION} is below the ${XCODE_MIN} floor."
+            exit 1
+          fi
+
+          # Newest iOS runtime at or above the floor. The selection lives in
+          # tools/select-ios-runtime.mjs rather than inline here, so its parsing
+          # is asserted on Windows against the exact listing this image returned.
+          if ! RUNTIME_ID=$(xcrun simctl list runtimes --json | node tools/select-ios-runtime.mjs --min "${IOS_RUNTIME_MIN}"); then
+            echo "::error::No available iOS runtime at or above ${IOS_RUNTIME_MIN} on this image."
             xcrun simctl list runtimes
             exit 1
           fi
+
+          echo "runtime-id=${RUNTIME_ID}" >> "$GITHUB_OUTPUT"
+          echo "xcode-version=${XCODE_VERSION}" >> "$GITHUB_OUTPUT"
+
+          # Into the job summary, so which toolchain a green run used is a fact
+          # on the run page rather than something to go digging in logs for.
+          {
+            echo "### iOS toolchain"
+            echo ""
+            echo "| | selected | floor |"
+            echo "| --- | --- | --- |"
+            echo "| Xcode | \`${XCODE_VERSION}\` | \`${XCODE_MIN}\` |"
+            echo "| runtime | \`${RUNTIME_ID}\` | \`${IOS_RUNTIME_MIN}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install idb
         # The UI driver. simctl can boot, install and launch, but it has no
@@ -69,8 +108,15 @@ jobs:
 
       - name: Boot the simulator
         id: boot
+        env:
+          RUNTIME_ID: ${{ steps.toolchain.outputs.runtime-id }}
         run: |
-          DEVICE_ID=$(xcrun simctl create attest-ci "${SIMULATOR_NAME}" "com.apple.CoreSimulator.SimRuntime.iOS-${IOS_RUNTIME_VERSION//./-}")
+          set -euo pipefail
+          # The identifier the selection step resolved, never a string rebuilt
+          # from a version number: the display name carries a patch ("26.4.1")
+          # that the identifier does not, and building the id from the name is
+          # how `simctl create` fails with an unhelpful "invalid runtime".
+          DEVICE_ID=$(xcrun simctl create attest-ci "${SIMULATOR_NAME}" "${RUNTIME_ID}")
           echo "device-id=${DEVICE_ID}" >> "$GITHUB_OUTPUT"
           xcrun simctl bootstatus "${DEVICE_ID}" -b
 
@@ -89,8 +135,11 @@ jobs:
       - name: Run the iOS scenarios
         env:
           ATTEST_IOS_DEVICE: ${{ steps.boot.outputs.device-id }}
-          ATTEST_XCODE_VERSION: ${{ env.XCODE_VERSION }}
-          ATTEST_IOS_RUNTIME_VERSION: ${{ env.IOS_RUNTIME_VERSION }}
+          # The RESOLVED toolchain, not the floor. What the run actually used has
+          # to reach the run record, or a green run cannot be told apart from a
+          # green run on a different image.
+          ATTEST_XCODE_VERSION: ${{ steps.toolchain.outputs.xcode-version }}
+          ATTEST_IOS_RUNTIME_ID: ${{ steps.toolchain.outputs.runtime-id }}
           ATTEST_IOS_DRIVER: idb
         run: npm run test:ios
 

@@ -163,7 +163,7 @@ describe("Phase 7 iOS acceptance", () => {
     );
   });
 
-  test("IOS-01: the iOS workflow pins both versions, asserts the runtime, and blocks", async () => {
+  test("IOS-01: the iOS workflow selects a toolchain by floor, asserts it, and blocks", async () => {
     const text = await readFile(IOS_WORKFLOW, "utf8");
     const workflow = yaml.parse(text);
 
@@ -174,19 +174,49 @@ describe("Phase 7 iOS acceptance", () => {
     assert.doesNotMatch(text, /^\s*continue-on-error:/mu);
 
     const steps = workflow.jobs.ios.steps.map((step) => `${step.name ?? ""} ${step.run ?? ""}`).join("\n");
-    // Pinned, not trusted from the image: runner image issue 13853 had Xcode
-    // shipping ahead of its matching runtime.
     assert.match(steps, /xcode-select -switch/u);
     assert.match(steps, /simctl list runtimes/u);
-    // The runtime assertion runs before the suite, not during it.
+
+    // A FLOOR, not an exact pin. The first real run on 2026-08-18 proved why:
+    // Xcode 26.1.1 was installed and the iOS 26.1 runtime was simply not on the
+    // image (it ships 26.2, 26.4 and 26.5). An exact pin breaks on every image
+    // rotation, and that treadmill ends with somebody deleting the pin.
+    assert.equal(workflow.env.IOS_RUNTIME_MIN !== undefined, true, "a runtime floor must be declared");
+    assert.equal(workflow.env.XCODE_MIN !== undefined, true, "an Xcode floor must be declared");
+    assert.equal(workflow.env.IOS_RUNTIME_VERSION, undefined, "the exact runtime pin must be gone");
+
+    // What prevents silent drift is not the pin, it is that the RESOLVED
+    // toolchain is reported. A green job has to say what it ran on.
+    assert.match(steps, /GITHUB_STEP_SUMMARY/u);
+    assert.match(steps, /select-ios-runtime\.mjs/u);
+
+    // The toolchain is settled before the suite, not during it.
     const names = workflow.jobs.ios.steps.map((step) => step.name ?? "");
     assert(
-      names.indexOf("Assert the simulator runtime exists") < names.indexOf("Run the iOS scenarios"),
+      names.indexOf("Select Xcode and the simulator runtime") < names.indexOf("Run the iOS scenarios"),
       names.join(" | ")
     );
+    // So is idb: "the companion is unreachable" must not surface as a locator
+    // miss thirty steps in that reads like the app is broken.
+    assert(
+      names.indexOf("Assert idb can actually see the booted simulator") < names.indexOf("Run the iOS scenarios"),
+      names.join(" | ")
+    );
+
     // And the simulator is shut down even when the run failed.
     const shutdown = workflow.jobs.ios.steps.find((step) => step.name === "Shut the simulator down");
     assert.equal(shutdown.if, "always()");
+  });
+
+  test("the boot step uses the resolved runtime identifier, never one rebuilt from a version", async () => {
+    const workflow = yaml.parse(await readFile(IOS_WORKFLOW, "utf8"));
+    const boot = workflow.jobs.ios.steps.find((step) => step.name === "Boot the simulator");
+
+    // "iOS 26.4" reports version 26.4.1 and identifier iOS-26-4. Rebuilding the
+    // id from a version string yields iOS-26-4-1 and simctl create fails with an
+    // unhelpful "invalid runtime".
+    assert.match(boot.run, /\$\{RUNTIME_ID\}/u);
+    assert.doesNotMatch(boot.run, /SimRuntime\.iOS-\$\{/u);
   });
 
   test("the check workflow runs the gate on both host families with a real Postgres", async () => {
