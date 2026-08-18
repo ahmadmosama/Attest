@@ -98,6 +98,13 @@ jobs:
       # container port. Both are real servers.
       ATTEST_PG_URL: postgres://postgres:root@127.0.0.1:5432/postgres
       ATTEST_DB_URL: postgres://postgres:root@127.0.0.1:5432/postgres
+      # The windows-latest runner is materially slower than a dev box, and the
+      # 5s statement guard is a number tuned for one. A legitimate delta poll
+      # hit it and the run reported infra_error, so this host is told about its
+      # own hardware rather than the guard being weakened everywhere.
+      ATTEST_PG_STATEMENT_TIMEOUT_MS: "20000"
+      ATTEST_PG_IDLE_TX_TIMEOUT_MS: "20000"
+      ATTEST_PG_CONNECT_TIMEOUT_MS: "10000"
 
     steps:
       - uses: actions/checkout@v4

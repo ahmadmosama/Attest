@@ -6,10 +6,40 @@ const { Client } = pg;
 
 const POSTGRES_DEFAULT_PORT = 5432;
 const APPLICATION_NAME = "attest";
-const CONNECTION_TIMEOUT_MS = 2000;
-const STATEMENT_TIMEOUT_MS = 5000;
-const IDLE_IN_TRANSACTION_TIMEOUT_MS = 5000;
 const CONNECTION_URL_ENV_KEYS = Object.freeze(["ATTEST_DB_URL", "ATTEST_PG_URL"]);
+
+/**
+ * Server side guards, with a floor rather than a fixed value.
+ *
+ * These exist so a runaway query cannot pin a connection forever, and 5s was a
+ * number that happened to be comfortable on a fast development machine. The
+ * first Windows CI run showed what that costs: a delta scenario's poll hit
+ *
+ *   canceling statement due to statement timeout
+ *
+ * and the run reported infra_error. The guard was doing its job, on a host slow
+ * enough that a legitimate statement did not fit inside the guess.
+ *
+ * A guard whose value is a guess about hardware needs a way to be told about
+ * different hardware. Raising the default everywhere would weaken it on the
+ * machines where it is right, so it stays 5s and CI raises it explicitly.
+ */
+function envMs(key, fallback) {
+  const raw = process.env[key];
+  if (raw === undefined) {
+    return fallback;
+  }
+
+  const value = Number.parseInt(raw, 10);
+  // A malformed value falls back rather than disabling the guard: `0` means "no
+  // timeout" to Postgres, and inheriting that from a typo would remove the
+  // protection silently, which is the one outcome worth ruling out.
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
+const CONNECTION_TIMEOUT_MS = envMs("ATTEST_PG_CONNECT_TIMEOUT_MS", 2000);
+const STATEMENT_TIMEOUT_MS = envMs("ATTEST_PG_STATEMENT_TIMEOUT_MS", 5000);
+const IDLE_IN_TRANSACTION_TIMEOUT_MS = envMs("ATTEST_PG_IDLE_TX_TIMEOUT_MS", 5000);
 
 /**
  * Postgres connection helpers for the observer side of a delta run.
