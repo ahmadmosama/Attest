@@ -221,18 +221,49 @@ describe("Phase 7 iOS acceptance", () => {
 
   test("the check workflow runs the gate on both host families with a real Postgres", async () => {
     const workflow = yaml.parse(await readFile(CHECK_WORKFLOW, "utf8"));
-    const job = workflow.jobs.check;
 
-    assert.deepEqual(job.strategy.matrix.os, ["ubuntu-latest", "windows-latest"]);
+    // Two jobs, not one matrix. GitHub runs `services:` containers on Linux
+    // ONLY, so the old matrix leg on Windows never had a database: it ran the
+    // suite with its DB half silently skipping, then failed on `docker exec`.
+    // The hosts genuinely differ in how they get a Postgres and a matrix hid it.
+    const linux = workflow.jobs.linux;
+    const windows = workflow.jobs.windows;
+
+    assert.equal(linux["runs-on"], "ubuntu-latest");
+    assert.equal(windows["runs-on"], "windows-latest");
     // Which is DROID-03's second half: the Android contract tests pass on Linux
     // as well as on Windows.
-    assert.equal(job.strategy["fail-fast"], false);
-    assert.equal(job.services.postgres.image, "postgres:17");
 
-    const steps = job.steps.map((step) => `${step.name ?? ""} ${step.run ?? ""}`).join("\n");
-    // The DB tests must RUN rather than skip: a green suite whose database half
-    // quietly skipped is exactly what this project refuses.
-    assert.match(steps, /wal_level = logical/u);
-    assert.match(steps, /pg_replication_slots/u);
+    // Only the Linux job may use a service container.
+    assert.equal(linux.services.postgres.image, "postgres:17");
+    assert.equal(windows.services, undefined, "service containers do not run on Windows runners");
+
+    for (const [name, job] of Object.entries({ linux, windows })) {
+      const steps = job.steps.map((step) => `${step.name ?? ""} ${step.run ?? ""}`).join("\n");
+
+      // Both legs get a REAL server. A green suite whose database half quietly
+      // skipped is exactly what this project refuses, on either host.
+      assert.match(steps, /wal_level/u, name);
+      assert.match(steps, /logical/u, name);
+      assert.match(steps, /pg_replication_slots/u, name);
+      assert.match(job.env.ATTEST_PG_URL, /^postgres:\/\//u, name);
+
+      // And the leak check runs even when the suite failed, because a leaked
+      // slot outlives the run.
+      const leak = job.steps.find((step) => (step.name ?? "").includes("replication slot"));
+      assert.equal(leak.if, "always()", name);
+    }
+  });
+
+  test("the Windows job discovers its PostgreSQL service rather than hardcoding a version", async () => {
+    const workflow = yaml.parse(await readFile(CHECK_WORKFLOW, "utf8"));
+    const steps = workflow.jobs.windows.steps.map((step) => step.run ?? "").join("\n");
+
+    // The service name carries its major version and that rotates with the
+    // runner image. A hardcoded postgresql-x64-17 becomes a broken job the week
+    // the image moves to 18, which is the same class of bug as the exact iOS
+    // runtime pin.
+    assert.match(steps, /Get-Service -Name "postgresql\*"/u);
+    assert.doesNotMatch(steps, /postgresql-x64-\d+/u);
   });
 });

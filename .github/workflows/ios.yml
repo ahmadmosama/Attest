@@ -91,6 +91,19 @@ jobs:
             echo "| runtime | \`${RUNTIME_ID}\` | \`${IOS_RUNTIME_MIN}\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Pin Python for idb
+        # fb-idb 1.1.7 calls asyncio.get_event_loop() at startup. That has been
+        # deprecated since 3.10 and on 3.14, which is what the macos-26 image's
+        # Homebrew python is, it raises:
+        #
+        #   RuntimeError: There is no current event loop in thread 'MainThread'
+        #
+        # so idb installs cleanly and then dies on every invocation. Pinning the
+        # interpreter is the fix; the alternative is waiting for upstream.
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Install idb
         # The UI driver. simctl can boot, install and launch, but it has no
         # accessibility tree and no tap, so without this the surface can start an
@@ -112,10 +125,13 @@ jobs:
           brew trust facebook/fb
           brew install idb-companion
 
-          # The CLI half. pipx is the documented path; the pip fallback needs
-          # --break-system-packages because the runner's python3 is externally
-          # managed (PEP 668) and refuses a plain --user install.
-          pipx install fb-idb || python3 -m pip install --user --break-system-packages fb-idb
+          # The CLI half, on the pinned interpreter. Without --python, pipx picks
+          # its own default (Homebrew's 3.14) and idb dies at startup on
+          # asyncio.get_event_loop().
+          PYBIN="$(which python)"
+          echo "installing fb-idb on $("${PYBIN}" --version)"
+          pipx install --python "${PYBIN}" fb-idb \
+            || "${PYBIN}" -m pip install --user fb-idb
 
           # pipx and pip --user both land in ~/.local/bin, which is not on PATH
           # by default. GITHUB_PATH only affects LATER steps, so this step needs

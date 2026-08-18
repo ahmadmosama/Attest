@@ -2,26 +2,28 @@ name: check
 
 # The gate, on both host families. Everything except iOS runs here; iOS runs in
 # ios.yml on a macOS runner, because the simulator exists nowhere else.
+#
+# TWO JOBS, not one matrix, and that is a correction rather than a style choice.
+# It was a matrix over [ubuntu, windows] with a `services: postgres` block, and
+# GitHub only runs service containers on Linux runners. So the Windows leg never
+# had a database at all: it reported "Container operations are only supported on
+# Linux runners", ran the suite with its DB half silently skipping, and then
+# failed on `docker exec attest_pg` at the end.
+#
+# The hosts genuinely differ in how they get a Postgres, and a matrix hid that.
+# They each get a real one, because a green suite whose database half quietly
+# skipped is the exact failure mode this project exists to refuse.
 on:
   push:
   pull_request:
 
 jobs:
-  check:
-    name: check on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      # Both are run to completion. A failure on one host family is a failure,
-      # not a reason to look at the other one.
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+  linux:
+    name: check on ubuntu-latest
+    runs-on: ubuntu-latest
 
     services:
       postgres:
-        # Real Postgres, with logical replication on, so the database tests RUN
-        # rather than skip. A green suite whose DB half quietly skipped is the
-        # exact failure mode this project exists to refuse.
         image: postgres:17
         env:
           POSTGRES_PASSWORD: postgres
@@ -80,6 +82,88 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: attest-artifacts-${{ matrix.os }}
+          name: attest-artifacts-ubuntu
+          path: .attest/runs
+          if-no-files-found: ignore
+
+  windows:
+    name: check on windows-latest
+    runs-on: windows-latest
+    # A failure on one host family is a failure, not a reason to look at the
+    # other one, so neither job cancels the other.
+
+    env:
+      # The windows-latest image ships PostgreSQL on the default port with the
+      # `postgres` superuser, so the URL differs from the Linux leg's mapped
+      # container port. Both are real servers.
+      ATTEST_PG_URL: postgres://postgres:root@127.0.0.1:5432/postgres
+      ATTEST_DB_URL: postgres://postgres:root@127.0.0.1:5432/postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Start the preinstalled PostgreSQL with logical replication
+        # No service containers on Windows runners, so this uses the PostgreSQL
+        # the image already ships. The service name carries its major version
+        # and that rotates with the image, so it is discovered rather than
+        # hardcoded: a hardcoded `postgresql-x64-17` becomes a broken job the
+        # week the image moves to 18.
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $svc = Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $svc) {
+            Write-Error "No PostgreSQL service found on this image. Installed services matching 'postgres*': $((Get-Service -Name '*postgres*' -ErrorAction SilentlyContinue).Name -join ', ')"
+          }
+
+          Write-Host "using service $($svc.Name)"
+          Set-Service -Name $svc.Name -StartupType Automatic
+          Start-Service -Name $svc.Name
+
+          $env:PGPASSWORD = "root"
+          $psql = Join-Path $env:PGBIN "psql.exe"
+
+          # Logical, or the driver refuses at preflight rather than degrading.
+          & $psql -U postgres -c "ALTER SYSTEM SET wal_level = logical"
+          Restart-Service -Name $svc.Name
+          Start-Sleep -Seconds 5
+
+          $level = (& $psql -U postgres -tAc "SHOW wal_level").Trim()
+          if ($level -ne "logical") {
+            Write-Error "wal_level is '$level', expected 'logical'"
+          }
+          Write-Host "wal_level=$level"
+
+      - name: Install Chrome for the web surface
+        run: npx playwright install --with-deps chrome
+
+      - run: npm run check
+
+      - name: Assert no replication slot leaked
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:PGPASSWORD = "root"
+          $psql = Join-Path $env:PGBIN "psql.exe"
+          $slots = (& $psql -U postgres -tAc "SELECT coalesce(string_agg(slot_name, ', '), 'NONE') FROM pg_replication_slots").Trim()
+          Write-Host "slots: $slots"
+          if ($slots -ne "NONE") {
+            Write-Error "replication slots leaked: $slots"
+          }
+
+      - name: Upload evidence bundles
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: attest-artifacts-windows
           path: .attest/runs
           if-no-files-found: ignore
