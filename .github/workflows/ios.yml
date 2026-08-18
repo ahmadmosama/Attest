@@ -313,11 +313,32 @@ jobs:
           npm install
           npx expo prebuild --platform ios --clean --no-install
 
+          # Discovered, not hardcoded. prebuild derives the workspace and scheme
+          # names from app.json, so `Snapfit.xcworkspace` is a guess that breaks
+          # the moment the app is renamed. Same lesson as the exact runtime pin
+          # and the hardcoded PostgreSQL service name: a name that another tool
+          # generates should be read, not assumed.
+          WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -1)
+          if [ -z "${WORKSPACE}" ]; then
+            echo "::error::prebuild produced no .xcworkspace under ios/"
+            ls -la ios || true
+            exit 1
+          fi
+
+          SCHEME=$(xcodebuild -workspace "${WORKSPACE}" -list -json \
+            | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const s=JSON.parse(d).workspace.schemes;process.stdout.write(s.find(x=>!/Tests?$/.test(x))??s[0]??"")})')
+          if [ -z "${SCHEME}" ]; then
+            echo "::error::no buildable scheme in ${WORKSPACE}"
+            exit 1
+          fi
+
+          echo "workspace=${WORKSPACE} scheme=${SCHEME}" >> "$GITHUB_STEP_SUMMARY"
+
           # A SIMULATOR build, never a device .ipa: a simulator cannot install
           # one, which is the contract the adapter refuses on.
           xcodebuild \
-            -workspace ios/Snapfit.xcworkspace \
-            -scheme Snapfit \
+            -workspace "${WORKSPACE}" \
+            -scheme "${SCHEME}" \
             -configuration Debug \
             -sdk iphonesimulator \
             -derivedDataPath build \
