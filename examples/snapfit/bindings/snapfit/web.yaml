@@ -37,7 +37,7 @@ elements:
 
 screens:
   screen:find: { path: "/", ready: { testId: find-root } }
-  screen:size: { path: "/", ready: { testId: size-root } }
+  screen:size: { path: "/?tab=size", ready: { testId: size-root } }
 
 states:
   state:find_error: { testId: find-error }
