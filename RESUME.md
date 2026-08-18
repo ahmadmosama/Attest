@@ -11,8 +11,9 @@ ahmadmosama/Attest, where CI is green on ubuntu, windows and macOS.
 | Phase 3 | Complete and SIGNED OFF, with a 90.91 percent kill rate |
 | Phase 5 | Complete. Four criteria proven against a live emulator, real APK, real Postgres |
 | Milestone | Landed. One command runs one real app on the Android emulator and leaves an evidence bundle |
-| Tests | 1042 total, 1039 passing, 0 failing. The 3 skips are the live Android criteria with no device attached |
-| Verified against | real PostgreSQL 17.6, real Chrome, and a real Android emulator |
+| Tests | 1049 total, 1049 passing, 0 failing, 0 skipped with the emulator attached |
+| Verified against | real PostgreSQL 17.6, real Chrome, a real Android emulator, and a real macOS simulator on CI |
+| Real app proof | Snapfit (web + android green locally, ios on CI). See `docs/snapfit.md` |
 
 ## Run the gate
 
