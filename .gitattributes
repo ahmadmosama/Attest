@@ -1,0 +1,40 @@
+# Line endings are part of the contract here, not a preference.
+#
+# Found by the first Windows CI run (2026-08-18). There was no .gitattributes,
+# Git for Windows defaults to core.autocrlf=true, so a fresh checkout on the
+# windows-latest runner rewrote every file to CRLF. The self verification corpus
+# searches for multi line code fragments written with \n, so every one of them
+# matched nothing:
+#
+#   E_SELFVERIFY_FIXTURE_DIRTY  { mutantId: 'delete_orphan_child_rows',
+#                                 findCount: 0, replacementCount: 0 }
+#
+# It never fired locally because this working copy happens to hold LF, which is
+# exactly the shape of bug that only a clean checkout on another host reveals.
+#
+# A harness whose one job is determinism cannot have its own source change shape
+# depending on who cloned it.
+* text=auto eol=lf
+
+# The two that genuinely need CRLF: Windows shell wrappers are parsed by cmd.exe,
+# which does not accept bare LF for some constructs.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary, so Git never tries to normalise them. A "corrected" byte in an APK or a
+# keystore is a signature mismatch, and the fixture APK's whole value is that it
+# is reproducible.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webm binary
+*.mp4 binary
+*.zip binary
+*.gz binary
+*.apk binary
+*.jar binary
+*.dex binary
+*.keystore binary
+*.pdf binary

@@ -116,18 +116,42 @@ function resolvedMutantFile(root, mutant) {
   return path.resolve(root, mutant.file);
 }
 
+/**
+ * Line endings must not decide whether a mutant matches.
+ *
+ * The corpus stores multi line code fragments written with `\n`. A checkout
+ * that produced CRLF made every one of them match zero times, and the corpus
+ * reported the fixture DIRTY: a true statement about the wrong thing, which
+ * sent the reader to look for an edit nobody made.
+ *
+ * `.gitattributes` now pins LF, which is the root fix. This is the second lock:
+ * the corpus should not be able to fail for a reason that has nothing to do
+ * with whether the fixture was modified.
+ */
+function normalizeEndings(text) {
+  return String(text).replaceAll("\r\n", "\n");
+}
+
 async function assertMutantClean(root, mutant) {
   const file = resolvedMutantFile(root, mutant);
-  const text = await readFile(file, "utf8");
-  const findCount = occurrenceCount(text, mutant.find);
-  const replacementCount = mutant.replace.length === 0 ? 0 : occurrenceCount(text, mutant.replace);
+  const text = normalizeEndings(await readFile(file, "utf8"));
+  const find = normalizeEndings(mutant.find);
+  const replace = normalizeEndings(mutant.replace);
+  const findCount = occurrenceCount(text, find);
+  const replacementCount = replace.length === 0 ? 0 : occurrenceCount(text, replace);
 
   if (findCount !== 1 || replacementCount !== 0) {
     throw new AttestError("E_SELFVERIFY_FIXTURE_DIRTY", "Fixture app is not clean for corpus run.", {
       mutantId: mutant.id,
       file: mutant.file,
       findCount,
-      replacementCount
+      replacementCount,
+      // Named, because "the fixture was edited" and "this checkout has CRLF"
+      // look identical from findCount alone and need opposite fixes.
+      remediation:
+        findCount === 0
+          ? "The fragment was not found. Either the fixture was edited, or this checkout rewrote line endings (see .gitattributes)."
+          : "The fragment appears more than once, or the mutated form is already present."
     });
   }
 }

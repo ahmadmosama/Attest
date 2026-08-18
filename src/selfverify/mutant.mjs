@@ -148,7 +148,36 @@ function occurrenceCount(text, needle) {
   return count;
 }
 
-function replacementFor({ text, needle, next, mutant, file, absentCode, absentMessage }) {
+/**
+ * Match and write in LF space, always.
+ *
+ * The corpus stores multi line fragments written with `\n`. A checkout that
+ * produced CRLF made every one of them match zero times, so applying a mutant
+ * failed with E_MUTANT_NOT_APPLICABLE and the corpus reported the fixture dirty:
+ * a true statement about the wrong thing.
+ *
+ * `.gitattributes` pins LF and is the root fix. Normalising here is the second
+ * lock.
+ *
+ * Matching happens in LF space; the file is written back in ITS OWN convention.
+ * Normalising on write instead looked simpler and was wrong: it repaired the
+ * whole file as a side effect of mutating one line, so the fixture tree hash
+ * moved and revert failed with E_SELFVERIFY_FIXTURE_RESTORE_FAILED. A mutation
+ * has to change exactly what it says it changes.
+ */
+function normalizeEndings(text) {
+  return String(text).replaceAll("\r\n", "\n");
+}
+
+function restoreEndings(text, hadCrlf) {
+  return hadCrlf ? text.replaceAll("\n", "\r\n") : text;
+}
+
+function replacementFor({ text: rawText, needle: rawNeedle, next: rawNext, mutant, file, absentCode, absentMessage }) {
+  const hadCrlf = rawText.includes("\r\n");
+  const text = normalizeEndings(rawText);
+  const needle = normalizeEndings(rawNeedle);
+  const next = normalizeEndings(rawNext);
   const count = occurrenceCount(text, needle);
   if (count === 0) {
     throw new AttestError(absentCode, absentMessage, {
@@ -165,7 +194,7 @@ function replacementFor({ text, needle, next, mutant, file, absentCode, absentMe
     });
   }
 
-  return text.replace(needle, next);
+  return restoreEndings(text.replace(needle, next), hadCrlf);
 }
 
 function mutationResult({ mutant, file, beforeHash, afterHash }) {
