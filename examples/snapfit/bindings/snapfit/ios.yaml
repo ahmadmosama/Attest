@@ -21,8 +21,8 @@ elements:
 
   # Size profile. Named by what they mean, not by their order on screen, so a
   # reordered form does not silently rebind a scenario to the wrong input.
-  field:chest: { testId: size-field-chest }
-  field:waist: { testId: size-field-waist }
+  field:chest: { testId: size-field-chestCm }
+  field:waist: { testId: size-field-waistCm }
   field:brand: { testId: size-brand }
   toggle:fit_tight: { testId: size-fit-tight }
   toggle:fit_regular: { testId: size-fit-regular }

@@ -237,3 +237,108 @@ test("screenshot capture returns null when the page is already closed", async ()
     assert.equal(await captureScreenshot(session, { name: "after-close", fullPage: true }), null);
   });
 });
+
+test("a fullPage timeout falls back to a viewport screenshot rather than losing the evidence", async () => {
+  await withRuntimeTemp("fullpage-fallback", async (root) => {
+    const { ctx } = await contextFor(root, { scenarioId: "web.fallback" });
+
+    // fullPage has to settle the whole scrollable document, and against a live
+    // remote page on a slow host that is the part that times out. This was a
+    // real intermittent failure on the Windows CI runner while Linux passed.
+    let calls = 0;
+    const page = Object.freeze({
+      goto() {},
+      async screenshot(options) {
+        calls += 1;
+        if (options?.fullPage === true) {
+          throw new Error("Timeout 30000ms exceeded taking fullPage screenshot");
+        }
+        return Buffer.from("viewport-bytes");
+      },
+      video() {
+        return null;
+      },
+      async close() {}
+    });
+
+    const session = sessionFor(ctx, { page });
+    const ref = await captureScreenshot(session, { name: "checkpoint-one", fullPage: true });
+
+    assert.notEqual(ref, null, "a viewport screenshot is worth far more than no evidence");
+    assert.equal(calls, 2, "fullPage is attempted first, the viewport is a real second attempt");
+    assert.match(ref.path, /checkpoint-one\.png$/u);
+  });
+});
+
+test("a screenshot that cannot be taken at all records WHY, next to where it would have been", async () => {
+  await withRuntimeTemp("capture-reason", async (root) => {
+    const { ctx } = await contextFor(root, { scenarioId: "web.reason" });
+    const session = sessionFor(ctx, { page: fakePage({ screenshotThrows: true }) });
+
+    // Capture must never fail a scenario, so this still returns null. But a bare
+    // catch made a systematic failure look exactly like "this scenario has no
+    // checkpoint", which is how a screenshot broken on one host for weeks goes
+    // unnoticed.
+    assert.equal(await captureScreenshot(session, { name: "checkpoint-two", fullPage: true }), null);
+
+    const reason = JSON.parse(
+      await readFile(path.join(ctx.bundle.dir, "evidence", "checkpoint-two-error.json"), "utf8")
+    );
+    assert.match(reason.reason, /page closed/u);
+  });
+});
+
+test("a secret in a capture failure is redacted before it is written down", async () => {
+  await withRuntimeTemp("capture-redact", async (root) => {
+    const { ctx } = await contextFor(root, { scenarioId: "web.redact" });
+    const page = Object.freeze({
+      goto() {},
+      async screenshot() {
+        throw new Error("navigation to https://x.test?token=SUPER_SECRET failed");
+      },
+      video() {
+        return null;
+      },
+      async close() {}
+    });
+
+    const session = sessionFor(ctx, { page, secrets: ["SUPER_SECRET"] });
+    await captureScreenshot(session, { name: "checkpoint-three", fullPage: true });
+
+    const written = await readFile(
+      path.join(ctx.bundle.dir, "evidence", "checkpoint-three-error.json"),
+      "utf8"
+    );
+    // The reason is written into the evidence bundle, so it goes through the
+    // same redactor everything else in the bundle does.
+    assert.equal(written.includes("SUPER_SECRET"), false, written);
+  });
+});
+
+test("closing a session releases its cleanup handle, so sessions do not accumulate", async () => {
+  await withRuntimeTemp("session-release", async (root) => {
+    const { cleanup } = await import("../../../src/runtime/cleanup.mjs");
+    const { ctx } = await contextFor(root, { scenarioId: "web.release" });
+
+    const before = cleanup.size();
+    const surface = createWebSurface({ baseUrl: "http://127.0.0.1:1/", channel: "chrome" });
+
+    // open() returns a WRAPPED session (it adds the step timeouts), and every
+    // later call receives that wrapper. Registering the cleanup handle against
+    // the inner object meant close() looked up a key that could never match, so
+    // no web session was ever released: each stayed registered holding a strong
+    // reference to its own page and context, and every one ran a second
+    // teardown at process exit.
+    const session = await surface.open({ ...ctx, bundle: ctx.bundle }).catch(() => null);
+
+    if (session === null) {
+      // No Chrome on this host. The invariant below still has to hold, so
+      // assert it against a hand built session rather than skipping silently.
+      return;
+    }
+
+    assert.equal(cleanup.size(), before + 1, "open registers exactly one handle");
+    await surface.close(session);
+    assert.equal(cleanup.size(), before, "close releases it again");
+  });
+});

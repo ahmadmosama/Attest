@@ -1,0 +1,46 @@
+# Snapfit, web.
+#
+# The third surface. Snapfit ships a Next.js web app alongside the Expo app, and
+# the same scenario files drive all three: `data-testid` on the web, `testID` in
+# React Native (which becomes `accessibilityIdentifier` on iOS and `resource-id`
+# on Android). One identifier, three platforms, and the scenario never learns
+# which one it is on.
+#
+# This file differs from android.yaml and ios.yaml only in the `surface:` line
+# and in using `testId` against the DOM attribute rather than the native tree,
+# which is the binding layer doing exactly the job it exists for.
+surface: web
+
+elements:
+  tab:find: { testId: tab-find }
+  tab:size: { testId: tab-size }
+
+  # Find. The web app has no camera, so `button:snap` is deliberately absent
+  # rather than bound to something that looks similar: an unbound ref fails with
+  # E_UNBOUND_REF naming the surface, which is the honest answer for a control
+  # that does not exist here.
+  button:library: { testId: find-library }
+  field:hint: { testId: find-hint }
+  button:find_submit: { testId: find-submit }
+
+  # Size profile.
+  field:chest: { testId: size-field-chestCm }
+  field:waist: { testId: size-field-waistCm }
+  field:brand: { testId: size-brand }
+  toggle:fit_tight: { testId: size-fit-tight }
+  toggle:fit_regular: { testId: size-fit-regular }
+  toggle:fit_loose: { testId: size-fit-loose }
+  button:size_submit: { testId: size-submit }
+
+  item:first_result: { testId: result-0 }
+  item:first_result_title: { testId: result-0-title }
+
+screens:
+  screen:find: { path: "/", ready: { testId: find-root } }
+  screen:size: { path: "/", ready: { testId: size-root } }
+
+states:
+  state:find_error: { testId: find-error }
+  state:find_empty: { testId: find-empty }
+  state:find_read_as: { testId: find-read-as }
+  state:size_result: { testId: size-result-label }

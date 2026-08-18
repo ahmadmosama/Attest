@@ -359,15 +359,23 @@ export function createWebSurface(options = {}) {
       // finally, so before this a Ctrl-C left a Chromium process running and a
       // tmp/ directory full of half written .webm and .zip files inside the run
       // directory that is meant to be the evidence.
+      //
+      // Keyed on the WRAPPED session, which is the object every later call
+      // receives. Keying on the inner one meant close() looked up a handle that
+      // could never be found, so no web session was ever released: each one
+      // stayed registered holding a strong reference to its own page and
+      // context, and every one of them ran a second teardown at process exit.
+      const wrapped = withStepTimeouts(session, ctx);
+
       sessionCleanup.set(
-        session,
+        wrapped,
         cleanup.register(`web-session:${session.id}`, async () => {
           await closeWebSession(session).catch(() => {});
           await removeTempDirs(session);
         })
       );
 
-      return withStepTimeouts(session, ctx);
+      return wrapped;
     },
 
     execute(session, planOp, { signal } = {}) {
