@@ -244,6 +244,17 @@ jobs:
     name: snapfit on the simulator
     runs-on: macos-26
     needs: ios
+    # Both repos are private, and the default GITHUB_TOKEN reaches only the repo
+    # running the workflow. Driving a real third party app therefore needs a
+    # token that can read Snapfit, and a token is a credential this project
+    # cannot mint for itself.
+    #
+    # So the job is conditional rather than failing every run with
+    # "Not Found" on the checkout, which says nothing about Attest. The
+    # adapter conformance job above still BLOCKS unconditionally, so the iOS
+    # surface is never unverified: what is conditional is only the extra proof
+    # against a second repository.
+    if: vars.SNAPFIT_VERIFY == 'true'
 
     env:
       IOS_RUNTIME_MIN: "26.2"
@@ -257,6 +268,9 @@ jobs:
         with:
           repository: ahmadmosama/Snapfit
           path: snapfit
+          # A fine grained PAT with read access to Snapfit. Without it the
+          # checkout fails with a bare "Not Found".
+          token: ${{ secrets.SNAPFIT_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
