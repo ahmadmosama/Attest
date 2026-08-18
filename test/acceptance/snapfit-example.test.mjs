@@ -43,6 +43,32 @@ describe("the Snapfit example", () => {
     assert.match(ios, /^surface: ios$/mu);
   });
 
+  test("the web bindings carry the same identifiers, and differ only where the app does", async () => {
+    const web = await readYaml(path.join(BINDINGS_DIR, "web.yaml"));
+    const android = await readYaml(path.join(BINDINGS_DIR, "android.yaml"));
+
+    // Same identifier on all three: data-testid on the web, testID in React
+    // Native (accessibilityIdentifier on iOS, resource-id on Android).
+    for (const [ref, locator] of Object.entries(web.elements)) {
+      if (android.elements[ref] !== undefined) {
+        assert.deepEqual(locator, android.elements[ref], `${ref} should use the same identifier`);
+      }
+    }
+
+    // Where they differ, it is because the APP differs, not because a locator
+    // was worked around. The web has no camera, so `button:snap` is absent
+    // rather than bound to something that merely looks similar: an unbound ref
+    // fails by name, which is the honest answer for a control that is not there.
+    assert.equal(web.elements["button:snap"], undefined);
+    assert.notEqual(android.elements["button:snap"], undefined);
+
+    // And screens are reached differently: a deeplink on mobile, a path on the
+    // web. Both point at the same screen, which is the binding layer's job.
+    assert.match(android.screens["screen:size"].deeplink, /^snapfit:\/\//u);
+    assert.match(web.screens["screen:size"].path, /tab=size/u);
+    assert.deepEqual(web.screens["screen:size"].ready, android.screens["screen:size"].ready);
+  });
+
   test("every semantic ref a scenario names is bound on BOTH surfaces", async () => {
     const bindings = {};
     for (const surface of ["android", "ios"]) {
