@@ -1,6 +1,6 @@
 # Attest: resume here
 
-Updated 2026-08-17. Working tree is clean, everything below is committed.
+Updated 2026-08-18. Working tree is clean, everything below is committed.
 
 ## Where it stands
 
@@ -10,7 +10,7 @@ Updated 2026-08-17. Working tree is clean, everything below is committed.
 | Phase 3 | Complete and SIGNED OFF, with a 90.91 percent kill rate |
 | Phase 5 | Complete. Four criteria proven against a live emulator, real APK, real Postgres |
 | Milestone | Landed. One command runs one real app on the Android emulator and leaves an evidence bundle |
-| Tests | 843 total, 840 passing, 0 failing. The 3 skips are the live Android criteria with no device attached |
+| Tests | 1029 total, 1026 passing, 0 failing. The 3 skips are the live Android criteria with no device attached |
 | Verified against | real PostgreSQL 17.6, real Chrome, and a real Android emulator |
 
 ## Run the gate
@@ -137,39 +137,6 @@ process that runs scenarios never loads the generator at all.
    behind injected seams. Installing `@vlasky/zongji`, `mongodb` and `@google-cloud/bigquery` and
    running one live window each needs that checkpoint plus a MySQL, a replica set and a GCP
    project.
-2. **06-08, acceptance and docs**, which is also where the live halves land.
-
-Three things 06-08 has to reconcile, all now concrete rather than predicted:
-
-- **`poll` returns different shapes per driver.** SQLite, Mongo and MySQL return
-  `{ok, events, converge}`; BigQuery returns `{ok, rows, converge}` because it has no events to
-  return. One has to win, or the port has to say both are legal and why.
-- **No new driver is exercised through a full `attest run`**, because the fixture app is Postgres
-  shaped.
-- **Three drivers have no live proof at all.** MySQL, Mongo and BigQuery keep their clients behind
-  injected seams because plan 03-04 makes every dependency install a blocking human checkpoint
-  that is explicitly never auto approvable. Their parsers and refusals are fixture proven and run
-  anywhere; what is unproven is that real client responses match the shapes the code expects.
-  Installing `@vlasky/zongji`, `mongodb` and `@google-cloud/bigquery`, and running one live window
-  each, is the remaining work and needs that checkpoint plus a MySQL, a replica set and a GCP
-  project.
-
-### Phase 6, what it needs
-
-Nine requirements: DB-03 to DB-06 and GEN-01 to GEN-05. The four drivers are independent of
-each other and of the generator, so this phase parallelises. SQLite first because it needs no
-server, BigQuery last because it is the reduced mode. Generation is evaluated against the Phase
-4 mutant corpus, not by whether the output looks reasonable. Nothing under the runtime may
-import from the generator, and the Phase 1 lint rule already proves it.
-
-Phase 5 left two things Phase 6 and Phase 7 inherit:
-
-- The device lease pattern in `src/surfaces/android/device.mjs`: a run scoped resource acquired
-  once, refused honestly when ambiguous, and torn down in a `finally` in the run command. iOS
-  simulators want the same shape.
-- `test/helpers/fake-adb.mjs`: a scripted transport that answers the real argv, so the adapter's
-  own logic executes with no device. The same seam works for `simctl`.
-
 ### Phase 7, where it actually is
 
 Planned: three plans, in `.planning/phases/07-ios-on-ci-and-the-pipeline-gate/`.
@@ -191,6 +158,46 @@ Done:
   unverified, because a hook that only reported on scenarios that exist would let an untested
   phase sail through with borrowed authority. 11 tests. Summary in `07-03-SUMMARY.md`.
 
+## After the phases: two things that were missing
+
+### The iOS driver is real now (2026-08-18)
+
+`simctl` boots, installs and launches. It has no accessibility tree and no tap, so the surface
+could start an app and then not touch it: the adapter's `describeElements`, `tap` and `type` seams
+were injected with a note saying they came "from the CI harness", and no harness existed.
+
+They are filled by [`facebook/idb`](https://github.com/facebook/idb), picked the way the Android
+driver was, by asking what actually exists. 5.3k stars, pushed the week it was evaluated, not
+archived, MIT. One binary, argv only, no server to host per run, and a tree carrying `AXUniqueId`.
+It is the iOS analogue of adb, so the two mobile surfaces are now one idea twice rather than two.
+The alternatives and why each lost are in `docs/ios.md`.
+
+`src/surfaces/ios/idb.mjs` spawns nothing, so all of it is asserted here against a transcript of
+real idb output. `ios.yml` installs both halves (`idb-companion` is the native process, `fb-idb`
+is the CLI that talks to it) and asserts `describe-all` succeeds against the booted device before
+the suite runs.
+
+### It holds when a run is interrupted (2026-08-18)
+
+An audit of what leaks on an abrupt exit found ten things, and the worst was not any single leak:
+there were already **two** signal handler registries, in the slot layer and the tenancy layer,
+each ending in `process.exit`. Whichever settled first killed the other's cleanup, so a Ctrl-C
+during a run holding both reliably leaked one.
+
+`src/runtime/cleanup.mjs` is now the one registry: reverse order, bounded per disposer, one
+failure never skips the rest, a second Ctrl-C abandons and exits. It registers slots, tenants, the
+surface registry (the emulator, the one leak that breaks the *next* run) and web sessions.
+
+`run.json` is claimed up front with an `in_progress` marker that becomes `interrupted` on a
+signal, so a killed run reports that rather than reporting nothing, and the pipeline stage blocks
+under `verify_interrupted`. Every artifact write is temp file plus rename.
+
+Nothing catches SIGKILL, so the sweeps matter as much as the registry, and two were broken: the
+slot sweep ran with `keep: []` (a hazard waiting for someone to raise concurrency) and
+`sweepStaleTenants` was written and never called. Both fixed.
+
+Full contract, including what it deliberately does not cover: `docs/interruption.md`.
+
 ## What is genuinely left
 
 Every plan across all seven phases has been executed. What remains is work that needs something
@@ -202,9 +209,14 @@ this machine does not have, or a decision that belongs to another project:
 3. **INTEG-02, the AtoZ mobile track.** Prepared, and the decision is AtoZ's: it means deciding
    what `build` and `deploy` mean for a mobile app.
 4. **The first iOS CI run.** There is no macOS here, so `ios.yml` is unproven until it runs once.
+   The idb command layer and its normalisation are proven here against a committed transcript;
+   what is unproven is idb reaching a live companion and a tap landing on a real app.
 5. **Live proof for MySQL, Mongo and BigQuery**, which needs the 03-04 dependency checkpoint plus
    a MySQL, a replica set and a GCP project.
 6. **GEN-03, the crawler.** Its safety net is built and tested.
+7. **The device side `screenrecord` on an abrupt kill.** The host side adb child is registered
+   with the cleanup registry; the process on the emulator keeps running to its 180s limit and
+   leaves an unfinalised `.mp4` on `/sdcard`. There is no sweep for it.
 
 ## Things that will bite you if forgotten
 
@@ -249,6 +261,16 @@ this machine does not have, or a decision that belongs to another project:
     its own bounds, so the tap lands on the overlay. The fixture uses `NoActionBar` because of it.
 14. **Node refuses to spawn a `.bat` without a shell.** `d8` and `apksigner` ship as `.bat`
     wrappers, so `tools/build-fixture-apk.mjs` calls the jars they wrap directly.
+15. **Register anything that must be released with `src/runtime/cleanup.mjs`.** Do not add a
+    second set of signal handlers; that was the bug, not the fix. Use `release()` when the normal
+    path is tearing the resource down right now, and `dispose()` when you want the registry to do
+    it. Both are idempotent because the two paths race by construction.
+16. **Node does not deliver SIGTERM on Windows.** Ctrl-C works, `taskkill` without `/F` does not.
+    A cleanup test that sends SIGTERM will pass on CI and prove nothing here, which is why
+    `test/acceptance/interrupt.test.mjs` uses `process.emit("SIGINT")` for the catchable case and
+    a real `SIGKILL` for the uncatchable one.
+17. **A bare absolute path is not importable on Windows.** The ESM loader reads `C:` as a URL
+    scheme. Any spawned `--eval` child importing from `src/` needs `pathToFileURL`.
 
 ## Known gaps, stated rather than hidden
 

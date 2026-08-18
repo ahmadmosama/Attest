@@ -54,7 +54,7 @@ import verify from './verify.mjs';
 **3. Declare the artifact.** `VERIFY_REPORT` is exported from the stage module, or add an
 equivalent to `src/state/artifacts.mjs` if AtoZ prefers its schemas in one place.
 
-### Two rules that are not negotiable
+### Three rules that are not negotiable
 
 - **The stage reads `run.json`, never the HTML report.** The blocking decision comes from one
   `status` field. Parsing a report written for humans is how a gate starts disagreeing with
@@ -62,6 +62,18 @@ equivalent to `src/state/artifacts.mjs` if AtoZ prefers its schemas in one place
 - **Infrastructure stays distinguishable from a scenario failure**, all the way to the pipeline:
   `verify_infra` and `verify_failed` are different kinds. "The emulator did not boot" and "the app
   is wrong" call for different actions from whoever is paged.
+- **A run with no verdict is not a pass.** A killed run leaves `status: "in_progress"` or
+  `"interrupted"`, and the stage blocks on both under a third kind, `verify_interrupted`. This is
+  the one that is easy to get wrong: the marker's `counts` are all zero, so a stage reading only
+  `counts.failed` would call an interrupted run a clean pass and ship unverified code. See
+  [interruption.md](./interruption.md).
+
+| Kind | Means | Who to page |
+| --- | --- | --- |
+| `verify_failed` | scenarios failed | whoever wrote the change |
+| `verify_infra` | the emulator, browser or database did not come up | whoever owns the runner |
+| `verify_interrupted` | the run was killed before it produced a verdict | whoever owns the runner |
+| `verify_no_run_record` | Attest produced no readable record at all | whoever owns the stage wiring |
 
 ## INTEG-02, the mobile track: prepared, not landed
 
@@ -104,7 +116,7 @@ To wire it into `/gsd:validate-phase`, call `validatePhase` with the phase's req
 ## Status
 
 | Requirement | State |
-|---|---|
+| --- | --- |
 | INTEG-01, AtoZ stage | The adapter is built and tested. Mounting is a three change diff in AtoZ, not yet made |
 | INTEG-02, mobile track | Prepared. The decision is AtoZ's |
 | INTEG-03, GSD hook | The hook is built and tested. Wiring it into the command is not yet done |
