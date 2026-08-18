@@ -160,13 +160,47 @@ jobs:
         # Before the suite, for the same reason the runtime check is: "idb cannot
         # reach the companion" should fail with that sentence, not as a locator
         # miss thirty steps in that reads like the app is broken.
+        env:
+          DEVICE_ID: ${{ steps.boot.outputs.device-id }}
         run: |
-          idb list-targets --json
-          if ! idb list-targets --json | grep -q "${{ steps.boot.outputs.device-id }}"; then
-            echo "::error::idb cannot see simulator ${{ steps.boot.outputs.device-id }}."
+          set -uo pipefail
+
+          if ! idb list-targets --json | grep -q "${DEVICE_ID}"; then
+            echo "::error::idb cannot see simulator ${DEVICE_ID}."
+            idb list-targets --json
             exit 1
           fi
-          idb ui describe-all --udid "${{ steps.boot.outputs.device-id }}" > /dev/null
+
+          # The UI has to actually be running. `simctl bootstatus -b` returns
+          # when the SYSTEM has booted, which is a different readiness condition
+          # from "the accessibility tree is serving": on a headless runner the
+          # first describe-all reliably returns
+          #
+          #   No translation object returned for simulator
+          #
+          # which reads like a broken companion and is really just "too early".
+          open -a Simulator --args -CurrentDeviceUDID "${DEVICE_ID}" || true
+
+          # Converge on the real signal rather than sleeping a guessed duration,
+          # which is the same rule the runtime holds itself to (no fixed waits
+          # anywhere in src/). Bounded, and it reports the actual idb error when
+          # the budget runs out instead of a bare non-zero exit.
+          ready=""
+          for attempt in $(seq 1 45); do
+            if out=$(idb ui describe-all --udid "${DEVICE_ID}" 2>&1); then
+              echo "accessibility tree serving after ${attempt} attempt(s)"
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [ -z "${ready}" ]; then
+            echo "::error::idb never served an accessibility tree for ${DEVICE_ID} within 90s."
+            echo "last idb output:"
+            echo "${out}"
+            exit 1
+          fi
 
       - name: Run the iOS scenarios
         env:
