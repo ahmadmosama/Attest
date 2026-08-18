@@ -16,6 +16,15 @@ name: check
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+# One run per ref, not one per commit. On 2026-08-18 this workflow ran 19 times
+# in a single session: 214 ubuntu minutes at 1x plus 120 windows minutes at 2x,
+# which is 454 billed minutes, and only the last result of each burst was ever
+# read. Superseding pushes now cancel the runs they supersede.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   linux:
@@ -91,6 +100,14 @@ jobs:
     runs-on: windows-latest
     # A failure on one host family is a failure, not a reason to look at the
     # other one, so neither job cancels the other.
+    #
+    # Windows bills at 2x and this leg is the more expensive of the two, but it
+    # is NOT the one to drop: it is the leg that found the CRLF checkout bug and
+    # the Linux-only service container bug, both of which were invisible on
+    # ubuntu. It runs on pushes to the default branch and on pull requests,
+    # which is where a portability regression actually needs catching, rather
+    # than on every push to every branch.
+    if: github.event_name != 'push' || github.ref == 'refs/heads/master'
 
     env:
       # The windows-latest image ships PostgreSQL on the default port with the

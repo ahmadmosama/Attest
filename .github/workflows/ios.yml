@@ -4,13 +4,43 @@ name: ios
 # Windows or Linux, so the adapter is built locally and run here. Relocated,
 # not deferred.
 #
-# This job is BLOCKING from day one. There is no continue-on-error anywhere in
-# this file, deliberately: a surface that silently skips is how a gate becomes a
-# lie, and this is the one surface nobody can check locally, so an ignored
-# failure would go unseen for a long time.
+# This job is BLOCKING. There is no continue-on-error anywhere in this file,
+# deliberately: a surface that silently skips is how a gate becomes a lie, and
+# this is the one surface nobody can check locally, so an ignored failure would
+# go unseen for a long time.
+#
+# BUT IT IS NOT FREE, and the triggers below are the correction for that.
+# macOS runners bill at 10x. On 2026-08-18 this workflow ran 19 times in one
+# session for 77 minutes of wall clock, which cost 767 billed minutes: roughly
+# two fifths of a 2,000 minute monthly allowance, in an afternoon. Most of those
+# pushes did not touch the iOS surface at all.
+#
+# So it no longer runs on every push. It runs when something that can actually
+# break it changes, on pull requests, and on demand. A gate that bankrupts its
+# owner gets switched off entirely, which is a worse outcome than a gate that
+# runs when it is relevant.
 on:
   push:
+    paths:
+      - "src/surfaces/ios/**"
+      - "src/surfaces/port.mjs"
+      - "src/runtime/**"
+      - "tools/select-ios-runtime.mjs"
+      - "test/surfaces/ios/**"
+      - "test/acceptance/phase-07-ios.test.mjs"
+      - "examples/snapfit/**"
+      - ".github/workflows/ios.yml"
+      - ".nvmrc"
+      - "package-lock.json"
   pull_request:
+  workflow_dispatch:
+
+# A rapid series of pushes should cost ONE run, not one per commit. Without
+# this, five pushes in ten minutes bill five full macOS runs and only the last
+# result is ever read.
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   # A FLOOR, not an exact pin, and the difference was learned from the first real
@@ -254,7 +284,15 @@ jobs:
     # adapter conformance job above still BLOCKS unconditionally, so the iOS
     # surface is never unverified: what is conditional is only the extra proof
     # against a second repository.
-    if: vars.SNAPFIT_VERIFY == 'true'
+    # workflow_dispatch ONLY, and that is a cost decision as much as a
+    # credential one. An Expo iOS build from a clean checkout is 15 to 25
+    # minutes of macOS wall clock, which at the 10x multiplier is 150 to 250
+    # billed minutes for ONE run. That is more than a tenth of the monthly
+    # allowance to re-prove something that does not change between commits.
+    #
+    # It is a proof to run deliberately, when the Snapfit integration itself
+    # changed, not a per-push regression check.
+    if: github.event_name == 'workflow_dispatch' && vars.SNAPFIT_VERIFY == 'true'
 
     env:
       IOS_RUNTIME_MIN: "26.2"
