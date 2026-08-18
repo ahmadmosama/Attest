@@ -229,3 +229,144 @@ jobs:
           name: attest-ios-artifacts
           path: .attest/runs
           if-no-files-found: ignore
+
+  snapfit:
+    # The end-to-end proof, on a REAL third party app.
+    #
+    # The job above proves the adapter against Attest's own conformance suite.
+    # This one takes Snapfit (github.com/ahmadmosama/Snapfit), a real Expo app
+    # that ships iOS, Android and web from one codebase, builds it for the
+    # simulator, and runs the SAME scenario files that already run green against
+    # its Android build on an emulator and its web build in Chrome.
+    #
+    # It is a separate job so a Snapfit build failure is legible as exactly that
+    # and never mistaken for the adapter being broken.
+    name: snapfit on the simulator
+    runs-on: macos-26
+    needs: ios
+
+    env:
+      IOS_RUNTIME_MIN: "26.2"
+      SIMULATOR_NAME: "iPhone 17"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out Snapfit
+        uses: actions/checkout@v4
+        with:
+          repository: ahmadmosama/Snapfit
+          path: snapfit
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: npm ci
+
+      - name: Install idb
+        run: |
+          set -euo pipefail
+          brew tap facebook/fb
+          brew trust facebook/fb
+          brew install idb-companion
+          PYBIN="$(which python)"
+          pipx install --python "${PYBIN}" fb-idb || "${PYBIN}" -m pip install --user fb-idb
+          echo "${HOME}/.local/bin" >> "$GITHUB_PATH"
+          export PATH="${HOME}/.local/bin:${PATH}"
+          idb --help > /dev/null
+
+      - name: Select the simulator runtime
+        id: toolchain
+        run: |
+          set -euo pipefail
+          XCODE_APP=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          sudo xcode-select -switch "${XCODE_APP}/Contents/Developer"
+          RUNTIME_ID=$(xcrun simctl list runtimes --json | node tools/select-ios-runtime.mjs --min "${IOS_RUNTIME_MIN}")
+          echo "runtime-id=${RUNTIME_ID}" >> "$GITHUB_OUTPUT"
+          echo "runtime: ${RUNTIME_ID}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build Snapfit for the simulator
+        working-directory: snapfit/apps/mobile
+        env:
+          NODE_ENV: development
+        run: |
+          set -euo pipefail
+          npm install
+          npx expo prebuild --platform ios --clean --no-install
+
+          # A SIMULATOR build, never a device .ipa: a simulator cannot install
+          # one, which is the contract the adapter refuses on.
+          xcodebuild \
+            -workspace ios/Snapfit.xcworkspace \
+            -scheme Snapfit \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO
+
+          APP=$(find build/Build/Products -maxdepth 2 -name "*.app" -type d | head -1)
+          if [ -z "${APP}" ]; then
+            echo "::error::No .app produced by xcodebuild"
+            exit 1
+          fi
+          echo "APP_PATH=$(cd "$(dirname "${APP}")" && pwd)/$(basename "${APP}")" >> "$GITHUB_ENV"
+
+      - name: Boot the simulator and wait for its accessibility tree
+        id: boot
+        env:
+          RUNTIME_ID: ${{ steps.toolchain.outputs.runtime-id }}
+        run: |
+          set -uo pipefail
+          DEVICE_ID=$(xcrun simctl create attest-snapfit "${SIMULATOR_NAME}" "${RUNTIME_ID}")
+          echo "device-id=${DEVICE_ID}" >> "$GITHUB_OUTPUT"
+          xcrun simctl bootstatus "${DEVICE_ID}" -b
+          open -a Simulator --args -CurrentDeviceUDID "${DEVICE_ID}" || true
+
+          # Same convergence as the job above: "the system booted" and "the
+          # accessibility tree is serving" are different readiness conditions.
+          for attempt in $(seq 1 45); do
+            if out=$(idb ui describe-all --udid "${DEVICE_ID}" 2>&1); then
+              echo "tree serving after ${attempt} attempt(s)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::idb never served a tree for ${DEVICE_ID}"
+          echo "${out}"
+          exit 1
+
+      - name: Install and drive Snapfit
+        env:
+          ATTEST_IOS_DEVICE: ${{ steps.boot.outputs.device-id }}
+          ATTEST_IOS_DRIVER: idb
+        run: |
+          set -euo pipefail
+          xcrun simctl install "${ATTEST_IOS_DEVICE}" "${APP_PATH}"
+
+          node src/cli/main.mjs run \
+            --scenarios "examples/snapfit/scenarios/*.attest.yaml" \
+            --bindings examples/snapfit/bindings \
+            --surface ios \
+            --app "${APP_PATH}" \
+            --artifacts .attest/runs
+
+      - name: Shut the simulator down
+        if: always()
+        run: |
+          idb kill || true
+          xcrun simctl shutdown "${{ steps.boot.outputs.device-id }}" || true
+          xcrun simctl delete "${{ steps.boot.outputs.device-id }}" || true
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapfit-ios-artifacts
+          path: .attest/runs
+          if-no-files-found: ignore
