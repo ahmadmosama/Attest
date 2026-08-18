@@ -130,10 +130,22 @@ test("criterion 1 drives the live Candor web app through the chrome Playwright a
   assert.deepEqual(record.filters.surfaces, ["web"]);
   assert.doesNotMatch(JSON.stringify(record), /\bfake\b/i);
 
-  const checkpoint = scenario.steps
-    .flatMap((step) => step.evidence)
-    .find((ref) => ref.kind === "png" && ref.path.includes("checkpoint"));
-  assert.notEqual(checkpoint, undefined);
+  const allEvidence = scenario.steps.flatMap((step) => step.evidence ?? []);
+  const checkpoint = allEvidence.find((ref) => ref.kind === "png" && ref.path.includes("checkpoint"));
+
+  // Diagnostic, because a bare `notEqual(undefined)` here says only "no
+  // checkpoint screenshot" and this assertion has failed on the Windows CI
+  // runner while passing on Linux and on a local Windows machine. Evidence
+  // capture swallows its own errors by design (it must never replace the real
+  // scenario result), so an empty list and a failed capture look identical from
+  // here. Printing what WAS captured turns the next occurrence into a fact.
+  assert.notEqual(
+    checkpoint,
+    undefined,
+    `no checkpoint png in evidence. captured: ${JSON.stringify(
+      allEvidence.map((ref) => `${ref.kind}:${ref.path}`)
+    )}, steps: ${scenario.steps.length}`
+  );
   const screenshotPath = path.join(runDir, ...checkpoint.path.split("/"));
   assert.equal(await exists(screenshotPath), true);
   assert.equal((await stat(screenshotPath)).size > 2000, true);
