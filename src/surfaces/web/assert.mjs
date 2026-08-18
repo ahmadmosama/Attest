@@ -115,8 +115,30 @@ function normalizeExpectedText(value) {
   return String(value).trim();
 }
 
+/**
+ * The element's text, where "text" means what a user reads.
+ *
+ * For an `<input>`, `<textarea>` or `<select>` that is its VALUE, not its inner
+ * text: an input's inner text is always empty, so `expect_text` on a field
+ * asserted against "" and timed out no matter what was typed.
+ *
+ * Found by running the same scenario on two surfaces. On Android uiautomator
+ * exposes an EditText's contents as its `text`, so `expect_text` on a field
+ * worked there and could never work here, which makes one op mean two things
+ * and breaks the binding layer's whole claim.
+ */
 async function firstInnerText(locator) {
-  return (await locator.first().innerText({ timeout: IMMEDIATE_QUERY_TIMEOUT_MS })).trim();
+  const first = locator.first();
+
+  const tag = await first.evaluate((node) => node.tagName?.toLowerCase() ?? "", undefined, {
+    timeout: IMMEDIATE_QUERY_TIMEOUT_MS
+  });
+
+  if (tag === "input" || tag === "textarea" || tag === "select") {
+    return (await first.inputValue({ timeout: IMMEDIATE_QUERY_TIMEOUT_MS })).trim();
+  }
+
+  return (await first.innerText({ timeout: IMMEDIATE_QUERY_TIMEOUT_MS })).trim();
 }
 
 async function focused(locator) {

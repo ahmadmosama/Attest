@@ -163,6 +163,42 @@ describe("android surface adapter", () => {
     });
   });
 
+  test("fill REPLACES the field rather than appending to it", async () => {
+    await withSession(async ({ adapter, session, adb }) => {
+      // note_field already holds "hello" (5 chars) in the fixture hierarchy.
+      const result = await adapter.execute(session, {
+        i: 2,
+        kind: "fill",
+        locator: { strategy: "testId", value: "note_field" },
+        value: "bye"
+      });
+
+      assert.equal(result.detail.replaced, 5);
+
+      // Found by driving a real app on the emulator: a scenario filled chest
+      // with "98" on a field whose default was already 98, both steps PASSED,
+      // and the checkpoint screenshot showed 9898. `input text` appends at the
+      // cursor, and nothing in the run said anything was wrong because nothing
+      // asserted the resulting value. A screenshot did.
+      //
+      // fill has to mean the same thing on every surface or the binding layer's
+      // whole claim is false: on web it lowers to Playwright's fill(), which
+      // replaces.
+      const lines = argvLines(adb);
+      const deleteLine = lines.find((line) => line.includes("input keyevent"));
+      assert.ok(deleteLine, "the existing text must be deleted first");
+      assert.match(deleteLine, /KEYCODE_MOVE_END/u, "cursor to the end, or the tail survives");
+      assert.equal((deleteLine.match(/KEYCODE_DEL/gu) ?? []).length, 5);
+
+      // And the delete happens BEFORE the typing.
+      assert.ok(
+        lines.findIndex((line) => line.includes("input keyevent")) <
+          lines.findIndex((line) => line.includes("input text")),
+        lines.join(" | ")
+      );
+    });
+  });
+
   test("clear deletes exactly the characters the field holds, in one round trip", async () => {
     await withSession(async ({ adapter, session, adb }) => {
       const result = await adapter.execute(session, {

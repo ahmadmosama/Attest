@@ -230,11 +230,57 @@ async function scrollUntilVisible(session, op, { signal }) {
   return okDetail(op, { locator: query.description, convergeMs: result.elapsedMs });
 }
 
+/**
+ * `fill` REPLACES the field's contents. It does not append.
+ *
+ * This appended, and it is worth writing down how it was found, because the
+ * scenario PASSED while doing the wrong thing, which is the exact failure this
+ * project exists to prevent.
+ *
+ * Driving a real app (Snapfit) on the emulator, a scenario filled chest with
+ * "98" and waist with "82". Both steps passed. The checkpoint screenshot showed
+ * `9898` and `8282`: the defaults were already 98 and 82, and `input text`
+ * appends at the cursor. Nothing in the run said anything was wrong, because
+ * nothing asserted the resulting value. A screenshot did.
+ *
+ * `fill` has to mean the same thing on every surface or the binding layer's
+ * whole claim is false. On web it lowers to Playwright's `fill()`, which
+ * replaces. So this replaces.
+ *
+ * The existing key-delete path is reused rather than re-implemented, including
+ * its length cap: a field holding more than the cap refuses by name instead of
+ * silently deleting part of it and typing over the rest.
+ */
 async function fill(session, op, { signal }) {
   const resolved = await resolveNode(session, op.locator, { signal, i: op.i, kind: op.kind });
+  const existing = resolved.node.text ?? "";
+
+  if (existing.length > MAX_CLEAR_KEYS) {
+    throw new AttestError("E_ANDROID_CLEAR_TOO_LONG", "Field holds more text than fill can replace", {
+      i: op.i,
+      kind: op.kind,
+      locator: resolved.query.description,
+      length: existing.length,
+      limit: MAX_CLEAR_KEYS,
+      remediation: "Clear this field through a raw escape hatch with a written reason, then fill it."
+    });
+  }
+
   await tapNode(session, resolved.node, { signal });
+
+  if (existing.length > 0) {
+    // MOVE_END first, because the tap put the cursor wherever it landed and
+    // deleting backwards from the middle would leave the tail behind.
+    await run(
+      session,
+      ADB_COMMANDS.inputKeyevent,
+      { keyevents: ["KEYCODE_MOVE_END", ...Array.from({ length: existing.length }, () => "KEYCODE_DEL")] },
+      { signal }
+    );
+  }
+
   await run(session, ADB_COMMANDS.inputText, { text: String(op.value) }, { signal });
-  return okDetail(op, { locator: resolved.query.description });
+  return okDetail(op, { locator: resolved.query.description, replaced: existing.length });
 }
 
 async function clear(session, op, { signal }) {

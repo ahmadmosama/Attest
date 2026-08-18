@@ -16,9 +16,19 @@ steps:
   - open: screen:size
   - expect_visible: screen:size
 
-  - fill: { target: field:chest, value: "98" }
-  - fill: { target: field:waist, value: "82" }
+  # Values chosen to DIFFER from the app's defaults (98 and 82), because a fill
+  # that writes the value already there proves nothing. The first version of
+  # this scenario used 98 and 82, passed, and the checkpoint screenshot showed
+  # 9898 and 8282: fill was appending, and the run said nothing because nothing
+  # asserted the result.
+  - fill: { target: field:chest, value: "101" }
+  - expect_text: { target: field:chest, equals: "101" }
+
+  - fill: { target: field:waist, value: "79" }
+  - expect_text: { target: field:waist, equals: "79" }
+
   - fill: { target: field:brand, value: "uniqlo" }
+  - expect_text: { target: field:brand, equals: "uniqlo" }
 
   # The fit selector was previously distinguishable only by its background
   # colour. It now carries accessibilityState.selected, which is why this step

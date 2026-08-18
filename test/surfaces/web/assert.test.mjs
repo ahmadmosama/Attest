@@ -276,3 +276,52 @@ test("expect_state rejects unknown state and aborted signals promptly", { timeou
     assert.equal(Date.now() - startedAt < 1000, true);
   });
 });
+
+test("expect_text on a form field reads its VALUE, not its inner text", { timeout: TEST_TIMEOUT }, async (t) => {
+  await withSession(
+    t,
+    async (session) => {
+      await session.page.goto(new URL("/fields", session.baseUrl).href);
+      await session.page.getByTestId("chest").fill("101");
+      await session.page.getByTestId("notes").fill("two words");
+
+      // An input's innerText is always empty, so this asserted against "" and
+      // timed out no matter what had been typed.
+      //
+      // Found by running one scenario on two surfaces: Android's uiautomator
+      // exposes an EditText's contents as its `text`, so expect_text on a field
+      // worked there and could never work here. One op meaning two things is
+      // exactly what the binding layer exists to prevent.
+      for (const [testId, expected] of [["chest", "101"], ["notes", "two words"], ["size", "medium"]]) {
+        assert.equal(
+          (await executeAssert(
+            session,
+            { i: 7, kind: "expect_text", locator: { strategy: "testId", value: testId }, equals: expected },
+            {}
+          )).ok,
+          true,
+          `${testId} should read as ${expected}`
+        );
+      }
+
+      // A non field element still reads its inner text.
+      assert.equal(
+        (await executeAssert(
+          session,
+          { i: 8, kind: "expect_text", locator: { strategy: "testId", value: "label" }, equals: "chest (cm)" },
+          {}
+        )).ok,
+        true
+      );
+    },
+    {
+      routes: {
+        "/fields": `<!doctype html>
+    <p data-testid="label">chest (cm)</p>
+    <input data-testid="chest">
+    <textarea data-testid="notes"></textarea>
+    <select data-testid="size"><option value="medium" selected>medium</option><option value="large">large</option></select>`
+      }
+    }
+  );
+});
