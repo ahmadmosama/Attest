@@ -34,8 +34,9 @@ rot is invisible until the one time it matters.
 | idb reaching a live companion | no | yes |
 | real taps and typing landing on a real app | no | yes |
 
-The last three are the honest gap. On this host `preflight` refuses with `E_IOS_NO_SIMULATOR`
-naming the macOS runner, rather than pretending a simulator might appear.
+The last three are the honest gap on THIS host. `preflight` refuses with `E_IOS_NO_SIMULATOR`
+naming the macOS runner, rather than pretending a simulator might appear. All three are now
+proven on the runner: ios.yml has been green since 2026-08-18.
 
 ## The driver: idb
 
@@ -76,6 +77,38 @@ CoreSimulator, `fb-idb` is the Python CLI that talks to the companion. Installin
 other fails at the first `ui` command, not at install time, so the workflow asserts
 `idb ui describe-all` succeeds against the booted device before the suite runs.
 
+## What the first five CI runs taught
+
+`ios.yml` was written before it had ever run. It went green on the fifth attempt, and every
+failure in between was a real fact rather than a guess. Worth recording, because four of the five
+were things no amount of local care would have found.
+
+| Run | Failed at | What it actually was |
+|---|---|---|
+| 1 | runtime assertion | Xcode 26.1.1 was installed and pinned fine; the **iOS 26.1 runtime was not on the image at all** (it ships 26.2, 26.4, 26.5). Runner image issue 13853's pattern, inverted |
+| 2 | `brew install idb-companion` | Homebrew now **refuses formulae from untrusted third party taps**. Most idb install instructions still omit `brew trust` |
+| 3 | first `idb` invocation | fb-idb 1.1.7 calls `asyncio.get_event_loop()`, which **raises on Python 3.14** (the image's Homebrew python). Installed cleanly, died on every call |
+| 4 | `idb ui describe-all` | "No translation object returned for simulator". `simctl bootstatus -b` returns when the **system** booted; the accessibility tree serving is a different readiness condition |
+| 5 | nothing | green. 40 tests, 40 pass |
+
+Two things are worth taking from that table.
+
+**The pre-suite guards earned their place twice.** Runs 1 and 4 both failed in a step named for
+what it checks, with a sentence, before a single scenario ran. Without them, run 1 would have been
+a confusing `simctl create` error and run 4 would have looked like every locator in the suite had
+broken at once. The rule those guards encode, that infrastructure must be distinguishable from a
+scenario failure, is the same one the runtime holds at every other layer.
+
+**The exact pin was the wrong shape, not the wrong number.** Fixing run 1 by writing `26.5`
+instead of `26.1` would have bought one image rotation. The floor plus "report what was actually
+selected into the job summary" is the version that survives, because the thing worth preventing
+was silent drift, not drift. The same reasoning is now in the Windows job, which discovers its
+PostgreSQL service instead of hardcoding `postgresql-x64-17`.
+
+Run 4's fix is the one that reads most like the rest of the project: converge on the real signal
+with a bounded budget rather than sleeping a guessed duration. It needed 2 attempts on the run
+that went green, so it was load bearing and not defensive padding.
+
 ## The .app versus .ipa contract
 
 Attest takes a **simulator `.app` bundle**, a directory or that directory zipped. It never takes
@@ -88,21 +121,34 @@ device .ipa. Build for `generic/platform=iOS Simulator` and pass the resulting .
 (a directory, or that directory zipped) instead.
 ```
 
-## Pinning, and why both
+## Floors, not pins
 
-The workflow pins Xcode with `xcode-select` and pins the runtime version, then **asserts the
-runtime exists** before the suite starts:
+The workflow declares a **minimum** for both halves of the toolchain, takes the newest thing at or
+above it, and reports what it took:
 
 ```yaml
 env:
-  XCODE_VERSION: "26.1"
-  IOS_RUNTIME_VERSION: "26.1"
+  IOS_RUNTIME_MIN: "26.2"
+  XCODE_MIN: "26.1"
 ```
 
-Trusting the image default is how a green job stops meaning anything: runner image issue 13853
-had Xcode shipping ahead of its matching simulator runtime, so the default was unusable. The
-assertion runs first so a missing runtime fails with a sentence naming what is missing, rather
-than with a simctl error thirty steps later.
+This started as an exact pin of both, on the reasoning that trusting the image default is how a
+green job stops meaning anything: runner image issue 13853 had Xcode shipping ahead of its
+matching simulator runtime. Run 1 above showed the pin was the wrong shape. An exact pin breaks on
+every image rotation, and that treadmill ends one way, with somebody deleting the pin and going
+back to the default.
+
+What is actually worth preventing is *silent* drift, so the selected Xcode and runtime go into the
+job summary and into the run's environment. A green job still means something, because you can
+always read what it ran on.
+
+The selection is `tools/select-ios-runtime.mjs`, not inline shell, so its parsing is asserted on
+Windows against the exact listing the real image returned. It returns the runtime's **identifier**,
+never a string rebuilt from a version: "iOS 26.4" reports version `26.4.1` and identifier
+`iOS-26-4`, so reconstructing gives `iOS-26-4-1` and `simctl create` fails with "invalid runtime".
+
+The assertion still runs first, so a toolchain that cannot satisfy the floor fails with a sentence
+naming what is missing and what is present, rather than with a simctl error thirty steps later.
 
 The simulator is shut down in an `if: always()` step, so a failed run does not leave one booted
 for the next job on a reused runner.

@@ -1,6 +1,7 @@
 # Attest: resume here
 
-Updated 2026-08-18. Working tree is clean, everything below is committed.
+Updated 2026-08-18. Working tree is clean, everything below is committed AND PUSHED to
+ahmadmosama/Attest, where CI is green on ubuntu, windows and macOS.
 
 ## Where it stands
 
@@ -10,7 +11,7 @@ Updated 2026-08-18. Working tree is clean, everything below is committed.
 | Phase 3 | Complete and SIGNED OFF, with a 90.91 percent kill rate |
 | Phase 5 | Complete. Four criteria proven against a live emulator, real APK, real Postgres |
 | Milestone | Landed. One command runs one real app on the Android emulator and leaves an evidence bundle |
-| Tests | 1029 total, 1026 passing, 0 failing. The 3 skips are the live Android criteria with no device attached |
+| Tests | 1042 total, 1039 passing, 0 failing. The 3 skips are the live Android criteria with no device attached |
 | Verified against | real PostgreSQL 17.6, real Chrome, and a real Android emulator |
 
 ## Run the gate
@@ -203,14 +204,19 @@ Full contract, including what it deliberately does not cover: `docs/interruption
 Every plan across all seven phases has been executed. What remains is work that needs something
 this machine does not have, or a decision that belongs to another project:
 
-1. **Mount the AtoZ stage.** `docs/integration.md` carries the exact three change diff. It goes
-   after `review` and before `deploy`, which is the hole it fills. AtoZ's call.
-2. **Wire the GSD hook** into `/gsd:validate-phase`. GSD's call.
+1. ~~Mount the AtoZ stage.~~ **DONE 2026-08-18.** Mounted in `ahmadmosama/a-to-z-deployment`
+   (commit 363e192), between `review` and `deploy`, which is the hole it fills. AtoZ's own
+   `VALX-05b(a.1)` stage-count tripwire caught the insertion, which is exactly its job; while
+   there, `(a.2)` turned out to have been failing on master already, with indices never updated
+   after `brand` moved. Both re-anchored, and a new `(a.2b)` states the ORDER CONSTRAINT rather
+   than an index so it will not rot on the next insertion. That suite: 31/31.
+2. **Wire the GSD hook** into `/gsd:validate-phase`. GSD's call. Still the only integration item
+   left, and the smallest.
 3. **INTEG-02, the AtoZ mobile track.** Prepared, and the decision is AtoZ's: it means deciding
    what `build` and `deploy` mean for a mobile app.
-4. **The first iOS CI run.** There is no macOS here, so `ios.yml` is unproven until it runs once.
-   The idb command layer and its normalisation are proven here against a committed transcript;
-   what is unproven is idb reaching a live companion and a tap landing on a real app.
+4. ~~The first iOS CI run.~~ **DONE 2026-08-18.** ios.yml is green on macos-26: 40 tests,
+   40 pass. It took five runs, and each failure was a real fact rather than a guess (see
+   `docs/ios.md`, "What the first five CI runs taught").
 5. **Live proof for MySQL, Mongo and BigQuery**, which needs the 03-04 dependency checkpoint plus
    a MySQL, a replica set and a GCP project.
 6. **GEN-03, the crawler.** Its safety net is built and tested.
