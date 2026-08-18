@@ -4,10 +4,17 @@ import test from "node:test";
 import { resolveTarget } from "../../../src/config/targets.mjs";
 import { InfraError } from "../../../src/errors.mjs";
 import {
+  PG_TIMEOUTS,
   createPgClient,
   withClient,
   withFreshTransaction
 } from "../../../src/db/drivers/postgres/connect.mjs";
+
+// Postgres reports a whole number of seconds as "5s" and anything else in ms,
+// so a configured 20000 comes back as "20s" and a configured 20500 as "20500ms".
+function timeoutMatches(reported, expectedMs) {
+  return reported === `${expectedMs}ms` || reported === `${expectedMs / 1000}s`;
+}
 import {
   PREFLIGHT_CHECKS,
   probeReplicaIdentity,
@@ -131,10 +138,15 @@ test("createPgClient pins session settings and keeps passwords out of serializat
   assert.equal(client.config.user, "postgres");
   assert.equal(client.config.password, "secret");
   assert.equal(JSON.stringify(client.config).includes("secret"), false);
+  // The CONFIGURED guards, not a hardcoded 5000. The invariant is that a session
+  // pins these instead of inheriting the server's defaults, which on a foreign
+  // database could be anything at all including none. Hardcoding the number was
+  // really asserting the developer's hardware, and it broke the moment CI told a
+  // slower host about itself.
   assert.deepEqual(client.queries, [
     "SET application_name TO 'attest'",
-    "SET statement_timeout TO '5000ms'",
-    "SET idle_in_transaction_session_timeout TO '5000ms'"
+    `SET statement_timeout TO '${PG_TIMEOUTS.statementMs}ms'`,
+    `SET idle_in_transaction_session_timeout TO '${PG_TIMEOUTS.idleInTransactionMs}ms'`
   ]);
 });
 
@@ -368,8 +380,19 @@ test("live Postgres connection pins session settings and transaction isolation",
       `);
 
       assert.equal(settings.rows[0].application_name, "attest");
-      assert.match(settings.rows[0].statement_timeout, /5s|5000ms/);
-      assert.match(settings.rows[0].idle_in_transaction_session_timeout, /5s|5000ms/);
+      // Postgres renders a whole number of seconds as "5s" and anything else in
+      // ms, so both spellings of the configured value are accepted.
+      assert.ok(
+        timeoutMatches(settings.rows[0].statement_timeout, PG_TIMEOUTS.statementMs),
+        `statement_timeout was ${settings.rows[0].statement_timeout}, expected ${PG_TIMEOUTS.statementMs}ms`
+      );
+      assert.ok(
+        timeoutMatches(
+          settings.rows[0].idle_in_transaction_session_timeout,
+          PG_TIMEOUTS.idleInTransactionMs
+        ),
+        `idle_in_transaction_session_timeout was ${settings.rows[0].idle_in_transaction_session_timeout}`
+      );
 
       await withFreshTransaction(client, async (txClient) => {
         const isolation = await txClient.query("SHOW transaction_isolation");

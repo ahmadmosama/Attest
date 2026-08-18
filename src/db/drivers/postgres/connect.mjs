@@ -42,6 +42,22 @@ const STATEMENT_TIMEOUT_MS = envMs("ATTEST_PG_STATEMENT_TIMEOUT_MS", 5000);
 const IDLE_IN_TRANSACTION_TIMEOUT_MS = envMs("ATTEST_PG_IDLE_TX_TIMEOUT_MS", 5000);
 
 /**
+ * The resolved guards, exported so tests assert the invariant rather than a
+ * number.
+ *
+ * The invariant was never "5000". It is that a session pins these settings
+ * instead of inheriting the server's defaults, which on a foreign database
+ * could be anything at all including none. Tests that hardcoded 5000 were
+ * really asserting the developer's hardware, and they failed the moment CI
+ * told a slower host about itself.
+ */
+export const PG_TIMEOUTS = Object.freeze({
+  connectMs: CONNECTION_TIMEOUT_MS,
+  statementMs: STATEMENT_TIMEOUT_MS,
+  idleInTransactionMs: IDLE_IN_TRANSACTION_TIMEOUT_MS
+});
+
+/**
  * Postgres connection helpers for the observer side of a delta run.
  *
  * withFreshTransaction is intentionally short lived and always pins READ
