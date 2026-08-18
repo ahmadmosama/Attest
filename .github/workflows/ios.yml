@@ -101,10 +101,30 @@ jobs:
         # companion. Installing one and not the other fails at the first `ui`
         # command, not at install time.
         run: |
+          set -euo pipefail
+
           brew tap facebook/fb
+          # Homebrew refuses to load a formula from a third party tap until the
+          # tap is explicitly trusted, which is new enough that most idb install
+          # instructions still omit it. Without this the run fails with
+          # "Refusing to load formula ... from untrusted tap". The error names
+          # this fix; it is scoped to the one tap rather than disabling the check.
+          brew trust facebook/fb
           brew install idb-companion
-          pipx install fb-idb || pip3 install --user fb-idb
+
+          # The CLI half. pipx is the documented path; the pip fallback needs
+          # --break-system-packages because the runner's python3 is externally
+          # managed (PEP 668) and refuses a plain --user install.
+          pipx install fb-idb || python3 -m pip install --user --break-system-packages fb-idb
+
+          # pipx and pip --user both land in ~/.local/bin, which is not on PATH
+          # by default. GITHUB_PATH only affects LATER steps, so this step needs
+          # the export too or the verification below fails on a good install.
+          echo "${HOME}/.local/bin" >> "$GITHUB_PATH"
+          export PATH="${HOME}/.local/bin:${PATH}"
+
           idb --help > /dev/null
+          echo "idb: $(command -v idb)"
 
       - name: Boot the simulator
         id: boot
