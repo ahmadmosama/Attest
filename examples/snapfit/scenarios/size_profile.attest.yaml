@@ -1,0 +1,28 @@
+id: snapfit.size_profile
+requirement: [DROID-01, DROID-02, IOS-02]
+tags: [snapfit]
+
+# Filling the size profile, on either surface.
+#
+# Stops short of submitting, deliberately. `get my size` calls the backend, and
+# what this scenario is for is the half that is purely local: that every input
+# and every option can be located and driven. Asserting a recommendation would
+# make it a test of the API and of the app at once, and when it failed nobody
+# could tell which one broke.
+#
+# The submit-and-assert half belongs in a scenario with a delta window against
+# Snapfit's database, which is the shape examples/mobile-demo already carries.
+steps:
+  - open: screen:size
+  - expect_visible: screen:size
+
+  - fill: { target: field:chest, value: "98" }
+  - fill: { target: field:waist, value: "82" }
+  - fill: { target: field:brand, value: "uniqlo" }
+
+  # The fit selector was previously distinguishable only by its background
+  # colour. It now carries accessibilityState.selected, which is why this step
+  # can exist at all.
+  - tap: toggle:fit_regular
+
+  - checkpoint: profile_filled

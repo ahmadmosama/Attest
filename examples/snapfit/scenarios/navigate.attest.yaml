@@ -1,0 +1,25 @@
+id: snapfit.navigate
+requirement: [DROID-01, IOS-02]
+tags: [snapfit, smoke]
+
+# Snapfit's two tabs, on either surface.
+#
+# This scenario names no selector, no URL and no platform. `tab:size` resolves
+# through bindings/snapfit/android.yaml on the emulator and ios.yaml on the
+# simulator, and those two files differ only in their `surface:` line.
+#
+# It deliberately needs no backend. Snapfit's search and size endpoints both
+# call the API, and a smoke test that cannot run without a server running is a
+# smoke test that gets skipped. This one proves the thing that has to work
+# before anything else can: that Attest can find and drive Snapfit's controls.
+steps:
+  - open: screen:find
+  - expect_visible: screen:find
+  - checkpoint: find_tab
+
+  - tap: tab:size
+  - expect_visible: screen:size
+  - checkpoint: size_tab
+
+  - tap: tab:find
+  - expect_visible: screen:find

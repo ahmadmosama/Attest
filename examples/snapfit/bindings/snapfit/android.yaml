@@ -1,0 +1,48 @@
+# Snapfit, Android.
+#
+# Snapfit (github.com/ahmadmosama/Snapfit) ships iOS and Android from one Expo
+# app. In React Native a `testID` becomes `accessibilityIdentifier` on iOS and
+# `resource-id` on Android, so the SAME identifier works on both surfaces and
+# these two binding files differ only in the surface line.
+#
+# That is the whole point of the binding layer: the scenario names
+# `button:find_submit`, and nothing in it knows which platform it is on.
+surface: android
+
+elements:
+  tab:find: { testId: tab-find }
+  tab:size: { testId: tab-size }
+
+  # Find
+  button:snap: { testId: find-snap }
+  button:library: { testId: find-library }
+  field:hint: { testId: find-hint }
+  button:find_submit: { testId: find-submit }
+
+  # Size profile. Named by what they mean, not by their order on screen, so a
+  # reordered form does not silently rebind a scenario to the wrong input.
+  field:chest: { testId: size-field-chest }
+  field:waist: { testId: size-field-waist }
+  field:brand: { testId: size-brand }
+  toggle:fit_tight: { testId: size-fit-tight }
+  toggle:fit_regular: { testId: size-fit-regular }
+  toggle:fit_loose: { testId: size-fit-loose }
+  button:size_submit: { testId: size-submit }
+
+  # Results are indexed rather than matched on their text: a product title
+  # changes with the catalogue, and a scenario that keys on it fails for a
+  # reason that has nothing to do with the app being wrong.
+  item:first_result: { testId: result-0 }
+  item:first_result_title: { testId: result-0-title }
+  item:first_result_best_offer: { testId: result-0-offer-0 }
+
+screens:
+  screen:find: { deeplink: "snapfit://find", ready: { testId: find-root } }
+  screen:size: { deeplink: "snapfit://size", ready: { testId: size-root } }
+
+states:
+  state:find_error: { testId: find-error }
+  state:find_empty: { testId: find-empty }
+  state:find_read_as: { testId: find-read-as }
+  state:size_result: { testId: size-result-label }
+  state:size_result_meta: { testId: size-result-meta }
