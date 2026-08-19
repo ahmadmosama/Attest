@@ -1,0 +1,27 @@
+id: mobilia.smoke
+requirement: [SMOKE-01]
+tags: [portfolio, smoke, generated]
+
+# GENERATED from the live app. A CHARACTERISATION test: it asserts what the
+# app did when it was observed, not what a specification says it should do.
+# It cannot find a wrong feature. It will catch the page going blank, a route
+# breaking, a nav link dying or the heading disappearing, which for an app
+# with no tests at all is the whole of the difference between noticing a
+# regression and never noticing it.
+steps:
+  - open: screen:home
+  - expect_visible: screen:home
+  - expect_visible: text:primary_heading
+  - checkpoint: home
+  - expect_visible: button:start_a_room
+  - expect_visible: button:i_m_a_carpenter
+
+  - open: screen:home
+  - tap: link:design
+  - expect_visible: screen:design
+  - checkpoint: design
+
+  - open: screen:home
+  - tap: link:jobs
+  - expect_visible: screen:jobs
+  - checkpoint: jobs

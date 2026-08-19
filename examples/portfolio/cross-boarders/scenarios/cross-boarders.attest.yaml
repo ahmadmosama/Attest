@@ -1,0 +1,33 @@
+id: cross_boarders.smoke
+requirement: [SMOKE-01]
+tags: [portfolio, smoke, generated]
+
+# GENERATED from the live app. A CHARACTERISATION test: it asserts what the
+# app did when it was observed, not what a specification says it should do.
+# It cannot find a wrong feature. It will catch the page going blank, a route
+# breaking, a nav link dying or the heading disappearing, which for an app
+# with no tests at all is the whole of the difference between noticing a
+# regression and never noticing it.
+steps:
+  - open: screen:home
+  - expect_visible: screen:home
+  - expect_visible: text:primary_heading
+  - checkpoint: home
+  - expect_visible: button:sender
+  - expect_visible: button:traveler
+  - expect_visible: button:shop_verified_retailers
+
+  - open: screen:home
+  - tap: link:shop_verified_retailers
+  - expect_visible: screen:shop_verified_retailers
+  - checkpoint: shop_verified_retailers
+
+  - open: screen:home
+  - tap: link:offer_a_carry
+  - expect_visible: screen:offer_a_carry
+  - checkpoint: offer_a_carry
+
+  - open: screen:home
+  - tap: link:open_digital_manifest
+  - expect_visible: screen:open_digital_manifest
+  - checkpoint: open_digital_manifest

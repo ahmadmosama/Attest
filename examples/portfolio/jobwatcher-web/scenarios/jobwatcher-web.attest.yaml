@@ -1,0 +1,27 @@
+id: jobwatcher_web.smoke
+requirement: [SMOKE-01]
+tags: [portfolio, smoke, generated]
+
+# GENERATED from the live app. A CHARACTERISATION test: it asserts what the
+# app did when it was observed, not what a specification says it should do.
+# It cannot find a wrong feature. It will catch the page going blank, a route
+# breaking, a nav link dying or the heading disappearing, which for an app
+# with no tests at all is the whole of the difference between noticing a
+# regression and never noticing it.
+steps:
+  - open: screen:home
+  - expect_visible: screen:home
+  - expect_visible: text:primary_heading
+  - checkpoint: home
+  - expect_visible: button:monthly
+  - expect_visible: button:yearly
+
+  - open: screen:home
+  - tap: link:sign_in
+  - expect_visible: screen:sign_in
+  - checkpoint: sign_in
+
+  - open: screen:home
+  - tap: link:get_started
+  - expect_visible: screen:get_started
+  - checkpoint: get_started

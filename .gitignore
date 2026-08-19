@@ -73,3 +73,6 @@ attest-web/
 # validate requirement ids, so a fresh clone needs it to run selfcheck.
 .planning/*
 !.planning/REQUIREMENTS.md
+
+# Live sweep output, regenerated on every run.
+live-sweep-results.json

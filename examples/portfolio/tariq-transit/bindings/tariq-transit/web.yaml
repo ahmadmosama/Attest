@@ -1,0 +1,16 @@
+# tariq-transit, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "Cairo community transit navigator" }
+  button:compare: { role: button, name: "Compare" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "Cairo community transit navigator" } }
+
+states: {}

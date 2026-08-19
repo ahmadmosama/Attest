@@ -1,0 +1,22 @@
+# borrowed-reach, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "Overview" }
+  button:action_0: { role: button, name: "عربي" }
+  button:today: { role: button, name: "Today" }
+  button:last_7_days: { role: button, name: "Last 7 days" }
+  link:comments: { role: link, name: "Comments" }
+  link:posts: { role: link, name: "Posts" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "Overview" } }
+  screen:comments: { path: "/comments", ready: { role: heading, name: "Comments" } }
+  screen:posts: { path: "/posts", ready: { role: heading, name: "Post Queue" } }
+
+states: {}

@@ -1,0 +1,24 @@
+# cross-boarders, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "London to Lagos, sealed at source." }
+  button:sender: { role: button, name: "SENDER" }
+  button:traveler: { role: button, name: "TRAVELER" }
+  button:shop_verified_retailers: { role: button, name: "shop verified retailers" }
+  link:shop_verified_retailers: { role: link, name: "shop verified retailers" }
+  link:offer_a_carry: { role: link, name: "offer a carry" }
+  link:open_digital_manifest: { role: link, name: "open digital manifest" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "London to Lagos, sealed at source." } }
+  screen:shop_verified_retailers: { path: "/retailers", ready: { role: heading, name: "shop from vetted shops, not strangers." } }
+  screen:offer_a_carry: { path: "/travelers", ready: { role: heading, name: "match parcels to travelers by allowance fit." } }
+  screen:open_digital_manifest: { path: "/manifest", ready: { role: heading, name: "digital manifest, the legal artifact you show at customs." } }
+
+states: {}

@@ -1,0 +1,19 @@
+# streaming, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "a meter you can trust, attached to a theatre you want to sit in." }
+  link:sign_in: { role: link, name: "sign in" }
+  link:create_your_account: { role: link, name: "create your account" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "a meter you can trust, attached to a theatre you want to sit in." } }
+  screen:sign_in: { path: "/signin", ready: { role: heading, name: "sign back in. your taste, wallet, and watch history are exactly where you left them." } }
+  screen:create_your_account: { path: "/signup", ready: { role: heading, name: "pay only for what you actually watch. the meter starts when you press play." } }
+
+states: {}

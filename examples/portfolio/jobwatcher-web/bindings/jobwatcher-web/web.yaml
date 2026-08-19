@@ -1,0 +1,21 @@
+# jobwatcher-web, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "Your job search, on autopilot." }
+  button:monthly: { role: button, name: "Monthly" }
+  button:yearly: { role: button, name: "Yearly" }
+  link:sign_in: { role: link, name: "Sign in" }
+  link:get_started: { role: link, name: "Get Started" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "Your job search, on autopilot." } }
+  screen:sign_in: { path: "/login", ready: { role: heading, name: "Sign in to JobWatcher" } }
+  screen:get_started: { path: "/signup", ready: { role: heading, name: "Create your account" } }
+
+states: {}

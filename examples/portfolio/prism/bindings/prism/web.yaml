@@ -1,0 +1,20 @@
+# prism, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "A calmer view of growing up." }
+  button:sign_in: { role: button, name: "Sign in" }
+  link:forgot_your_password: { role: link, name: "Forgot your password?" }
+  link:create_an_account: { role: link, name: "Create an account" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "A calmer view of growing up." } }
+  screen:forgot_your_password: { path: "/forgot-password", ready: { role: heading, name: "Find your way back in." } }
+  screen:create_an_account: { path: "/signup", ready: { role: heading, name: "Begin with the small signals." } }
+
+states: {}

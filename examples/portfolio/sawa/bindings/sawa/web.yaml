@@ -1,0 +1,19 @@
+# sawa, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "the bit where \"we should hang\" turns into a plan." }
+  link:sign_in: { role: link, name: "sign in" }
+  link:join: { role: link, name: "join" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "the bit where \"we should hang\" turns into a plan." } }
+  screen:sign_in: { path: "/login", ready: { role: heading, name: "welcome back" } }
+  screen:join: { path: "/signup", ready: { role: heading, name: "make a sawa account" } }
+
+states: {}

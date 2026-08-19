@@ -1,0 +1,21 @@
+# rentals, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "find a home that fits" }
+  button:tenant: { role: button, name: "tenant" }
+  button:landlord: { role: button, name: "landlord" }
+  link:search: { role: link, name: "search" }
+  link:list_your_place: { role: link, name: "list your place" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "find a home that fits" } }
+  screen:search: { path: "/search", ready: { role: heading, name: "8 homes match your life" } }
+  screen:list_your_place: { path: "/list-your-place", ready: { role: heading, name: "one dashboard." } }
+
+states: {}

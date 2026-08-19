@@ -1,0 +1,23 @@
+id: language_assistant.smoke
+requirement: [SMOKE-01]
+tags: [portfolio, smoke, generated]
+
+# GENERATED from the live app. A CHARACTERISATION test: it asserts what the
+# app did when it was observed, not what a specification says it should do.
+# It cannot find a wrong feature. It will catch the page going blank, a route
+# breaking, a nav link dying or the heading disappearing, which for an app
+# with no tests at all is the whole of the difference between noticing a
+# regression and never noticing it.
+steps:
+  - open: screen:home
+  - expect_visible: screen:home
+  - expect_visible: text:primary_heading
+  - checkpoint: home
+  - expect_visible: button:two_months_to_fluency_really
+  - expect_visible: button:do_i_need_to_talk_out_loud
+  - expect_visible: button:what_languages_are_supported
+
+  - open: screen:home
+  - tap: link:meet_your_language_friend
+  - expect_visible: screen:meet_your_language_friend
+  - checkpoint: meet_your_language_friend

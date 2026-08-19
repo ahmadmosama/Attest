@@ -1,0 +1,23 @@
+id: zajelai.smoke
+requirement: [SMOKE-01]
+tags: [portfolio, smoke, generated]
+
+# GENERATED from the live app. A CHARACTERISATION test: it asserts what the
+# app did when it was observed, not what a specification says it should do.
+# It cannot find a wrong feature. It will catch the page going blank, a route
+# breaking, a nav link dying or the heading disappearing, which for an app
+# with no tests at all is the whole of the difference between noticing a
+# regression and never noticing it.
+steps:
+  - open: screen:home
+  - expect_visible: screen:home
+  - expect_visible: text:primary_heading
+  - checkpoint: home
+  - expect_visible: button:action
+  - expect_visible: button:what_does_zajel_ai_do
+  - expect_visible: button:who_is_zajel_ai_built_for
+
+  - open: screen:home
+  - tap: link:about
+  - expect_visible: screen:about
+  - checkpoint: about

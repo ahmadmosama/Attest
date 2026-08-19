@@ -1,0 +1,24 @@
+# professional-feedback, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "Log in to Vercel" }
+  button:continue_with_email: { role: button, name: "Continue with Email" }
+  button:continue_with_google: { role: button, name: "Continue with Google" }
+  button:continue_with_github: { role: button, name: "Continue with GitHub" }
+  link:sign_up: { role: link, name: "Sign Up" }
+  link:terms: { role: link, name: "Terms" }
+  link:privacy_policy: { role: link, name: "Privacy Policy" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "Log in to Vercel" } }
+  screen:sign_up: { path: "/signup", ready: { role: heading, name: "Your first deploy" } }
+  screen:terms: { path: "/legal/terms", ready: { role: heading, name: "Terms of Service" } }
+  screen:privacy_policy: { path: "/legal/privacy-notice", ready: { role: heading, name: "Privacy Notice" } }
+
+states: {}

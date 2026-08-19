@@ -1,0 +1,28 @@
+id: khayat.smoke
+requirement: [SMOKE-01]
+tags: [portfolio, smoke, generated]
+
+# GENERATED from the live app. A CHARACTERISATION test: it asserts what the
+# app did when it was observed, not what a specification says it should do.
+# It cannot find a wrong feature. It will catch the page going blank, a route
+# breaking, a nav link dying or the heading disappearing, which for an app
+# with no tests at all is the whole of the difference between noticing a
+# regression and never noticing it.
+steps:
+  - open: screen:home
+  - expect_visible: screen:home
+  - expect_visible: text:primary_heading
+  - checkpoint: home
+  - expect_visible: button:customer
+  - expect_visible: button:eg
+  - expect_visible: button:ar
+
+  - open: screen:home
+  - tap: link:enter_as_customer
+  - expect_visible: screen:enter_as_customer
+  - checkpoint: enter_as_customer
+
+  - open: screen:home
+  - tap: link:enter_as_tailor
+  - expect_visible: screen:enter_as_tailor
+  - checkpoint: enter_as_tailor

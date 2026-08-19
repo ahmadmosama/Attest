@@ -1,0 +1,19 @@
+# candor, web. GENERATED from the live app by tools/generate-smoke.mjs.
+#
+# Bound by ROLE and NAME rather than by test id, because this app has none.
+# That is a weaker binding: renaming a visible label breaks it, where a test
+# id would not have. It is what the app supports today, and it is honest
+# about that rather than pretending to a stability it does not have.
+surface: web
+
+elements:
+  text:primary_heading: { role: heading, name: "Reputation, written by the people who worked with you." }
+  link:search: { role: link, name: "Search" }
+  link:look_up_a_manager: { role: link, name: "Look up a manager" }
+
+screens:
+  screen:home: { path: "/", ready: { role: heading, name: "Reputation, written by the people who worked with you." } }
+  screen:search: { path: "/search", ready: { role: heading, name: "Find a professional by name, employer, or role." } }
+  screen:look_up_a_manager: { path: "/lookup-manager", ready: { role: heading, name: "Look up the person you would be reporting to." } }
+
+states: {}
