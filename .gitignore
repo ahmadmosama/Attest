@@ -65,3 +65,11 @@ credentials.json
 # The web adapter fallback scratch root, used when a run has no bundle dir.
 # It was already leaking into the repo before the cleanup registry existed.
 attest-web/
+
+# Internal planning notes. Kept on disk, deliberately NOT published: they are a
+# working record that accumulated personal context (project inventory, machine
+# details, infrastructure names) and were never written for an audience.
+# REQUIREMENTS.md is the exception, because src/selfverify/corpus.mjs reads it to
+# validate requirement ids, so a fresh clone needs it to run selfcheck.
+.planning/*
+!.planning/REQUIREMENTS.md
