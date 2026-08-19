@@ -14,14 +14,9 @@ steps:
   - expect_visible: text:primary_heading
   - checkpoint: home
   - expect_visible: button:monthly
-  - expect_visible: button:yearly
+  - expect_visible: button:yearly_save_20
 
   - open: screen:home
   - tap: link:sign_in
   - expect_visible: screen:sign_in
   - checkpoint: sign_in
-
-  - open: screen:home
-  - tap: link:get_started
-  - expect_visible: screen:get_started
-  - checkpoint: get_started

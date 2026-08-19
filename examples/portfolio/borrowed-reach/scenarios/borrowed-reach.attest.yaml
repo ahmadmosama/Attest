@@ -13,7 +13,7 @@ steps:
   - expect_visible: screen:home
   - expect_visible: text:primary_heading
   - checkpoint: home
-  - expect_visible: button:action
+  - expect_visible: button:action_0
   - expect_visible: button:today
   - expect_visible: button:last_7_days
 

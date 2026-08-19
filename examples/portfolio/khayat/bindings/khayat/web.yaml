@@ -7,15 +7,15 @@
 surface: web
 
 elements:
-  text:primary_heading: { role: heading, name: "the tailor" }
-  button:customer: { role: button, name: "CUSTOMER" }
-  button:eg: { role: button, name: "EG" }
+  text:primary_heading: { role: heading, name: "the tailor in your pocket" }
+  button:eg_egp: { role: button, name: "EG EGP" }
   button:ar: { role: button, name: "AR" }
+  button:enter_as_customer: { role: button, name: "enter as customer" }
   link:enter_as_customer: { role: link, name: "enter as customer" }
   link:enter_as_tailor: { role: link, name: "enter as tailor" }
 
 screens:
-  screen:home: { path: "/", ready: { role: heading, name: "the tailor" } }
+  screen:home: { path: "/", ready: { role: heading, name: "the tailor in your pocket" } }
   screen:enter_as_customer: { path: "/customer/discover", ready: { role: heading, name: "considered clothing, for you" } }
   screen:enter_as_tailor: { path: "/tailor/inbox", ready: { role: heading, name: "briefs awaiting your call" } }
 

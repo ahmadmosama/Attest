@@ -1,0 +1,995 @@
+[
+  {
+    "name": "dialect",
+    "url": "https://dialect-eight.vercel.app",
+    "findings": [
+      {
+        "severity": "medium",
+        "what": "no <h1> on the page"
+      },
+      {
+        "severity": "high",
+        "what": "no viewport meta tag, the page will not adapt on a phone"
+      },
+      {
+        "severity": "low",
+        "what": "no meta description"
+      },
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 0,
+        "langSet": true,
+        "titleSet": false
+      },
+      "seo": {
+        "description": false,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": false,
+        "favicon": false
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "sawa",
+    "url": "https://sawa-zeta.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 2,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "jobwatcher-web",
+    "url": "https://jobwatcher-web-eight.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 2,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": [
+          {
+            "tag": "div",
+            "cls": "absolute left-1/2 top-0 -translate-x-1/2",
+            "overflowPx": 205
+          },
+          {
+            "tag": "div",
+            "cls": "absolute top-1/2 left-1/2 -translate-x-1",
+            "overflowPx": 105
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "ahmad-plan",
+    "url": "https://ahmad-plan.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": true
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "rentals",
+    "url": "https://rentals-swart.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": true
+      },
+      "links": {
+        "checked": 12,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "language-assistant",
+    "url": "https://language-assistant-six.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": true,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 2,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "sufra-admin",
+    "url": "https://sufra-admin-three.vercel.app",
+    "findings": [
+      {
+        "severity": "medium",
+        "what": "2 form field(s) with no label"
+      },
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 2,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "zeeja",
+    "url": "https://zeeja.vercel.app",
+    "findings": [
+      {
+        "severity": "high",
+        "what": "scrolls sideways on a phone by 215px (widest: <section class=\"rounded-xl border border-border bg-surfa\">)"
+      },
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": true,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": true
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": true,
+        "overflowPx": 215,
+        "worst": [
+          {
+            "tag": "section",
+            "cls": "rounded-xl border border-border bg-surfa",
+            "overflowPx": 215
+          },
+          {
+            "tag": "section",
+            "cls": "rounded-xl border border-border bg-surfa",
+            "overflowPx": 215
+          },
+          {
+            "tag": "section",
+            "cls": "rounded-xl border border-border bg-surfa",
+            "overflowPx": 215
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "depth",
+    "url": "https://depth-gamma.vercel.app",
+    "findings": [
+      {
+        "severity": "high",
+        "what": "scrolls sideways on a phone by 215px (widest: <section class=\"rounded-xl border border-border bg-surfa\">)"
+      },
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": true,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": true
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": true,
+        "overflowPx": 215,
+        "worst": [
+          {
+            "tag": "section",
+            "cls": "rounded-xl border border-border bg-surfa",
+            "overflowPx": 215
+          },
+          {
+            "tag": "section",
+            "cls": "rounded-xl border border-border bg-surfa",
+            "overflowPx": 215
+          },
+          {
+            "tag": "section",
+            "cls": "rounded-xl border border-border bg-surfa",
+            "overflowPx": 215
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "borrowed-reach",
+    "url": "https://borrowed-reach-dashboard.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 6,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "consultalyst",
+    "url": "https://consultalyst.online",
+    "findings": [
+      {
+        "severity": "medium",
+        "what": "1 button(s) with no accessible name"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 1,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": true,
+        "ogImage": true,
+        "viewport": true,
+        "favicon": true
+      },
+      "links": {
+        "checked": 1,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "professional-feedback",
+    "url": "https://professional-feedback-ahmadmosama-8082s-projects.vercel.app",
+    "findings": [
+      {
+        "severity": "medium",
+        "what": "1 button(s) with no accessible name"
+      },
+      {
+        "severity": "low",
+        "what": "no meta description"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 1,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": false,
+        "ogTitle": true,
+        "ogImage": true,
+        "viewport": true,
+        "favicon": true
+      },
+      "links": {
+        "checked": 4,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "zajelai",
+    "url": "https://zajelai.com",
+    "findings": [],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": true,
+        "ogImage": true,
+        "viewport": true,
+        "favicon": true
+      },
+      "links": {
+        "checked": 12,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": [
+          {
+            "tag": "span",
+            "cls": "",
+            "overflowPx": 57
+          },
+          {
+            "tag": "span",
+            "cls": "",
+            "overflowPx": 10
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "candor",
+    "url": "https://candor-two-theta.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 6,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "khayat",
+    "url": "https://khayat-eight.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 4,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "mobilia",
+    "url": "https://mobilia-omega.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 4,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "cross-boarders",
+    "url": "https://cross-boarders.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 5,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "hfd-web",
+    "url": "https://hfd-web-iota.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "jarvis",
+    "url": "https://jarvis-six-blond.vercel.app",
+    "findings": [
+      {
+        "severity": "medium",
+        "what": "no <h1> on the page"
+      },
+      {
+        "severity": "medium",
+        "what": "1 form field(s) with no label"
+      },
+      {
+        "severity": "medium",
+        "what": "1 button(s) with no accessible name"
+      },
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 1,
+        "buttonsNoName": 1,
+        "h1Count": 0,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": true
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "tariq-transit",
+    "url": "https://tariq-transit.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "prism",
+    "url": "https://prism-two-kappa.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 2,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "productivity-musl",
+    "url": "https://productivity-musl-landing.vercel.app",
+    "findings": [
+      {
+        "severity": "medium",
+        "what": "1 form field(s) with no label"
+      },
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 1,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": true,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": true
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": [
+          {
+            "tag": "div",
+            "cls": "flex flex-col items-center flex-[0_0_260",
+            "overflowPx": 1283
+          },
+          {
+            "tag": "div",
+            "cls": "relative mx-auto border-[14px] border-gr",
+            "overflowPx": 1283
+          },
+          {
+            "tag": "div",
+            "cls": "rounded-[2rem] overflow-hidden w-[272px]",
+            "overflowPx": 1269
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "streaming",
+    "url": "https://streaming-three-navy.vercel.app",
+    "findings": [
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 2,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": false,
+        "overflowPx": 0,
+        "worst": []
+      }
+    }
+  },
+  {
+    "name": "backtrack",
+    "url": "https://backtrack-eight.vercel.app",
+    "findings": [
+      {
+        "severity": "high",
+        "what": "scrolls sideways on a phone by 51px (widest: <article class=\"rounded-12 border p-24 transition durati\">)"
+      },
+      {
+        "severity": "low",
+        "what": "no og:image, link previews will be blank"
+      }
+    ],
+    "measured": {
+      "a11y": {
+        "imagesNoAlt": 0,
+        "inputsNoLabel": 0,
+        "buttonsNoName": 0,
+        "h1Count": 1,
+        "langSet": true,
+        "titleSet": true
+      },
+      "seo": {
+        "description": true,
+        "ogTitle": false,
+        "ogImage": false,
+        "viewport": true,
+        "favicon": false
+      },
+      "links": {
+        "checked": 0,
+        "broken": []
+      },
+      "mobile": {
+        "scrolls": true,
+        "overflowPx": 51,
+        "worst": [
+          {
+            "tag": "article",
+            "cls": "rounded-12 border p-24 transition durati",
+            "overflowPx": 51
+          },
+          {
+            "tag": "article",
+            "cls": "rounded-12 border p-24 transition durati",
+            "overflowPx": 51
+          },
+          {
+            "tag": "article",
+            "cls": "rounded-12 border p-24 transition durati",
+            "overflowPx": 51
+          }
+        ]
+      }
+    }
+  }
+]

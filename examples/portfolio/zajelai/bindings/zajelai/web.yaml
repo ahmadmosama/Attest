@@ -7,14 +7,14 @@
 surface: web
 
 elements:
-  text:primary_heading: { role: heading, name: "AI built around your business." }
-  button:action_0: { role: button, name: "العربية" }
+  text:primary_heading: { role: heading, name: "AI built around your business. Not the other way around." }
   button:what_does_zajel_ai_do: { role: button, name: "What does Zajel AI do?" }
   button:who_is_zajel_ai_built_for: { role: button, name: "Who is Zajel AI built for?" }
+  button:how_long_does_a_typical_project_ta: { role: button, name: "How long does a typical project take?" }
   link:about: { role: link, name: "About" }
 
 screens:
-  screen:home: { path: "/", ready: { role: heading, name: "AI built around your business." } }
+  screen:home: { path: "/", ready: { role: heading, name: "AI built around your business. Not the other way around." } }
   screen:about: { path: "/en/about", ready: { role: heading, name: "The Story Behind Zajel" } }
 
 states: {}

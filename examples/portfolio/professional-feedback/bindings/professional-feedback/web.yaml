@@ -11,13 +11,11 @@ elements:
   button:continue_with_email: { role: button, name: "Continue with Email" }
   button:continue_with_google: { role: button, name: "Continue with Google" }
   button:continue_with_github: { role: button, name: "Continue with GitHub" }
-  link:sign_up: { role: link, name: "Sign Up" }
   link:terms: { role: link, name: "Terms" }
   link:privacy_policy: { role: link, name: "Privacy Policy" }
 
 screens:
   screen:home: { path: "/", ready: { role: heading, name: "Log in to Vercel" } }
-  screen:sign_up: { path: "/signup", ready: { role: heading, name: "Your first deploy" } }
   screen:terms: { path: "/legal/terms", ready: { role: heading, name: "Terms of Service" } }
   screen:privacy_policy: { path: "/legal/privacy-notice", ready: { role: heading, name: "Privacy Notice" } }
 

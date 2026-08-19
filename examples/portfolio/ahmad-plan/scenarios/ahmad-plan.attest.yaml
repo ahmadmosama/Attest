@@ -13,6 +13,6 @@ steps:
   - expect_visible: screen:home
   - expect_visible: text:primary_heading
   - checkpoint: home
-  - expect_visible: button:start_push_day
+  - expect_visible: button:start_pull_day
   - expect_visible: button:rest_today
   - expect_visible: button:not_your_day_change_it

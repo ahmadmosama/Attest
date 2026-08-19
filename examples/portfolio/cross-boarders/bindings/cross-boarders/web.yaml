@@ -8,9 +8,9 @@ surface: web
 
 elements:
   text:primary_heading: { role: heading, name: "London to Lagos, sealed at source." }
-  button:sender: { role: button, name: "SENDER" }
-  button:traveler: { role: button, name: "TRAVELER" }
   button:shop_verified_retailers: { role: button, name: "shop verified retailers" }
+  button:offer_a_carry: { role: button, name: "offer a carry" }
+  button:open_digital_manifest: { role: button, name: "open digital manifest" }
   link:shop_verified_retailers: { role: link, name: "shop verified retailers" }
   link:offer_a_carry: { role: link, name: "offer a carry" }
   link:open_digital_manifest: { role: link, name: "open digital manifest" }

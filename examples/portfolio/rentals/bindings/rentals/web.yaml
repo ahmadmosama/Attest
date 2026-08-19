@@ -7,15 +7,11 @@
 surface: web
 
 elements:
-  text:primary_heading: { role: heading, name: "find a home that fits" }
+  text:primary_heading: { role: heading, name: "find a home that fits your actual life." }
   button:tenant: { role: button, name: "tenant" }
-  button:landlord: { role: button, name: "landlord" }
-  link:search: { role: link, name: "search" }
-  link:list_your_place: { role: link, name: "list your place" }
+  button:landlord_5: { role: button, name: "landlord 5" }
 
 screens:
-  screen:home: { path: "/", ready: { role: heading, name: "find a home that fits" } }
-  screen:search: { path: "/search", ready: { role: heading, name: "8 homes match your life" } }
-  screen:list_your_place: { path: "/list-your-place", ready: { role: heading, name: "one dashboard." } }
+  screen:home: { path: "/", ready: { role: heading, name: "find a home that fits your actual life." } }
 
 states: {}

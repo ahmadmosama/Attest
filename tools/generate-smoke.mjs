@@ -55,22 +55,86 @@ async function settle(page) {
 }
 
 /**
- * The most specific heading the page actually shows.
+ * A name that Playwright will actually match on, verified against the page.
  *
- * Used as a screen's `ready` check, so it has to be something that is present
- * when the screen has finished arriving and absent before. A heading is the
- * best available proxy on an app with no test ids.
+ * Role-name matching is EXACT, and an element's accessible name is not its
+ * first line of text. A multi-line heading like
+ *
+ *   find a home that fits
+ *   your actual life.
+ *
+ * has the accessible name "find a home that fitsyour actual life." (no space:
+ * the line break comes from a block child, not from whitespace). Emitting the
+ * first line produced a binding that matched zero elements and a scenario that
+ * timed out on step 0 with nothing wrong with the app.
+ *
+ * So candidates are TRIED against the live page and the first one that resolves
+ * to exactly one element is used. A generator that cannot verify its own output
+ * is guessing, and a guessed locator fails for a reason nobody can act on.
+ */
+async function resolvableName(page, role, rawText, extra = {}) {
+  const collapsed = rawText.replace(/\s+/gu, " ").trim();
+  const candidates = [
+    collapsed,
+    rawText.replace(/\n/gu, "").trim(), // block children join without a space
+    rawText.trim(),
+    collapsed.split("\n")[0]
+  ];
+
+  for (const candidate of [...new Set(candidates)]) {
+    if (candidate.length === 0 || candidate.length > 120) {
+      continue;
+    }
+
+    // `exact: true`, because that is what src/surfaces/web/locate.mjs passes.
+    //
+    // This was the whole bug in the first version. Playwright's default name
+    // matching is case-insensitive and substring; Attest's is exact. Verifying
+    // with the loose matcher and emitting for the strict one meant the check
+    // proved nothing, and four apps failed on a locator the generator had
+    // "confirmed". A generator has to verify with the SAME matcher its consumer
+    // will use, or the verification is theatre.
+    const count = await page
+      .getByRole(role, { name: candidate, exact: true, ...extra })
+      .count()
+      .catch(() => 0);
+
+    // Exactly one, not merely at least one: two matches is E_WEB_AMBIGUOUS at
+    // run time, which is a refusal rather than a pass, and it is better found
+    // here than in a run.
+    if (count === 1) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * The most specific heading the page actually shows, as a name that resolves.
+ *
+ * Used as a screen ready check, so it has to be present when the screen has
+ * arrived and absent before. A heading is the best proxy available on an app
+ * with no test ids.
  */
 async function primaryHeading(page) {
   for (const level of [1, 2]) {
     const heading = page.getByRole("heading", { level }).first();
-    if ((await heading.count().catch(() => 0)) > 0) {
-      const text = (await heading.innerText().catch(() => "")).trim().split("\n")[0];
-      if (text.length > 0 && text.length < 90) {
-        return { level, text };
-      }
+    if ((await heading.count().catch(() => 0)) === 0) {
+      continue;
+    }
+
+    const raw = (await heading.innerText().catch(() => "")).trim();
+    if (raw.length === 0 || raw.length > 140) {
+      continue;
+    }
+
+    const name = await resolvableName(page, "heading", raw, { level });
+    if (name !== null) {
+      return { level, text: name };
     }
   }
+
   return null;
 }
 
@@ -130,14 +194,25 @@ export async function probeApp(browser, { name, url }) {
     }
 
     // Named buttons that are safe to assert the existence of. Not clicked.
-    observed.landmarks = (
+    const rawButtons = (
       await page
         .getByRole("button")
-        .evaluateAll((nodes) => nodes.map((node) => (node.innerText ?? "").trim().split("\n")[0]))
+        .evaluateAll((nodes) => nodes.map((node) => (node.innerText ?? "").trim()))
         .catch(() => [])
-    )
-      .filter((text) => text.length > 1 && text.length < 34 && !DESTRUCTIVE.test(text))
-      .slice(0, 3);
+    ).filter((text) => text.length > 1 && text.length < 60 && !DESTRUCTIVE.test(text));
+
+    // Verified the same way the heading is: a name that does not resolve is a
+    // scenario step that times out with nothing wrong with the app.
+    observed.landmarks = [];
+    for (const raw of rawButtons.slice(0, 8)) {
+      const buttonName = await resolvableName(page, "button", raw);
+      if (buttonName !== null && !observed.landmarks.includes(buttonName)) {
+        observed.landmarks.push(buttonName);
+      }
+      if (observed.landmarks.length === 3) {
+        break;
+      }
+    }
 
     // Walk a few internal links and record where they actually land.
     const links = (await namedLinks(page, origin)).slice(0, MAX_NAV_LINKS);
@@ -145,7 +220,11 @@ export async function probeApp(browser, { name, url }) {
       try {
         await page.goto(url, { timeout: NAV_TIMEOUT_MS, waitUntil: "domcontentloaded" });
         await settle(page);
-        await page.getByRole("link", { name: link.name, exact: true }).first().click({ timeout: 10_000 });
+        const linkName = await resolvableName(page, "link", link.name);
+        if (linkName === null) {
+          continue;
+        }
+        await page.getByRole("link", { name: linkName, exact: true }).first().click({ timeout: 10_000 });
         await settle(page);
 
         const landed = await primaryHeading(page);
@@ -154,7 +233,7 @@ export async function probeApp(browser, { name, url }) {
         // assert the route as well as the content.
         const landedPath = new URL(page.url()).pathname || "/";
         if (landed !== null && landed.text !== observed.heading.text && landedPath !== "/") {
-          observed.routes.push({ linkName: link.name, heading: landed, path: landedPath });
+          observed.routes.push({ linkName, heading: landed, path: landedPath });
         }
       } catch {
         // A link that will not navigate is not a crawl failure. It is simply
@@ -170,6 +249,14 @@ export async function probeApp(browser, { name, url }) {
   } finally {
     await context.close().catch(() => {});
   }
+}
+
+// The ONE place an element gets its ref name. Both renderers call this, because
+// when they each had their own fallback they disagreed: a label that slugs to
+// empty ("عربي") produced button:action_0 in the bindings and button:action in
+// the scenario, and the run failed with E_UNBOUND_REF.
+function buttonRef(label, index) {
+  return refName(label, `action_${index}`);
 }
 
 export function renderBindings(observed) {
@@ -189,7 +276,7 @@ export function renderBindings(observed) {
     `  text:primary_heading: { role: heading, name: ${yamlString(observed.heading.text)} }`
   );
   for (const [index, label] of observed.landmarks.entries()) {
-    lines.push(`  button:${refName(label, `action_${index}`)}: { role: button, name: ${yamlString(label)} }`);
+    lines.push(`  button:${buttonRef(label, index)}: { role: button, name: ${yamlString(label)} }`);
   }
   for (const route of observed.routes) {
     lines.push(`  link:${refName(route.linkName, "nav")}: { role: link, name: ${yamlString(route.linkName)} }`);
@@ -229,8 +316,8 @@ export function renderScenario(observed) {
     "  - checkpoint: home"
   ];
 
-  for (const label of observed.landmarks) {
-    lines.push(`  - expect_visible: button:${refName(label, "action")}`);
+  for (const [index, label] of observed.landmarks.entries()) {
+    lines.push(`  - expect_visible: button:${buttonRef(label, index)}`);
   }
 
   for (const route of observed.routes) {
@@ -253,7 +340,11 @@ export function renderScenario(observed) {
   return lines.join("\n");
 }
 
-if (import.meta.url === (await import("node:url")).pathToFileURL(process.argv[1]).href) {
+const invokedDirectly =
+  process.argv[1] !== undefined &&
+  import.meta.url === (await import("node:url")).pathToFileURL(process.argv[1]).href;
+
+if (invokedDirectly) {
   const { readFile, writeFile, mkdir } = await import("node:fs/promises");
   const path = await import("node:path");
 

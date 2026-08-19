@@ -13,9 +13,9 @@ steps:
   - expect_visible: screen:home
   - expect_visible: text:primary_heading
   - checkpoint: home
-  - expect_visible: button:sender
-  - expect_visible: button:traveler
   - expect_visible: button:shop_verified_retailers
+  - expect_visible: button:offer_a_carry
+  - expect_visible: button:open_digital_manifest
 
   - open: screen:home
   - tap: link:shop_verified_retailers

@@ -10,7 +10,7 @@ elements:
   text:primary_heading: { role: heading, name: "today's seven" }
   button:i_am_interested: { role: button, name: "I am interested" }
   button:not_for_me: { role: button, name: "Not for me" }
-  button:browse_next_candidate: { role: button, name: "browse next candidate" }
+  button:nadir_34_hamra_london_90_fit: { role: button, name: "nadir, 34 hamra / london 90% fit" }
 
 screens:
   screen:home: { path: "/", ready: { role: heading, name: "today's seven" } }

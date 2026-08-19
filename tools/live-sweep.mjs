@@ -213,7 +213,11 @@ export async function sweep(targets, { concurrency = 4 } = {}) {
   return results.toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
-if (import.meta.url === (await import("node:url")).pathToFileURL(process.argv[1]).href) {
+const invokedDirectly =
+  process.argv[1] !== undefined &&
+  import.meta.url === (await import("node:url")).pathToFileURL(process.argv[1]).href;
+
+if (invokedDirectly) {
   const file = process.argv[2];
   if (file === undefined) {
     process.stderr.write("usage: live-sweep.mjs <targets.json>\n");

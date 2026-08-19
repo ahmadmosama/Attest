@@ -7,12 +7,12 @@
 surface: web
 
 elements:
-  text:primary_heading: { role: heading, name: "Productivity built" }
+  text:primary_heading: { role: heading, name: "Productivity built around your deen" }
   button:taskeel: { role: button, name: "Taskeel" }
   button:features: { role: button, name: "Features" }
   button:screenshots: { role: button, name: "Screenshots" }
 
 screens:
-  screen:home: { path: "/", ready: { role: heading, name: "Productivity built" } }
+  screen:home: { path: "/", ready: { role: heading, name: "Productivity built around your deen" } }
 
 states: {}

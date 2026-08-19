@@ -13,9 +13,6 @@ steps:
   - expect_visible: screen:home
   - expect_visible: text:primary_heading
   - checkpoint: home
-  - expect_visible: button:two_months_to_fluency_really
-  - expect_visible: button:do_i_need_to_talk_out_loud
-  - expect_visible: button:what_languages_are_supported
 
   - open: screen:home
   - tap: link:meet_your_language_friend

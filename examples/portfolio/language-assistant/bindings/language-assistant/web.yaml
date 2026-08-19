@@ -7,14 +7,11 @@
 surface: web
 
 elements:
-  text:primary_heading: { role: heading, name: "not a language app." }
-  button:two_months_to_fluency_really: { role: button, name: "two months to fluency — really?" }
-  button:do_i_need_to_talk_out_loud: { role: button, name: "do I need to talk out loud?" }
-  button:what_languages_are_supported: { role: button, name: "what languages are supported?" }
+  text:primary_heading: { role: heading, name: "not a language app. a language friend." }
   link:meet_your_language_friend: { role: link, name: "meet your language friend" }
 
 screens:
-  screen:home: { path: "/", ready: { role: heading, name: "not a language app." } }
+  screen:home: { path: "/", ready: { role: heading, name: "not a language app. a language friend." } }
   screen:meet_your_language_friend: { path: "/onboarding", ready: { role: heading, name: "hey! what should Alex call you?" } }
 
 states: {}

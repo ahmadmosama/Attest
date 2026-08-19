@@ -13,9 +13,9 @@ steps:
   - expect_visible: screen:home
   - expect_visible: text:primary_heading
   - checkpoint: home
-  - expect_visible: button:action
   - expect_visible: button:what_does_zajel_ai_do
   - expect_visible: button:who_is_zajel_ai_built_for
+  - expect_visible: button:how_long_does_a_typical_project_ta
 
   - open: screen:home
   - tap: link:about

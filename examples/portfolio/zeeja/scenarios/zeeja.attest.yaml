@@ -15,4 +15,4 @@ steps:
   - checkpoint: home
   - expect_visible: button:i_am_interested
   - expect_visible: button:not_for_me
-  - expect_visible: button:browse_next_candidate
+  - expect_visible: button:nadir_34_hamra_london_90_fit

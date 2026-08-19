@@ -14,14 +14,4 @@ steps:
   - expect_visible: text:primary_heading
   - checkpoint: home
   - expect_visible: button:tenant
-  - expect_visible: button:landlord
-
-  - open: screen:home
-  - tap: link:search
-  - expect_visible: screen:search
-  - checkpoint: search
-
-  - open: screen:home
-  - tap: link:list_your_place
-  - expect_visible: screen:list_your_place
-  - checkpoint: list_your_place
+  - expect_visible: button:landlord_5

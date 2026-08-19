@@ -13,9 +13,9 @@ steps:
   - expect_visible: screen:home
   - expect_visible: text:primary_heading
   - checkpoint: home
-  - expect_visible: button:customer
-  - expect_visible: button:eg
+  - expect_visible: button:eg_egp
   - expect_visible: button:ar
+  - expect_visible: button:enter_as_customer
 
   - open: screen:home
   - tap: link:enter_as_customer

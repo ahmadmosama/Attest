@@ -8,7 +8,7 @@ surface: web
 
 elements:
   text:primary_heading: { role: heading, name: "Ahmad Osama Tayel" }
-  button:start_push_day: { role: button, name: "Start Push Day →" }
+  button:start_pull_day: { role: button, name: "Start Pull Day →" }
   button:rest_today: { role: button, name: "🛌 Rest today" }
   button:not_your_day_change_it: { role: button, name: "not your day? change it" }
 

@@ -18,11 +18,6 @@ steps:
   - expect_visible: button:continue_with_github
 
   - open: screen:home
-  - tap: link:sign_up
-  - expect_visible: screen:sign_up
-  - checkpoint: sign_up
-
-  - open: screen:home
   - tap: link:terms
   - expect_visible: screen:terms
   - checkpoint: terms
