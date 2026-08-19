@@ -125,3 +125,26 @@ cd Attest && node src/cli/main.mjs run \
   --app <apk> --android-package com.snapfit.app --android-activity .MainActivity \
   --android-serial emulator-5554
 ```
+
+## Why this repository is public
+
+Standard GitHub-hosted runners are free and unlimited on public repositories. On a private one
+they are metered, and macOS bills at **10x**: a 2,000 minute monthly allowance is really 200 macOS
+minutes, and this project burned 767 of them in a single afternoon of CI iteration.
+
+Making the harness public removes that ceiling permanently instead of rationing around it, on all
+three runner families at once.
+
+Two things had to be true first:
+
+1. **The history, not just the current files.** `git log -p` on a public repository shows every
+   blob ever committed, so scrubbing only `HEAD` would have been theatre.
+2. **`.planning/` is a private working record.** It is where every leak came from: an employer
+   name, a container belonging to an unrelated project, an inventory of private side projects.
+   Three rounds of targeted scrubbing each found more, which is the signal that the directory as a
+   whole was never written for an audience. It is no longer tracked, stays on disk, and keeps
+   working locally. Only `REQUIREMENTS.md` is published, because `src/selfverify/corpus.mjs` reads
+   it to validate requirement ids.
+
+`codemagic.yaml` in the Snapfit repo remains as a fallback: 500 free macOS minutes a month on a
+personal account, counted 1:1, useful if this repository ever goes private again.

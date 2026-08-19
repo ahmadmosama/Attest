@@ -1,7 +1,8 @@
 # Attest: resume here
 
-Updated 2026-08-18. Working tree is clean, everything below is committed AND PUSHED to
-ahmadmosama/Attest, where CI is green on ubuntu, windows and macOS.
+Updated 2026-08-19. Working tree is clean, everything below is committed and pushed to
+github.com/ahmadmosama/Attest, which is now PUBLIC, so CI on ubuntu, windows and macOS is
+free and unlimited. All three are green.
 
 ## Where it stands
 
