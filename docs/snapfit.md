@@ -95,8 +95,11 @@ that surfaced because a test tried to reach a screen the way a user with a link 
 ## The third surface
 
 `.github/workflows/ios.yml` carries a `snapfit` job that builds Snapfit for the simulator and runs
-the same scenario files through idb. It is conditional on a token, because both repositories are
-private and the default `GITHUB_TOKEN` reaches only the repo running the workflow.
+the same scenario files through idb.
+
+This repository is public, so the macOS minutes are free. **Snapfit is still private**, and the
+default `GITHUB_TOKEN` reaches only the repo running the workflow, so reading it needs a token.
+That is the one remaining requirement, and it is a credential rather than a cost.
 
 The adapter conformance job blocks **unconditionally**, so the iOS surface itself is never
 unverified. What is conditional is only this extra proof against a second repository.
