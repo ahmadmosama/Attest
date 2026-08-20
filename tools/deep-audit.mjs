@@ -136,62 +136,39 @@ async function brokenImages(page) {
 }
 
 /**
- * A canvas that is much smaller than the box it was told to fill.
+ * A map container that collapsed to nothing.
  *
- * Map libraries measure their container once at construction and then listen
- * only for WINDOW resize. Mounted into a grid or flex column that gets its real
- * height after mount, the canvas keeps its initial size forever and the panel
- * renders blank. Nest's /search had a 987x300 canvas inside a 987x733 column:
- * tiles downloaded, markers built, nothing errored, and half the page was empty.
- *
- * Nothing else on a page looks like this, so the shape is a reliable signal.
+ * Map libraries measure their container once at construction. If CSS from the
+ * library itself overrides the positioning the container relied on, it can end
+ * up with zero height, and the library then falls back to a default canvas size
+ * inside a panel that shows nothing. Nest lost the entire right half of
+ * /search this way while tiles downloaded and markers built without error.
  */
-async function undersizedCanvases(page) {
-  return page.evaluate(() =>
-    Array.from(document.querySelectorAll("canvas"))
-      .map((canvas) => {
-        const canvasRect = canvas.getBoundingClientRect();
-        if (canvasRect.height === 0) {
+async function collapsedMapContainers(page) {
+  return page.evaluate(() => {
+    // A map ROOT with (near) zero height inside a parent that has real height.
+    //
+    // This replaced a ratio test ("canvas fills less than 75% of its
+    // container"), which could not tell a COLLAPSED map from a deliberately
+    // short one. backtrack sizes its map `h-[320px]` on purpose and was
+    // reported as broken; Nest's had genuinely collapsed to 0. A height of zero
+    // is unambiguous, so it is the thing to test, and the ratio was noise.
+    return Array.from(document.querySelectorAll(".maplibregl-map, .leaflet-container"))
+      .map((root) => {
+        const rect = root.getBoundingClientRect();
+        const parentRect = root.parentElement?.getBoundingClientRect();
+        if (!parentRect || rect.height > 50 || parentRect.height < 200) {
           return null;
         }
-
-        // Walk UP to the tallest near ancestor, not just the parent. A map
-        // library wraps its canvas in its own divs which are undersized too, so
-        // comparing against the immediate parent finds a perfect ratio and
-        // misses the bug entirely. The panel that was actually laid out is a few
-        // levels above.
-        // ...but not so far up that the "container" is the whole page. zajelai
-        // has a full-bleed hero canvas inside a 5,952px scroll wrapper, and
-        // comparing against that reported "fills only 12%" for a canvas doing
-        // exactly its job. A panel is at most about one screen tall; anything
-        // taller is the document, not a component.
-        const maxHostHeight = window.innerHeight * 1.5;
-        let host = null;
-        let node = canvas.parentElement;
-        for (let depth = 0; depth < 4 && node; depth += 1) {
-          const rect = node.getBoundingClientRect();
-          if (rect.height >= 200 && rect.height <= maxHostHeight && (host === null || rect.height > host.height)) {
-            host = { height: rect.height, width: rect.width };
-          }
-          node = node.parentElement;
-        }
-
-        const parentRect = host;
-        if (!parentRect) {
-          return null;
-        }
-        const ratio = canvasRect.height / parentRect.height;
-        return ratio < 0.75
-          ? {
-              canvas: `${Math.round(canvasRect.width)}x${Math.round(canvasRect.height)}`,
-              container: `${Math.round(parentRect.width)}x${Math.round(parentRect.height)}`,
-              fills: `${Math.round(ratio * 100)}%`
-            }
-          : null;
+        return {
+          root: `${Math.round(rect.width)}x${Math.round(rect.height)}`,
+          parent: `${Math.round(parentRect.width)}x${Math.round(parentRect.height)}`,
+          cls: String(root.className).slice(0, 50)
+        };
       })
       .filter(Boolean)
-      .slice(0, 3)
-  );
+      .slice(0, 2);
+  });
 }
 
 /**
@@ -308,7 +285,7 @@ export async function auditApp(browser, { name, url }) {
     report.measured.seo = await metaAndSeo(page);
     report.measured.links = await brokenLinks(page, origin);
     report.measured.brokenImages = await brokenImages(page);
-    report.measured.undersizedCanvases = await undersizedCanvases(page);
+    report.measured.collapsedMaps = await collapsedMapContainers(page);
     report.measured.emptyRegions = await emptyRegions(page);
   } catch (error) {
     report.findings.push({ severity: "high", what: `desktop load failed: ${String(error?.message ?? error).slice(0, 80)}` });
@@ -335,7 +312,7 @@ export async function auditApp(browser, { name, url }) {
     links = {},
     mobile = {},
     brokenImages: images = [],
-    undersizedCanvases: canvases = [],
+    collapsedMaps: canvases = [],
     emptyRegions: holes = []
   } = report.measured;
 
@@ -348,7 +325,7 @@ export async function auditApp(browser, { name, url }) {
   if (canvases.length > 0) {
     report.findings.push({
       severity: "high",
-      what: `canvas fills only ${canvases[0].fills} of its container (${canvases[0].canvas} in ${canvases[0].container}), a map or chart never told it resized`
+      what: `map container collapsed to ${canvases[0].root} inside a ${canvases[0].parent} parent, so the map renders nothing`
     });
   }
   if (holes.length > 0) {

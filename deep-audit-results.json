@@ -33,7 +33,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -78,7 +78,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -117,7 +117,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -167,7 +167,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -206,7 +206,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -245,7 +245,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -288,7 +288,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -331,7 +331,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": true,
@@ -390,7 +390,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": true,
@@ -445,7 +445,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -484,7 +484,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -527,7 +527,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -561,7 +561,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -611,7 +611,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -654,7 +654,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [
         "452x603 <div class=\"relative overflow-hidden aspect-[3\">",
         "452x603 <div class=\"absolute inset-0 mix-blend-overlay\">"
@@ -696,7 +696,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -735,7 +735,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -774,7 +774,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -825,7 +825,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -864,7 +864,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -903,7 +903,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -946,7 +946,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -1001,7 +1001,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": false,
@@ -1014,10 +1014,6 @@
     "name": "backtrack",
     "url": "https://backtrack-eight.vercel.app",
     "findings": [
-      {
-        "severity": "high",
-        "what": "canvas fills only 51% of its container (628x320 in 662x624), a map or chart never told it resized"
-      },
       {
         "severity": "high",
         "what": "scrolls sideways on a phone by 51px (widest: <article class=\"rounded-12 border p-24 transition durati\">)"
@@ -1048,18 +1044,7 @@
         "broken": []
       },
       "brokenImages": [],
-      "undersizedCanvases": [
-        {
-          "canvas": "628x320",
-          "container": "662x624",
-          "fills": "51%"
-        },
-        {
-          "canvas": "758x320",
-          "container": "760x472",
-          "fills": "68%"
-        }
-      ],
+      "collapsedMaps": [],
       "emptyRegions": [],
       "mobile": {
         "scrolls": true,
