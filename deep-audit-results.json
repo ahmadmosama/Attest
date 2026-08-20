@@ -5,15 +5,7 @@
     "findings": [
       {
         "severity": "medium",
-        "what": "no <h1> on the page"
-      },
-      {
-        "severity": "high",
-        "what": "no viewport meta tag, the page will not adapt on a phone"
-      },
-      {
-        "severity": "low",
-        "what": "no meta description"
+        "what": "1 button(s) with no accessible name"
       },
       {
         "severity": "low",
@@ -24,26 +16,35 @@
       "a11y": {
         "imagesNoAlt": 0,
         "inputsNoLabel": 0,
-        "buttonsNoName": 0,
-        "h1Count": 0,
+        "buttonsNoName": 1,
+        "h1Count": 1,
         "langSet": true,
-        "titleSet": false
+        "titleSet": true
       },
       "seo": {
-        "description": false,
-        "ogTitle": false,
+        "description": true,
+        "ogTitle": true,
         "ogImage": false,
-        "viewport": false,
+        "viewport": true,
         "favicon": false
       },
       "links": {
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
-        "worst": []
+        "worst": [
+          {
+            "tag": "span",
+            "cls": "",
+            "overflowPx": 76
+          }
+        ]
       }
     }
   },
@@ -76,6 +77,9 @@
         "checked": 2,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -112,6 +116,9 @@
         "checked": 2,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -159,6 +166,9 @@
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -195,6 +205,9 @@
         "checked": 12,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -231,6 +244,9 @@
         "checked": 2,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -271,6 +287,9 @@
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -311,6 +330,9 @@
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": true,
         "overflowPx": 215,
@@ -367,6 +389,9 @@
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": true,
         "overflowPx": 215,
@@ -419,6 +444,9 @@
         "checked": 6,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -455,6 +483,9 @@
         "checked": 1,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -495,6 +526,9 @@
         "checked": 4,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -526,6 +560,9 @@
         "checked": 12,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -573,6 +610,9 @@
         "checked": 6,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -584,6 +624,10 @@
     "name": "khayat",
     "url": "https://khayat-eight.vercel.app",
     "findings": [
+      {
+        "severity": "high",
+        "what": "empty region on screen: 452x603 <div class=\"relative overflow-hidden aspect-[3\">"
+      },
       {
         "severity": "low",
         "what": "no og:image, link previews will be blank"
@@ -609,6 +653,12 @@
         "checked": 4,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [
+        "452x603 <div class=\"relative overflow-hidden aspect-[3\">",
+        "452x603 <div class=\"absolute inset-0 mix-blend-overlay\">"
+      ],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -645,6 +695,9 @@
         "checked": 4,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -681,6 +734,9 @@
         "checked": 5,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -717,6 +773,9 @@
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -765,6 +824,9 @@
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -801,6 +863,9 @@
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -837,6 +902,9 @@
         "checked": 2,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -877,6 +945,9 @@
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -929,6 +1000,9 @@
         "checked": 2,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": false,
         "overflowPx": 0,
@@ -940,6 +1014,10 @@
     "name": "backtrack",
     "url": "https://backtrack-eight.vercel.app",
     "findings": [
+      {
+        "severity": "high",
+        "what": "canvas fills only 51% of its container (628x320 in 662x624), a map or chart never told it resized"
+      },
       {
         "severity": "high",
         "what": "scrolls sideways on a phone by 51px (widest: <article class=\"rounded-12 border p-24 transition durati\">)"
@@ -969,6 +1047,20 @@
         "checked": 0,
         "broken": []
       },
+      "brokenImages": [],
+      "undersizedCanvases": [
+        {
+          "canvas": "628x320",
+          "container": "662x624",
+          "fills": "51%"
+        },
+        {
+          "canvas": "758x320",
+          "container": "760x472",
+          "fills": "68%"
+        }
+      ],
+      "emptyRegions": [],
       "mobile": {
         "scrolls": true,
         "overflowPx": 51,
