@@ -35,8 +35,8 @@ works, and the two must not be confused in a report.
 | dialect | no `viewport` meta, so phones rendered at desktop width | prod: present |
 | nest | `/search` map collapsed to height 0, right half of the page blank | prod: map 0 -> 731px, 23 markers |
 | nest | dead Unsplash id, 10 occurrences, 2 visible as broken cards | prod: 0 broken images |
-| depth + zeeja | homepage scrolled sideways 215px on every phone: auto-sized grid column | local: 215px -> 0, same content length |
-| backtrack | scrolled sideways 51px on a phone: same grid cause plus an unwrappable flex header | local: 51px -> 0, same content length |
+| depth + zeeja | homepage scrolled sideways 215px on every phone: auto-sized grid column | prod: 0px overflow |
+| backtrack | scrolled sideways 51px on a phone: same grid cause plus an unwrappable flex header | prod: 0px overflow |
 
 ## Open, verified, not yet fixed
 
@@ -50,6 +50,7 @@ Ordered by user impact.
 | 6 | jarvis | no `<h1>` | medium |
 | 7 | 22 apps | no `og:image`, so every shared link previews blank | low, but portfolio wide |
 | 8 | backtrack | 56 CSP violations blocking OpenStreetMap tiles | needs re-check after the tile work |
+| 9 | backtrack (infra) | pushing to the repo does NOT deploy. Production was 67 days stale and only ever had one deployment; the fix above had to be pushed with `vercel deploy --prod` by hand. Worth checking the Git integration on every project that has not redeployed | high |
 
 ## Not yet started
 
