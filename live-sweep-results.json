@@ -15,11 +15,11 @@
     "url": "https://backtrack-eight.vercel.app",
     "status": 200,
     "testIds": 0,
-    "cspViolations": 56,
+    "cspViolations": 68,
     "serviceWorkerBroken": false,
     "nonEssentialFailures": 0,
     "verdict": "ok_csp_warnings",
-    "note": "renders, 56 CSP violation(s) worth fixing"
+    "note": "renders, 68 CSP violation(s) worth fixing"
   },
   {
     "name": "borrowed-reach",
@@ -81,11 +81,11 @@
     "url": "https://dialect-eight.vercel.app",
     "status": 200,
     "testIds": 0,
-    "cspViolations": 102,
+    "cspViolations": 0,
     "serviceWorkerBroken": false,
     "nonEssentialFailures": 0,
-    "verdict": "js_exception",
-    "note": "Connection closed."
+    "verdict": "ok",
+    "note": "Lahja — Living conversation, carried over"
   },
   {
     "name": "hfd-web",
