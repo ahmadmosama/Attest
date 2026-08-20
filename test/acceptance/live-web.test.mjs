@@ -4,6 +4,8 @@ import { mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { after, test } from "node:test";
 
+import { webStepTimeoutMs } from "../helpers/timeouts.mjs";
+
 const CLI = path.join(process.cwd(), "src/cli/main.mjs");
 const LIVE_URL = "https://candor-two-theta.vercel.app";
 const LIVE_TITLE = "Candor. Professional reputation, verified.";
@@ -64,7 +66,13 @@ async function reachability() {
   try {
     const response = await fetch(LIVE_URL, {
       method: "GET",
-      signal: AbortSignal.timeout(5000)
+      // A failed probe SKIPS this test rather than failing it, so a budget too
+      // tight to survive a cold Vercel lambda does not report a slow target: it
+      // reports a green suite that quietly stopped checking the live app at all.
+      // That is the failure mode this project exists to refuse, so the probe is
+      // given room to be slow, and only a genuinely unreachable target skips.
+      // It doubles as the warm-up for the run that follows.
+      signal: AbortSignal.timeout(15000)
     });
     if (!response.ok) {
       return { ok: false, reason: `live target returned HTTP ${response.status}` };
@@ -112,9 +120,13 @@ test("criterion 1 drives the live Candor web app through the chrome Playwright a
     "--artifacts",
     artifacts,
     "--timeout-step",
-    "10000",
+    String(webStepTimeoutMs(10000)),
+    // 60s was not enough on 2026-08-20: the scenario spent 91s and was killed
+    // mid-run on windows while ubuntu passed the same commit. The target is a
+    // Vercel deploy, so a cold lambda plus a slow runner is a normal worst case
+    // rather than an exotic one, and this budget has to cover both.
     "--timeout-scenario",
-    "60000"
+    "120000"
   ]);
 
   assert.equal(result.error, undefined, cliOutput(result));

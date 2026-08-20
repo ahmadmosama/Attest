@@ -15,6 +15,15 @@ name: check
 # skipped is the exact failure mode this project exists to refuse.
 on:
   push:
+    # The daily sync commit rewrites these two, and neither can change what the
+    # suite does: one is portfolio card text, the other is a scraped record of
+    # which deployed apps answered. On 2026-08-20 a commit touching ONLY these
+    # two spent a full ubuntu run plus a 13-minute windows run at 2x to prove
+    # nothing. Source-bearing daily syncs are unaffected, so this is narrower
+    # than a blanket [skip ci], which would have skipped those too.
+    paths-ignore:
+      - ".project-card.md"
+      - "live-sweep-results.json"
   pull_request:
   workflow_dispatch:
 
@@ -122,6 +131,18 @@ jobs:
       ATTEST_PG_STATEMENT_TIMEOUT_MS: "20000"
       ATTEST_PG_IDLE_TX_TIMEOUT_MS: "20000"
       ATTEST_PG_CONNECT_TIMEOUT_MS: "10000"
+      # Same correction, applied to the web surface, which never got it.
+      #
+      # On 2026-08-20 this leg failed three web tests while ubuntu passed the
+      # same commit, and TWO of the three were driving a local 127.0.0.1 server,
+      # so no network was involved. Re-running that identical SHA went green.
+      # The runner launches Chrome next to a second test file and a local
+      # PostgreSQL, and budgets of 1.2s to 5s tuned on a dev box have nothing
+      # left over for that.
+      #
+      # This is a floor, not a cap: tests that deliberately want a short timeout
+      # pass their own, and are unaffected.
+      ATTEST_WEB_STEP_TIMEOUT_MS: "15000"
 
     steps:
       - uses: actions/checkout@v4

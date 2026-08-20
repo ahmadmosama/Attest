@@ -7,6 +7,7 @@ import { convert } from "xmlbuilder2";
 
 import { scanBundleForSecrets } from "../../src/evidence/scan.mjs";
 import { startStaticServer } from "../helpers/static-server.mjs";
+import { webStepTimeoutMs } from "../helpers/timeouts.mjs";
 
 const CLI = path.join(process.cwd(), "src/cli/main.mjs");
 const FIXTURE_DIR = path.resolve("test/fixtures/web-app");
@@ -123,7 +124,14 @@ async function evidenceFiles(runDir, scenarioId) {
   return readdir(path.join(scenarioDir(runDir, scenarioId), "evidence"));
 }
 
-async function runFixture({ serverUrl, scenario, label, timeoutStep = "5000" }) {
+// One budget covers every step, so this floor has to be generous enough for the
+// fail scenario too: that one must survive steps 0..8 to time out where the test
+// says it does (index 9, never-revealed-state). If step 0 times out on a slow
+// host instead, the assertion fails on the step INDEX and reads like a bug in
+// the evidence chain rather than a runner that ran out of patience.
+const STEP_TIMEOUT_MS = String(webStepTimeoutMs(5000));
+
+async function runFixture({ serverUrl, scenario, label, timeoutStep = STEP_TIMEOUT_MS }) {
   const root = await tempRoot(label);
   const artifacts = path.join(root, "artifacts");
   const result = await runCli([
@@ -351,7 +359,7 @@ describe("Criterion 4", () => {
           serverUrl: server.url,
           scenario: FAIL_SCENARIO,
           label: "phase02-secret",
-          timeoutStep: "5000"
+          timeoutStep: STEP_TIMEOUT_MS
         });
         assertExit(fail.result, 1);
 

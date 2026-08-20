@@ -6,10 +6,13 @@ import { AttestError, InfraError, UnsupportedOpError } from "../../../src/errors
 import { executeAct } from "../../../src/surfaces/web/act.mjs";
 import { closeWebSession, openWebSession } from "../../../src/surfaces/web/session.mjs";
 import { startStaticServer } from "../../helpers/static-server.mjs";
+import { webStepTimeoutMs } from "../../helpers/timeouts.mjs";
 
 const FIXTURE_DIR = path.resolve("test/fixtures/web-app");
 const TEST_TIMEOUT = 120000;
-const STEP_TIMEOUT_MS = 1500;
+// No test here asserts that a timeout HAPPENS, so this number only exists to
+// keep a wedged run short. A slow host may raise the floor.
+const STEP_TIMEOUT_MS = webStepTimeoutMs(1500);
 
 const productReady = Object.freeze({ strategy: "testId", value: "product-grid" });
 const checkoutHeading = Object.freeze({ strategy: "roleName", role: "heading", name: "Checkout" });

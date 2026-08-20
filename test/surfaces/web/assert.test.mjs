@@ -7,10 +7,14 @@ import { createRedactor } from "../../../src/evidence/redact.mjs";
 import { executeAssert } from "../../../src/surfaces/web/assert.mjs";
 import { closeWebSession, openWebSession } from "../../../src/surfaces/web/session.mjs";
 import { startStaticServer } from "../../helpers/static-server.mjs";
+import { webStepTimeoutMs } from "../../helpers/timeouts.mjs";
 
 const FIXTURE_DIR = path.resolve("test/fixtures/web-app");
 const TEST_TIMEOUT = 120000;
-const STEP_TIMEOUT_MS = 1200;
+// Happy-path budget only. The tests that assert a convergence FAILURE pass their
+// own short assertTimeoutMs, so a slow host raising this floor cannot make them
+// stop failing, only make the passing paths patient.
+const STEP_TIMEOUT_MS = webStepTimeoutMs(1200);
 
 function isChromeMissing(error) {
   return error instanceof InfraError && error.code === "E_ADAPTER_BROWSER_LAUNCH";
