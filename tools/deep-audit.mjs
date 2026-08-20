@@ -70,13 +70,52 @@ async function horizontalOverflow(page) {
  */
 async function accessibility(page) {
   return page.evaluate(() => {
+    /**
+     * A control nobody can reach cannot have a labelling bug.
+     *
+     * This matters more than it sounds. A styled file-upload button is built
+     * by hiding a real `<input type="file" hidden>` and clicking it from an
+     * adjacent labelled button, which is correct markup, and an audit that
+     * calls it an unlabelled field sends you off to "fix" working code. Every
+     * false positive like that costs trust the gate cannot afford, so
+     * anything hidden, `display:none`, or zero-sized is out of scope.
+     */
+    const reachable = (el) => {
+      if (el.hasAttribute("hidden") || el.getAttribute("aria-hidden") === "true") {
+        return false;
+      }
+      if (el.closest("[inert]") !== null) {
+        return false;
+      }
+      const style = getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) {
+        return false;
+      }
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) {
+        return false;
+      }
+      /*
+        Parked off-screen on purpose.
+
+        Spam honeypots are real, focusable-looking inputs deliberately flung
+        to `-left-[9999px]`, and a contact form that uses one was reporting
+        two unlabelled fields that no human will ever type into. Labelling
+        them would be worse than useless: the whole point is that a person
+        never sees them. Judge by where the element actually sits relative to
+        the page, not by whether it has a box.
+      */
+      const pageWidth = document.documentElement.scrollWidth;
+      return rect.right > 0 && rect.left < pageWidth;
+    };
+
     const imagesNoAlt = Array.from(document.querySelectorAll("img")).filter(
       (img) => !img.hasAttribute("alt") && img.getAttribute("role") !== "presentation"
     ).length;
 
     const inputsNoLabel = Array.from(
       document.querySelectorAll("input:not([type=hidden]):not([type=submit]):not([type=button]), select, textarea")
-    ).filter((el) => {
+    ).filter(reachable).filter((el) => {
       if (el.getAttribute("aria-label") || el.getAttribute("aria-labelledby") || el.getAttribute("title")) {
         return false;
       }
@@ -86,9 +125,34 @@ async function accessibility(page) {
       return el.closest("label") === null;
     }).length;
 
-    const buttonsNoName = Array.from(document.querySelectorAll("button, [role=button]")).filter(
-      (el) => (el.innerText ?? "").trim() === "" && !el.getAttribute("aria-label") && !el.getAttribute("title")
-    ).length;
+    const buttonsNoName = Array.from(document.querySelectorAll("button, [role=button]"))
+      .filter(reachable)
+      .filter((el) => {
+        if (el.getAttribute("aria-label") || el.getAttribute("title")) {
+          return false;
+        }
+        const labelledBy = el.getAttribute("aria-labelledby");
+        if (labelledBy && labelledBy.split(/\s+/u).some((id) => document.getElementById(id))) {
+          return false;
+        }
+        // An icon button is named if its only child image carries alt text.
+        if (Array.from(el.querySelectorAll("img[alt]")).some((img) => img.alt.trim() !== "")) {
+          return false;
+        }
+        /*
+          `textContent`, deliberately not `innerText`.
+
+          `innerText` is layout-dependent and returns "" for anything the
+          browser has not laid out yet, which includes every subtree skipped
+          by `content-visibility`. A perfectly labelled call-to-action button
+          reading "Send and Book the Call" 5,636px down the page reported as
+          having no accessible name for exactly that reason. Screen readers
+          compute the name from the content, not from whether it happens to
+          be painted, so `textContent` is both the cheaper and the correct
+          signal here.
+        */
+        return (el.textContent ?? "").trim() === "";
+      }).length;
 
     // A page with no h1 is hard to navigate with a screen reader and usually
     // means the heading hierarchy was never thought about.
