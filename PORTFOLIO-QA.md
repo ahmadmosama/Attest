@@ -19,7 +19,7 @@ easiest way to ship a broken portfolio is to believe it was tested.
 | Audit battery: a11y, phone width, broken images, collapsed maps, dead links, meta | **verified**, every route |
 | Target actually serves the app (not an auth wall or error page) | **verified**, guarded in the tool |
 | Homepage smoke scenario | **verified**, 22 of 24 |
-| Android, driven on a real emulator | **verified**, Snapfit only, 2/2 scenarios |
+| Android, driven on a real emulator | **verified**, Snapfit (2/2) and LinguaPal (1/1) |
 | iOS, driven on a real simulator | **verified in CI**, Snapfit only, 40/40 on macos-26 |
 | Sign up, sign in, any authenticated view | **not tested** anywhere |
 | Any form submission, search, or write path | **not tested** anywhere |
@@ -80,8 +80,43 @@ Every one of these was found by pointing the tool at real apps.
 |---|---|
 | Authenticated flows | 5 apps are login walls; everything behind them is unverified |
 | Write paths and DB assertions | Attest's whole differentiator, unused against these apps |
-| Mobile surfaces beyond Snapfit | 6 apps ship one and none have been driven |
+| Mobile surfaces beyond Snapfit and LinguaPal | 5 apps ship one and none have been driven: sufra, kith-mobile, depth-app, hfd, JobWatcher-f |
 | Functional scenarios with value assertions | The Snapfit `fill` bug passed a scenario while writing `9898` into a field. Characterisation tests cannot catch that class |
+
+## Driving a second mobile app: what it actually took
+
+LinguaPal, start to a passing Android run, for anyone repeating this on the
+other five. None of these steps are optional and four of them fail in ways that
+look like something else.
+
+1. **Add testIDs.** The app had none. Binding to visible copy is the
+   alternative and it breaks on the first reword.
+2. **Build it OUTSIDE the monorepo.** Gradle resolves autolinked native modules
+   from the ROOT `node_modules`, and the repo root had expo 56 hoisted while
+   the app is SDK 52. In place it fails at configure time with
+   `Could not get unknown property 'release'`, which names nothing useful.
+3. **Fix the dependency drift first.** `async-storage ^3.1.1` needs Kotlin 2.x
+   where SDK 52 pins 1.9.25, so the build dies in `kspDebugKotlin` with a
+   Kotlin Build Tools signature mismatch. `npx expo install --check` names it
+   in one line. This copy had drifted from `linguapal-mobile`, which is the
+   repo that actually ships.
+4. **Hoist the nested expo modules.** A fresh install leaves expo-asset,
+   expo-file-system, expo-font and expo-keep-awake under
+   `node_modules/expo/node_modules`, where autolinking cannot see them. The APK
+   then builds fine and crashes at runtime with
+   `Cannot find native module 'ExpoAsset'`. `npx expo install <them>` hoists
+   them, and the APK must be rebuilt afterwards.
+5. **Serve the bundle.** A debug APK fetches its JS from Metro at
+   `10.0.2.2:8081`. With no dev server it is a blank screen with no testIDs in
+   the tree and every step times out looking exactly like a driver bug.
+6. **Give preflight room.** `--timeout-preflight 420000`, because preflight
+   installs a 155MB APK, and `--timeout-step 300000`, because the first cold
+   start after an install rebundles.
+7. **Scroll before asserting.** A control below the fold is not in the Android
+   accessibility tree at all. `scroll_until_visible` first, then assert.
+
+Disk: a local debug APK needs roughly 11GB free. Two builds failed on
+`not enough space on the disk` before that was obvious.
 
 ## How to resume
 
