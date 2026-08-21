@@ -18,13 +18,13 @@ easiest way to ship a broken portfolio is to believe it was tested.
 | Every discovered route audited, not just `/` | **verified**, 86 routes across 24 apps |
 | Audit battery: a11y, phone width, broken images, collapsed maps, dead links, meta | **verified**, every route |
 | Target actually serves the app (not an auth wall or error page) | **verified**, guarded in the tool |
-| Homepage smoke scenario | **verified**, 22 of 24 |
+| Homepage smoke scenario | **verified**, 24 of 24 |
 | Android, driven on a real emulator | **verified**, Snapfit (2/2) and LinguaPal (1/1) |
 | iOS, driven on a real simulator | **verified in CI**, Snapfit only, 40/40 on macos-26 |
 | Sign up, sign in, any authenticated view | **not tested** anywhere |
 | Any form submission, search, or write path | **not tested** anywhere |
 | Database state after an action | **not tested** anywhere |
-| Mobile surfaces of the other apps | **not tested**: sufra, language-assistant, kith-mobile, depth-app, hfd, JobWatcher-f |
+| Mobile surfaces of the other apps | **not tested**: sufra, kith-mobile, depth-app, hfd, JobWatcher-f |
 | Error and loading states | **not tested**; one empty state was found broken and fixed |
 
 A green smoke suite means "the front door opens". It does not mean the app
@@ -61,7 +61,7 @@ jarvis's title stopped being a styled `span`.
 | candor | `/workspace` scrolled sideways 300px: a 7 column table forced `main` to 690px. Broken with JS disabled too, so not a hydration flash | prod: 690 -> 390px, table scrolls in its own box, all 7 columns reachable |
 | snapfit (Android) | header rendered under the status bar, wordmark drawn on top of the system clock and icons. RN's `SafeAreaView` is iOS only | emulator: status bar on its own row, wordmark clean |
 | khayat, language-assistant, sufra-admin, candor, jarvis, borrowed-reach, productivity-musl | 9 unlabelled controls and 2 missing headings | deployed and re-probed |
-| dialect, rentals, professional-feedback, candor | last 5 medium findings: unnamed play control, 2 unnamed search controls, 2 missing `h1` | pushed, re-crawl pending |
+| dialect, rentals, professional-feedback, candor | last 5 medium findings: unnamed play control, 2 unnamed search controls, 2 missing `h1` | re-crawled: 0 medium across all 86 routes |
 
 ## Fixed in Attest itself
 
