@@ -119,7 +119,16 @@ export function createFakeSurface(script) {
       return descriptor;
     },
 
-    preflight() {
+    async preflight(_ctx, { signal } = {}) {
+      if (normalizedScript.preflightDelayMs > 0) {
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(resolve, normalizedScript.preflightDelayMs);
+          signal?.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(signal.reason);
+          }, { once: true });
+        });
+      }
       return Object.freeze({ ok: true });
     },
 

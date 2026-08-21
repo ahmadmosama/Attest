@@ -113,6 +113,10 @@ export function defineScript(partial = {}) {
   });
   const byIndex = normalizeByIndex(partial.byIndex ?? {});
   const unknownKind = partial.unknownKind ?? "throw";
+  // Lets a test model a slow preflight. Preflight is where a real adapter
+  // installs the app and acquires the device, which on a large mobile build
+  // is by far the longest part of a run, so its budget has to be testable.
+  const preflightDelayMs = partial.preflightDelayMs ?? 0;
 
   assertNonEmptyString(surface, "surface");
   if (!UNKNOWN_KIND_VALUES.includes(unknownKind)) {
@@ -131,7 +135,8 @@ export function defineScript(partial = {}) {
     supports,
     byKind,
     byIndex,
-    unknownKind
+    unknownKind,
+    preflightDelayMs
   });
 }
 

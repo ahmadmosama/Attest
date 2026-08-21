@@ -334,6 +334,37 @@ test("child CLI carries headed mode into the run record", async () => {
   });
 });
 
+test("child CLI maps --timeout-preflight onto the preflight budget", async () => {
+  await withCliFixture(async (cwd) => {
+    // Preflight is where a real adapter installs the app and acquires the
+    // device, so its budget scales with the size of the app under test rather
+    // than with the scenario. Every other budget had a flag and this one did
+    // not, which made a large mobile app untestable: a 123MB Expo debug build
+    // takes far longer than the 15s default to `adb install`, and the run died
+    // as an infra_error with no lever to pull.
+    const baseArgs = [
+      "run",
+      "--scenarios",
+      "scenarios/smoke.attest.yaml",
+      "--bindings",
+      "bindings",
+      "--app",
+      "https://example.test",
+      "--surface",
+      "web"
+    ];
+    const script = JSON.stringify({ preflightDelayMs: 400 });
+
+    const tooTight = runCli(cwd, [...baseArgs, "--timeout-preflight", "50"], { ATTEST_FAKE_SCRIPT: script });
+    const roomy = runCli(cwd, [...baseArgs, "--timeout-preflight", "20000"], { ATTEST_FAKE_SCRIPT: script });
+
+    // A preflight that cannot finish in its budget is infrastructure, not a
+    // failing scenario, so it exits 2 rather than 1.
+    assert.equal(tooTight.status, 2, tooTight.stderr);
+    assert.equal(roomy.status, 0, roomy.stderr);
+  });
+});
+
 test("runCommand passes all resolved timeout budgets into the run context", async () => {
   await withCliFixture(async (cwd) => {
     const seen = [];

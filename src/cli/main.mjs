@@ -67,6 +67,12 @@ function programFor(io) {
     .option(flag("requirements <file>"))
     .option(flag("timeout-step <ms>"), undefined, parseInteger)
     .option(flag("timeout-scenario <ms>"), undefined, parseInteger)
+    // Preflight is where the APK is installed and the device lease is
+    // acquired, so its budget scales with the size of the app, not with the
+    // scenario. A 123MB Expo debug build takes well over the 15s default to
+    // `adb install`, and until this flag existed that produced an
+    // infra_error with no lever to pull: the run was simply impossible.
+    .option(flag("timeout-preflight <ms>"), undefined, parseInteger)
     // Android needs a package and a launch activity, and neither is inferred
     // from the APK. Without these flags the surface would only be reachable
     // through a programmatic config, which would make "one command runs it"
@@ -84,7 +90,8 @@ function programFor(io) {
     .action(async (options) => {
       const timeouts = {
         ...(options.timeoutStep === undefined ? {} : { stepMs: options.timeoutStep }),
-        ...(options.timeoutScenario === undefined ? {} : { scenarioMs: options.timeoutScenario })
+        ...(options.timeoutScenario === undefined ? {} : { scenarioMs: options.timeoutScenario }),
+        ...(options.timeoutPreflight === undefined ? {} : { preflightMs: options.timeoutPreflight })
       };
       const android = {
         ...(options.androidPackage === undefined ? {} : { package: options.androidPackage }),
