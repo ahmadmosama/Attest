@@ -26,5 +26,12 @@ steps:
   # Picking a language is what enables the finish button, so this proves the
   # form's one piece of real logic rather than just that the controls exist.
   - tap: toggle:spanish
+
+  # The form is a long ScrollView and the finish button sits below the fold,
+  # so it is not in the accessibility tree at all until it is scrolled to.
+  # Asserting it directly timed out against a perfectly healthy screen, which
+  # is a scenario bug rather than an app bug: on a phone, "is it visible" and
+  # "does it exist" are different questions.
+  - scroll_until_visible: button:finish
   - expect_visible: button:finish
   - checkpoint: onboarding_filled
