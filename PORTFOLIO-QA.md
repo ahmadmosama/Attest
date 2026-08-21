@@ -34,8 +34,17 @@ works, and the two must not be confused in a report.
 
 `node tools/crawl-audit.mjs targets-live.json 8`
 
-**24 apps, 86 routes, 0 high findings.** The 5 remaining medium findings all
-have fixes pushed and are awaiting a final re-crawl to confirm.
+**24 apps, 86 routes, 0 high and 0 medium findings**, re-crawled against
+production after every fix was deployed.
+
+83 low findings remain and are all one thing: 82 routes have no `og:image`, so
+a shared link previews blank, plus one missing meta description. Not fixed
+here, because the fix is a design decision (what the card should look like)
+rather than a defect, and it touches all 24 repos.
+
+Smoke scenarios: **24 of 24 apps**, all passing. dialect and jarvis were the
+last two without one; neither had an `h1` for the generator to anchor on until
+jarvis's title stopped being a styled `span`.
 
 ## Fixed and verified in production
 
