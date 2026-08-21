@@ -1,0 +1,30 @@
+id: linguapal.onboarding
+requirement: [DROID-02]
+tags: [linguapal, smoke]
+
+# The first screen a new user meets, driven as a user would drive it.
+#
+# This is NOT a characterisation test: it asserts what the form should do, not
+# what it happened to render when observed. The name is typed and then read
+# back, because a fill that silently appends to an existing value passes a
+# scenario while writing nonsense. That exact bug shipped in Snapfit's size
+# form (98 typed into a field already holding 98 produced 9898, and the run
+# said nothing), so every fill here is followed by an assertion on the value.
+#
+# It deliberately stops short of tapping "meet Alex". That button creates a
+# user against the API, so a smoke test that taps it cannot run without a
+# backend, and a smoke test that needs a backend is a smoke test that gets
+# skipped.
+steps:
+  - open: screen:onboarding
+  - expect_visible: screen:onboarding
+  - checkpoint: onboarding_open
+
+  - fill: { target: field:name, value: "Ahmad" }
+  - expect_text: { target: field:name, equals: "Ahmad" }
+
+  # Picking a language is what enables the finish button, so this proves the
+  # form's one piece of real logic rather than just that the controls exist.
+  - tap: toggle:spanish
+  - expect_visible: button:finish
+  - checkpoint: onboarding_filled

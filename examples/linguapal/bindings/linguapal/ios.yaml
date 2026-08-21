@@ -1,0 +1,30 @@
+# LinguaPal, iOS.
+#
+# LinguaPal (github.com/ahmadmosama/language-assistant, apps/mobile) is an Expo
+# app that had no testIDs at all, so nothing here could be bound stably. They
+# were added alongside these bindings rather than binding to visible copy,
+# which would break the moment a label is reworded.
+#
+# In React Native a `testID` becomes `resource-id` on Android and
+# `accessibilityIdentifier` on iOS, so the same ids drive an ios.yaml that
+# differs only in its `surface:` line.
+surface: ios
+
+elements:
+  # Onboarding. Named by meaning, not by position on screen, so reordering the
+  # form does not silently rebind a step to the wrong control.
+  field:name: { testId: onboarding-name }
+  toggle:spanish: { testId: onboarding-lang-es }
+  toggle:italian: { testId: onboarding-lang-it }
+  button:finish: { testId: onboarding-finish }
+
+  # Chat
+  field:message: { testId: chat-input }
+  button:settings: { testId: chat-settings }
+
+screens:
+  screen:onboarding: { deeplink: "linguapal://onboarding", ready: { testId: onboarding-root } }
+  screen:chat: { deeplink: "linguapal://chat", ready: { testId: chat-root } }
+  screen:settings: { deeplink: "linguapal://settings", ready: { testId: settings-root } }
+
+states: {}
