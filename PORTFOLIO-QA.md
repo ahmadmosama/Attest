@@ -5,7 +5,7 @@ defects, production ready". Written to disk deliberately: this is more work than
 fits in one context, so progress lives here rather than in a conversation, and
 any session can resume by reading this file.
 
-Updated 2026-08-20.
+Updated 2026-08-21.
 
 ## What has actually been verified, and what has not
 
@@ -15,61 +15,85 @@ easiest way to ship a broken portfolio is to believe it was tested.
 | Layer | State |
 |---|---|
 | Every app loads and renders | **verified**, real browser, all 24 |
-| Homepage smoke scenario | **verified**, 22 of 24 pass (2 have no `<h1>` to anchor) |
-| Homepage audit: a11y, mobile width, broken images, dead links, meta | **verified**, all 24 |
-| Any route other than `/` | **not tested**, except Nest `/search` |
+| Every discovered route audited, not just `/` | **verified**, 86 routes across 24 apps |
+| Audit battery: a11y, phone width, broken images, collapsed maps, dead links, meta | **verified**, every route |
+| Target actually serves the app (not an auth wall or error page) | **verified**, guarded in the tool |
+| Homepage smoke scenario | **verified**, 22 of 24 |
+| Android, driven on a real emulator | **verified**, Snapfit only, 2/2 scenarios |
+| iOS, driven on a real simulator | **verified in CI**, Snapfit only, 40/40 on macos-26 |
 | Sign up, sign in, any authenticated view | **not tested** anywhere |
 | Any form submission, search, or write path | **not tested** anywhere |
 | Database state after an action | **not tested** anywhere |
-| iOS / Android builds | **not tested**, except Snapfit |
-| Error, loading and empty states | **not tested** anywhere |
+| Mobile surfaces of the other apps | **not tested**: sufra, language-assistant, kith-mobile, depth-app, hfd, JobWatcher-f |
+| Error and loading states | **not tested**; one empty state was found broken and fixed |
 
 A green smoke suite means "the front door opens". It does not mean the app
 works, and the two must not be confused in a report.
 
-## Fixed and deployed
+## Current standing
+
+`node tools/crawl-audit.mjs targets-live.json 8`
+
+**24 apps, 86 routes, 0 high findings.** The 5 remaining medium findings all
+have fixes pushed and are awaiting a final re-crawl to confirm.
+
+## Fixed and verified in production
 
 | App | Defect | Verified |
 |---|---|---|
-| dialect | CSP blanked the whole site: nonce nothing applied blocked Next's bootstrap, React never started | prod: 0 -> 1727 chars, 0 CSP violations |
-| dialect | no `viewport` meta, so phones rendered at desktop width | prod: present |
+| khayat, mobilia, cross-boarders, language-assistant, sawa | CSP carried a nonce **and** `'unsafe-inline'` in `style-src`. A nonce makes the browser ignore `unsafe-inline`, and a `style="..."` attribute can never carry a nonce, so every inline style was dropped. `strict-dynamic` in `script-src` also made `'self'` ignored, blocking the apps' own chunks | khayat 12/12 gradients paint (was 0), CSP errors 26 -> 0 on language-assistant, 0 across all five |
+| dialect | CSP blanked the whole site: React never started | prod: 0 -> 1727 chars |
+| dialect | no `viewport` meta, phones rendered at desktop width | prod: present |
 | nest | `/search` map collapsed to height 0, right half of the page blank | prod: map 0 -> 731px, 23 markers |
-| nest | dead Unsplash id, 10 occurrences, 2 visible as broken cards | prod: 0 broken images |
-| depth + zeeja | homepage scrolled sideways 215px on every phone: auto-sized grid column | prod: 0px overflow |
-| backtrack | scrolled sideways 51px on a phone: same grid cause plus an unwrappable flex header | prod: 0px overflow |
+| nest | dead Unsplash id, 10 occurrences | prod: 0 broken images |
+| depth + zeeja | homepage scrolled sideways 215px on every phone | prod: 0px |
+| backtrack | scrolled sideways 51px on a phone | prod: 0px |
+| cross-boarders | `/travelers` scrolled sideways 6px: a `flex-1` centre column with default `min-width:auto` between two `shrink-0` items | prod: 396 -> 390px, 0 offenders |
+| candor | `/workspace` scrolled sideways 300px: a 7 column table forced `main` to 690px. Broken with JS disabled too, so not a hydration flash | prod: 690 -> 390px, table scrolls in its own box, all 7 columns reachable |
+| snapfit (Android) | header rendered under the status bar, wordmark drawn on top of the system clock and icons. RN's `SafeAreaView` is iOS only | emulator: status bar on its own row, wordmark clean |
+| khayat, language-assistant, sufra-admin, candor, jarvis, borrowed-reach, productivity-musl | 9 unlabelled controls and 2 missing headings | deployed and re-probed |
+| dialect, rentals, professional-feedback, candor | last 5 medium findings: unnamed play control, 2 unnamed search controls, 2 missing `h1` | pushed, re-crawl pending |
 
-## Open, verified, not yet fixed
+## Fixed in Attest itself
 
-Ordered by user impact.
+Every one of these was found by pointing the tool at real apps.
 
-| # | App | Defect | Severity |
-|---|---|---|---|
-| 1 | khayat | 452x603 panel renders empty: its `repeating-linear-gradient` with `oklch()` is rejected by the browser, so the texture never paints | high |
-| 4 | sufra-admin, jarvis, productivity-musl | form fields with no label | medium |
-| 5 | dialect, consultalyst, professional-feedback, jarvis | buttons with no accessible name | medium |
-| 6 | jarvis | no `<h1>` | medium |
-| 7 | 22 apps | no `og:image`, so every shared link previews blank | low, but portfolio wide |
-| 8 | backtrack | 56 CSP violations blocking OpenStreetMap tiles | needs re-check after the tile work |
-| 9 | backtrack (infra) | pushing to the repo does NOT deploy. Production was 67 days stale and only ever had one deployment; the fix above had to be pushed with `vercel deploy --prod` by hand. Worth checking the Git integration on every project that has not redeployed | high |
+| Fix | Why it mattered |
+|---|---|
+| Target reachability guard | A target pointed at a Vercel team-scoped URL behind deployment protection. Vercel's login page answered with **HTTP 200**, and five routes were audited and reported as the app with a few minor notes. The app never loaded once and nothing said so. Now a hard failure, checked by host, because the redirect ends on `vercel.com/login` and that page's `<title>` sits past any sane read limit |
+| Hidden and off-screen controls excluded | A styled upload button hides a real `<input type=file hidden>`; a spam honeypot is a real input at `-9999px`. Both were reported as unlabelled fields |
+| Button names read from `textContent` | `innerText` is layout-dependent and returns `""` for subtrees skipped by `content-visibility`, so a labelled call-to-action 5,636px down the page reported as unnamed |
+| `--timeout-preflight` | Preflight installs the APK, so its cost scales with app size. Pinned at 15s with no flag, a 123MB Expo build died as `infra_error` before a single step ran |
 
 ## Not yet started
 
 | Scope | Why it matters |
 |---|---|
-| Routes beyond `/` on 23 apps | Nest's worst bug was on `/search`, not `/`. The homepage is the least likely page to be broken |
 | Authenticated flows | 5 apps are login walls; everything behind them is unverified |
-| Mobile surfaces | sufra, language-assistant, kith-mobile, depth-app, hfd, JobWatcher-f all ship a mobile app. Only Snapfit has been driven |
+| Write paths and DB assertions | Attest's whole differentiator, unused against these apps |
+| Mobile surfaces beyond Snapfit | 6 apps ship one and none have been driven |
 | Functional scenarios with value assertions | The Snapfit `fill` bug passed a scenario while writing `9898` into a field. Characterisation tests cannot catch that class |
 
 ## How to resume
 
 ```bash
 cd "C:/Users/ahmad/Desktop/Claude/Attest"
-node tools/live-sweep.mjs targets.json     # is anything down
-node tools/deep-audit.mjs targets.json     # current defect list
-bash tools/run-portfolio.sh                # smoke scenarios, all apps
+node tools/crawl-audit.mjs targets-live.json 8   # every route of every app
+node tools/live-sweep.mjs targets-live.json      # is anything down
+bash tools/run-portfolio.sh                      # smoke scenarios
+```
+
+Android, against a running emulator. The APK is a debug build, so Metro must be
+serving from the app's own directory or the screen stays blank and every step
+times out:
+
+```bash
+node src/cli/main.mjs run --scenarios "examples/snapfit/scenarios/*.yaml" \
+  --bindings examples/snapfit/bindings --surface android \
+  --app <apk> --android-package com.snapfit.app --android-activity .MainActivity \
+  --timeout-preflight 300000 --timeout-step 300000
 ```
 
 Every fix follows the same loop, and the last step is not optional: reproduce
-against the live app, fix, rebuild locally, verify the measurement changed,
-push with `[skip ci]`, then verify again in production.
+against the live app, fix, rebuild locally, verify the measurement changed, push
+with `[skip ci]`, then verify again in production.
