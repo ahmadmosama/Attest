@@ -1,0 +1,3621 @@
+[
+  {
+    "name": "dialect",
+    "url": "https://dialect-eight.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "span",
+                "cls": "",
+                "overflowPx": 76
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "sawa",
+    "url": "https://sawa-zeta.vercel.app",
+    "routes": 4,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 2,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/forgot-password",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 1,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/login",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 2,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/signup",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 1,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "jobwatcher-web",
+    "url": "https://jobwatcher-web-eight.vercel.app",
+    "routes": 3,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 2,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "div",
+                "cls": "absolute left-1/2 top-0 -translate-x-1/2",
+                "overflowPx": 205
+              },
+              {
+                "tag": "div",
+                "cls": "absolute top-1/2 left-1/2 -translate-x-1",
+                "overflowPx": 105
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/login",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 1,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/signup",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 1,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "ahmad-plan",
+    "url": "https://ahmad-plan.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "rentals",
+    "url": "https://rentals-swart.vercel.app",
+    "routes": 8,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/dashboard",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "button",
+                "cls": "inline-flex items-center gap-2 px-4 py-3",
+                "overflowPx": 284
+              },
+              {
+                "tag": "span",
+                "cls": "inline-flex items-center justify-center ",
+                "overflowPx": 268
+              },
+              {
+                "tag": "svg",
+                "cls": "[object SVGAnimatedString]",
+                "overflowPx": 192
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/how-it-works",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/list-your-place",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/neighborhoods",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/onboarding",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/search",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "button",
+                "cls": "life-pill shrink-0",
+                "overflowPx": 1045
+              },
+              {
+                "tag": "span",
+                "cls": "",
+                "overflowPx": 968
+              },
+              {
+                "tag": "button",
+                "cls": "life-pill shrink-0",
+                "overflowPx": 942
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/trust",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "language-assistant",
+    "url": "https://language-assistant-six.vercel.app",
+    "routes": 3,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 2,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/chat",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/onboarding",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "sufra-admin",
+    "url": "https://sufra-admin-three.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "zeeja",
+    "url": "https://zeeja.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "depth",
+    "url": "https://depth-gamma.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "borrowed-reach",
+    "url": "https://borrowed-reach-dashboard.vercel.app",
+    "routes": 7,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/comments",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "table",
+                "cls": "min-w-full",
+                "overflowPx": 224
+              },
+              {
+                "tag": "thead",
+                "cls": "",
+                "overflowPx": 224
+              },
+              {
+                "tag": "tr",
+                "cls": "bg-gray-50 border-b border-gray-200",
+                "overflowPx": 224
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/leads",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "table",
+                "cls": "min-w-full",
+                "overflowPx": 388
+              },
+              {
+                "tag": "thead",
+                "cls": "",
+                "overflowPx": 388
+              },
+              {
+                "tag": "tr",
+                "cls": "bg-gray-50 border-b border-gray-200",
+                "overflowPx": 388
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/overview",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/posts",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "div",
+                "cls": "flex-1 bg-white rounded-xl border border",
+                "overflowPx": 587
+              },
+              {
+                "tag": "h2",
+                "cls": "text-sm font-medium text-gray-700 mb-4",
+                "overflowPx": 562
+              },
+              {
+                "tag": "div",
+                "cls": "mb-4",
+                "overflowPx": 562
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/settings",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "span",
+                "cls": "inline-flex items-center rounded-full bg",
+                "overflowPx": 75
+              },
+              {
+                "tag": "span",
+                "cls": "inline-flex items-center rounded-full bg",
+                "overflowPx": 59
+              },
+              {
+                "tag": "span",
+                "cls": "inline-flex items-center rounded-full bg",
+                "overflowPx": 59
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/swipe",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "consultalyst",
+    "url": "https://consultalyst.online",
+    "routes": 2,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": true,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 1,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/resume",
+        "findings": [],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": true,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 1,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "professional-feedback",
+    "url": "https://professional-feedback.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no meta description"
+          },
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": false,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "div",
+                "cls": "chart-side",
+                "overflowPx": 268
+              },
+              {
+                "tag": "canvas",
+                "cls": "",
+                "overflowPx": 268
+              },
+              {
+                "tag": "div",
+                "cls": "bm-card",
+                "overflowPx": 255
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "zajelai",
+    "url": "https://zajelai.com",
+    "routes": 8,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": true,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "span",
+                "cls": "",
+                "overflowPx": 57
+              },
+              {
+                "tag": "span",
+                "cls": "",
+                "overflowPx": 10
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/en",
+        "findings": [],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": true,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "span",
+                "cls": "",
+                "overflowPx": 57
+              },
+              {
+                "tag": "span",
+                "cls": "",
+                "overflowPx": 10
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/en/about",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/en/contact",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/en/solutions",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/en/solutions/automation",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/en/solutions/dashboards",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/en/solutions/data-chat",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "candor",
+    "url": "https://candor-two-theta.vercel.app",
+    "routes": 8,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/dashboard",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/dashboard/reflection",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/dsar",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/lookup-manager",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/policy",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/search",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/workspace",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 4,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "table",
+                "cls": "w-full min-w-[680px]",
+                "overflowPx": 315
+              },
+              {
+                "tag": "thead",
+                "cls": "bg-surface-raised text-text-subtle text-",
+                "overflowPx": 315
+              },
+              {
+                "tag": "tr",
+                "cls": "h-12",
+                "overflowPx": 315
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "khayat",
+    "url": "https://khayat-eight.vercel.app",
+    "routes": 8,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 4,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/admin/matching",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/customer/discover",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/customer/generate",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/customer/saw-this",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/customer/style-dna",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/supplier/catalog",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 4,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "table",
+                "cls": "w-full text-sm",
+                "overflowPx": 202
+              },
+              {
+                "tag": "thead",
+                "cls": "bg-bg sticky top-0",
+                "overflowPx": 202
+              },
+              {
+                "tag": "tr",
+                "cls": "text-tn uppercase tracking-wider text-fa",
+                "overflowPx": 202
+              }
+            ]
+          }
+        }
+      },
+      {
+        "route": "/tailor/inbox",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "mobilia",
+    "url": "https://mobilia-omega.vercel.app",
+    "routes": 8,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 4,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/account",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 4,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/canvas",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 7,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/carpenter",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 2,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/jobs",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/messages",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 4,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/render",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 7,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/upload",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 7,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "cross-boarders",
+    "url": "https://cross-boarders.vercel.app",
+    "routes": 8,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/duties",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/escrow",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 5,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/manifest",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 6,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/more",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 12,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/retailers",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 4,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/seal",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 4,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/travelers",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 4,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "hfd-web",
+    "url": "https://hfd-web-iota.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "jarvis",
+    "url": "https://jarvis-six-blond.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "tariq-transit",
+    "url": "https://tariq-transit.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "prism",
+    "url": "https://prism-two-kappa.vercel.app",
+    "routes": 4,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 2,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/forgot-password",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 1,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/login",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 2,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/signup",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 1,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "productivity-musl",
+    "url": "https://productivity-musl-landing.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": true,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": true
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": [
+              {
+                "tag": "div",
+                "cls": "flex flex-col items-center flex-[0_0_260",
+                "overflowPx": 1283
+              },
+              {
+                "tag": "div",
+                "cls": "relative mx-auto border-[14px] border-gr",
+                "overflowPx": 1283
+              },
+              {
+                "tag": "div",
+                "cls": "rounded-[2rem] overflow-hidden w-[272px]",
+                "overflowPx": 1269
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "streaming",
+    "url": "https://streaming-three-navy.vercel.app",
+    "routes": 4,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 2,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/login",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 3,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/signin",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 2,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      },
+      {
+        "route": "/signup",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 3,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "backtrack",
+    "url": "https://backtrack-eight.vercel.app",
+    "routes": 1,
+    "pages": [
+      {
+        "route": "/",
+        "findings": [
+          {
+            "severity": "low",
+            "what": "no og:image, link previews will be blank"
+          }
+        ],
+        "measured": {
+          "a11y": {
+            "imagesNoAlt": 0,
+            "inputsNoLabel": 0,
+            "buttonsNoName": 0,
+            "h1Count": 1,
+            "langSet": true,
+            "titleSet": true
+          },
+          "seo": {
+            "description": true,
+            "ogTitle": false,
+            "ogImage": false,
+            "viewport": true,
+            "favicon": false
+          },
+          "links": {
+            "checked": 0,
+            "broken": []
+          },
+          "brokenImages": [],
+          "collapsedMaps": [],
+          "emptyRegions": [],
+          "mobile": {
+            "scrolls": false,
+            "overflowPx": 0,
+            "worst": []
+          }
+        }
+      }
+    ]
+  }
+]
