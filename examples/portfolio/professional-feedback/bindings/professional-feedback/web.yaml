@@ -7,16 +7,9 @@
 surface: web
 
 elements:
-  text:primary_heading: { role: heading, name: "Log in to Vercel" }
-  button:continue_with_email: { role: button, name: "Continue with Email" }
-  button:continue_with_google: { role: button, name: "Continue with Google" }
-  button:continue_with_github: { role: button, name: "Continue with GitHub" }
-  link:terms: { role: link, name: "Terms" }
-  link:privacy_policy: { role: link, name: "Privacy Policy" }
+  text:primary_heading: { role: heading, name: "Hiring is blind. On purpose." }
 
 screens:
-  screen:home: { path: "/", ready: { role: heading, name: "Log in to Vercel" } }
-  screen:terms: { path: "/legal/terms", ready: { role: heading, name: "Terms of Service" } }
-  screen:privacy_policy: { path: "/legal/privacy-notice", ready: { role: heading, name: "Privacy Notice" } }
+  screen:home: { path: "/", ready: { role: heading, name: "Hiring is blind. On purpose." } }
 
 states: {}

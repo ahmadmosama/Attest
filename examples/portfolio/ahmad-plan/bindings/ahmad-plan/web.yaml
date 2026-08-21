@@ -8,7 +8,13 @@ surface: web
 
 elements:
   text:primary_heading: { role: heading, name: "Ahmad Osama Tayel" }
-  button:start_pull_day: { role: button, name: "Start Pull Day →" }
+  # Deliberately NOT bound: the primary CTA reads "Start Pull Day →" one day
+  # and "Start Leg Day →" the next, because the label follows the training
+  # split. The generator captured whichever day it happened to run on, so the
+  # scenario asserted "Pull" and failed on the six days that are not pull day.
+  # Bindings match a name exactly, so there is no honest way to express "Start
+  # <whatever> Day" here. A check that cries wolf six days in seven is worse
+  # than no check: it trains you to ignore the gate.
   button:rest_today: { role: button, name: "🛌 Rest today" }
   button:not_your_day_change_it: { role: button, name: "not your day? change it" }
 
